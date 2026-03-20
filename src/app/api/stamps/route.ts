@@ -1,0 +1,99 @@
+// ════════════════════════════════════════════════
+// app/api/stamps/route.ts
+//
+// 自動集章 API
+// POST /api/stamps?action=add    → 訂單完成時加章
+// POST /api/stamps?action=deduct → 取消/退款時扣章
+// ════════════════════════════════════════════════
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
+export async function POST(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const action = searchParams.get('action'); // 'add' | 'deduct'
+
+  if (!action || !['add', 'deduct'].includes(action)) {
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  }
+
+  const { order_id } = await req.json();
+  if (!order_id) return NextResponse.json({ error: 'Missing order_id' }, { status: 400 });
+
+  // ── 1. 取得訂單資料 ──────────────────────────────
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, member_id, total, pay_status')
+    .eq('id', order_id)
+    .single();
+
+  if (!order || !order.member_id) {
+    return NextResponse.json({ ok: false, reason: '無會員帳號，不計算集章' });
+  }
+
+  // ── 2. 取得集章設定 ──────────────────────────────
+  const { data: settings } = await supabase
+    .from('store_settings')
+    .select('stamp_enabled, stamp_threshold')
+    .eq('id', 1)
+    .single();
+
+  if (!settings?.stamp_enabled) {
+    return NextResponse.json({ ok: false, reason: '集章系統未啟用' });
+  }
+
+  const threshold = settings.stamp_threshold ?? 200;
+
+  // ── 3. 計算章數 ──────────────────────────────────
+  const stampsToChange = Math.floor(order.total / threshold);
+  if (stampsToChange <= 0) {
+    return NextResponse.json({ ok: false, reason: '消費金額不足一章' });
+  }
+
+  // ── 4. 取得會員目前章數 ──────────────────────────
+  const { data: member } = await supabase
+    .from('members')
+    .select('id, stamps')
+    .eq('id', order.member_id)
+    .single();
+
+  if (!member) return NextResponse.json({ error: '找不到會員' }, { status: 404 });
+
+  const stampsBefore = member.stamps ?? 0;
+  let   stampsAfter: number;
+
+  if (action === 'add') {
+    stampsAfter = stampsBefore + stampsToChange;
+  } else {
+    // deduct：扣回章數，最低為 0
+    stampsAfter = Math.max(0, stampsBefore - stampsToChange);
+  }
+
+  // ── 5. 更新會員章數 ──────────────────────────────
+  await supabase.from('members').update({
+    stamps:             stampsAfter,
+    stamp_last_updated: new Date().toISOString(),
+  }).eq('id', order.member_id);
+
+  // ── 6. 寫入集章記錄 ──────────────────────────────
+  await supabase.from('stamp_logs').insert({
+    member_id:     order.member_id,
+    order_id:      order_id,
+    change:        action === 'add' ? stampsToChange : -stampsToChange,
+    stamps_before: stampsBefore,
+    stamps_after:  stampsAfter,
+    reason:        action === 'add' ? '訂單完成自動集章' : '訂單取消／退款扣章',
+  });
+
+  return NextResponse.json({
+    ok:            true,
+    stamps_before: stampsBefore,
+    stamps_after:  stampsAfter,
+    change:        action === 'add' ? stampsToChange : -stampsToChange,
+  });
+}

@@ -1,0 +1,215 @@
+// ════════════════════════════════════════════════
+// app/api/available-dates/route.ts
+//
+// 計算購物車所有商品可出貨日期的交集
+//
+// POST body:
+// {
+//   items: [{ product_id, variant_id, qty }]
+// }
+//
+// 回傳:
+// {
+//   dates: ['2026-03-26', '2026-03-30'],  // 可選日期
+//   noIntersection: false,
+//   reason?: string  // 無交集時的說明
+// }
+// ════════════════════════════════════════════════
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
+interface CartItem {
+  product_id: number;
+  variant_id: number | null;
+  qty:        number;
+}
+
+// ── 把日期字串轉成 Date ───────────────────────────
+const toDate = (s: string) => new Date(s + 'T00:00:00');
+
+// ── 格式化 Date 成 YYYY-MM-DD ────────────────────
+const fmt = (d: Date) => d.toISOString().split('T')[0];
+
+// ── 產生總量模式的可選日期集合 ────────────────────
+function generateStockModeDates(
+  today:           Date,
+  shipMinDays:     number,
+  shipMaxDays:     number,
+  blockedWeekdays: string[],  // ['0','6'] = 週日、週六
+  blockedDates:    string[],  // ['2026-04-04']
+  productStartDate?: string | null,
+  productEndDate?:   string | null,
+  productBlockedDates?: string[],
+): Set<string> {
+  const result = new Set<string>();
+
+  // 計算起訖日
+  const start = new Date(today);
+  start.setDate(start.getDate() + shipMinDays);
+
+  const end = new Date(today);
+  end.setDate(end.getDate() + shipMaxDays);
+
+  // 商品層級覆蓋
+  const effectiveStart = productStartDate ? toDate(productStartDate) : start;
+  const effectiveEnd   = productEndDate   ? toDate(productEndDate)   : end;
+
+  // 合併封鎖日期
+  const allBlocked = new Set([...blockedDates, ...(productBlockedDates ?? [])]);
+
+  // 逐日生成
+  const cur = new Date(Math.max(effectiveStart.getTime(), start.getTime()));
+  while (cur <= effectiveEnd && cur <= end) {
+    const dateStr   = fmt(cur);
+    const weekday   = String(cur.getDay()); // 0=週日, 6=週六
+    const isBlocked = blockedWeekdays.includes(weekday) || allBlocked.has(dateStr);
+    if (!isBlocked) result.add(dateStr);
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  return result;
+}
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const items: CartItem[] = body.items ?? [];
+
+  if (!items.length) {
+    return NextResponse.json({ dates: [], noIntersection: false });
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // ── 1. 取得商店設定 ──────────────────────────────
+  const { data: settings } = await supabase
+    .from('store_settings')
+    .select('ship_min_days, ship_max_days, ship_blocked_weekdays, ship_blocked_dates')
+    .eq('id', 1)
+    .single();
+
+  const shipMinDays     = settings?.ship_min_days ?? 1;
+  const shipMaxDays     = settings?.ship_max_days ?? 14;
+  const blockedWeekdays = JSON.parse(settings?.ship_blocked_weekdays ?? '["0","6"]') as string[];
+  const blockedDates    = JSON.parse(settings?.ship_blocked_dates    ?? '[]')        as string[];
+
+  // ── 2. 取得所有商品資料 ──────────────────────────
+  const productIds = [...new Set(items.map(i => i.product_id))];
+  const { data: products } = await supabase
+    .from('products')
+    .select('id, stock_mode, is_preorder, ship_start_date, ship_end_date, ship_blocked_dates')
+    .in('id', productIds);
+
+  // ── 3. 預購批次資料 ──────────────────────────────
+  const preorderProductIds = (products ?? [])
+    .filter((p: any) => p.is_preorder)
+    .map((p: any) => p.id);
+
+  let preorderBatches: any[] = [];
+  if (preorderProductIds.length > 0) {
+    const todayStr = fmt(today);
+    const { data } = await supabase
+      .from('preorder_batches')
+      .select('product_id, variant_id, ship_date')
+      .in('product_id', preorderProductIds)
+      .eq('is_active', true)
+      .or(`starts_at.is.null,starts_at.lte.${todayStr}`)
+      .or(`ends_at.is.null,ends_at.gte.${todayStr}`);
+    preorderBatches = data ?? [];
+  }
+
+  // ── 4. 日期模式商品的可出貨日資料 ───────────────
+  const dateModeProductIds = (products ?? [])
+    .filter((p: any) => p.stock_mode === 'date_mode' && !p.is_preorder)
+    .map((p: any) => p.id);
+
+  let shipDates: any[] = [];
+  if (dateModeProductIds.length > 0) {
+    const { data } = await supabase
+      .from('product_ship_dates')
+      .select('product_id, variant_id, ship_date, capacity, reserved')
+      .in('product_id', dateModeProductIds)
+      .eq('is_open', true)
+      .gt('capacity', 0);
+    // 只取剩餘數量 > 0 的
+    shipDates = (data ?? []).filter((d: any) => d.capacity - d.reserved > 0);
+  }
+
+  // ── 5. 各商品算出日期集合 ────────────────────────
+  // 從 null 開始做交集（null 表示還沒有任何集合）
+  let intersection: Set<string> | null = null;
+
+  const intersect = (set: Set<string>) => {
+    if (intersection === null) {
+      intersection = new Set(set);
+    } else {
+      for (const d of intersection) {
+        if (!set.has(d)) intersection.delete(d);
+      }
+    }
+  };
+
+  for (const item of items) {
+    const product = (products ?? []).find((p: any) => p.id === item.product_id);
+    if (!product) continue;
+
+    // ── 預購商品 ──────────────────────────────────
+    if (product.is_preorder) {
+      const batch = preorderBatches.find((b: any) =>
+        b.product_id === item.product_id &&
+        (b.variant_id ?? null) === (item.variant_id ?? null)
+      );
+      if (!batch) {
+        // 此預購商品沒有進行中的批次 → 交集為空
+        intersect(new Set<string>());
+        continue;
+      }
+      intersect(new Set([batch.ship_date]));
+      continue;
+    }
+
+    // ── 日期模式商品 ──────────────────────────────
+    if (product.stock_mode === 'date_mode') {
+      const availableDates = shipDates
+        .filter((d: any) =>
+          d.product_id === item.product_id &&
+          (d.variant_id ?? null) === (item.variant_id ?? null) &&
+          // 確認當天剩餘數量 >= 顧客要買的數量
+          (d.capacity - d.reserved) >= item.qty
+        )
+        .map((d: any) => d.ship_date as string);
+      intersect(new Set(availableDates));
+      continue;
+    }
+
+    // ── 總量模式商品 ──────────────────────────────
+    const productBlockedDates = JSON.parse(product.ship_blocked_dates ?? '[]') as string[];
+    const stockDates = generateStockModeDates(
+      today, shipMinDays, shipMaxDays,
+      blockedWeekdays, blockedDates,
+      product.ship_start_date,
+      product.ship_end_date,
+      productBlockedDates,
+    );
+    intersect(stockDates);
+  }
+
+  // ── 6. 排序並回傳 ─────────────────────────────────
+  const dates = [...(intersection ?? new Set<string>())].sort();
+
+  if (dates.length === 0) {
+    return NextResponse.json({
+      dates: [],
+      noIntersection: true,
+      reason: '您的購物車商品無法安排在同一天出貨，請分開下單或調整購物車內容。',
+    });
+  }
+
+  return NextResponse.json({ dates, noIntersection: false });
+}
