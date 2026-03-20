@@ -142,7 +142,7 @@ export default function CheckoutPage() {
     setName(addr.name ?? '');
     setPhone(addr.phone ?? '');
     if (addr.type === 'home') {
-      if (addr.city?.includes('normal') || true) setShipMethod('home_cold');
+      setShipMethod('home_cold');
       setCity(addr.city ?? '');
       setDistrict(addr.district ?? '');
       setAddress(addr.address ?? '');
@@ -390,8 +390,6 @@ export default function CheckoutPage() {
       {/* Step 2 */}
       {step === 2 && (
         <div>
-          <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 28px' }}>收件資訊</h2>
-
           <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 28px' }}>收件資訊</h2>
 
           {/* 已儲存地址快速帶入 */}
