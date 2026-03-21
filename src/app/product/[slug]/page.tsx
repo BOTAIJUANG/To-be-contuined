@@ -16,10 +16,10 @@ async function getProduct(slug: string) {
     .from('products')
     .select(`
       id, name, name_en, slug, price, description, image_url,
-      is_available, is_sold_out, is_preorder, preorder_note,
+      is_available, is_sold_out, is_preorder, preorder_note, variant_label,
       categories(name),
       product_specs(label, value),
-      product_variants(id, name, price_diff, is_available)
+      product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
     `)
     .eq('slug', slug)
     .eq('is_available', true)
@@ -27,19 +27,17 @@ async function getProduct(slug: string) {
   return data;
 }
 
-async function getActiveBatch(productId: number) {
+async function getActiveBatches(productId: number) {
   const today = new Date().toISOString().split('T')[0];
   const { data } = await supabase
     .from('preorder_batches')
     .select('*')
     .eq('product_id', productId)
-    .eq('is_active', true)
+    .eq('status', 'active')
     .or(`starts_at.is.null,starts_at.lte.${today}`)
     .or(`ends_at.is.null,ends_at.gte.${today}`)
-    .order('ship_date')
-    .limit(1)
-    .single();
-  return data;
+    .order('ship_date');
+  return data ?? [];
 }
 
 async function getStoreSettings() {
@@ -52,16 +50,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const [product, storeSettings] = await Promise.all([getProduct(slug), getStoreSettings()]);
   if (!product) notFound();
 
-  // 如果是預購商品，取得進行中的批次
-  const activeBatch = product.is_preorder ? await getActiveBatch(product.id) : null;
+  // 如果是預購商品，取得所有開放中的批次
+  const activeBatches = product.is_preorder ? await getActiveBatches(product.id) : [];
+  const hasBatches    = activeBatches.length > 0;
 
-  // 預購狀態
-  const today = new Date().toISOString().split('T')[0];
+  // 預購狀態（整體）
   const preorderStatus = (() => {
     if (!product.is_preorder) return null;
-    if (!activeBatch) return 'no_batch';
-    if (activeBatch.starts_at && activeBatch.starts_at > today) return 'upcoming';
-    if (activeBatch.ends_at   && activeBatch.ends_at   < today) return 'ended';
+    if (!hasBatches) return 'no_batch';
     return 'active';
   })();
 
@@ -120,45 +116,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               NT$ {product.price.toLocaleString()}
             </div>
 
-            {/* 預購批次資訊 */}
-            {product.is_preorder && (
-              <div style={{ marginBottom: '24px' }}>
-                {preorderStatus === 'active' && activeBatch && (
-                  <div style={{ padding: '16px 20px', background: '#e8f0fb', border: '1px solid #b5d4f4' }}>
-                    <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', color: '#2a5a8c', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      {activeBatch.name} — 預購進行中
-                    </div>
-                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E1C1A', marginBottom: '4px' }}>
-                      本批次預計 <span style={{ color: '#2a5a8c' }}>{activeBatch.ship_date}</span> 出貨
-                    </div>
-                    {activeBatch.ends_at && (
-                      <div style={{ fontSize: '12px', color: '#888580', marginTop: '4px' }}>
-                        預購截止：{activeBatch.ends_at}
-                      </div>
-                    )}
-                    {activeBatch.limit_qty > 0 && (
-                      <div style={{ fontSize: '12px', color: '#b87a2a', marginTop: '4px' }}>
-                        本批次限量 {activeBatch.limit_qty} 份
-                      </div>
-                    )}
-                    {product.preorder_note && (
-                      <div style={{ fontSize: '12px', color: '#555250', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #b5d4f4' }}>
-                        {product.preorder_note}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {preorderStatus === 'upcoming' && activeBatch && (
-                  <div style={{ padding: '16px 20px', background: '#EDE9E2', border: '1px solid #E8E4DC' }}>
-                    <div style={{ fontSize: '14px', color: '#1E1C1A', fontWeight: 600, marginBottom: '4px' }}>即將開放預購</div>
-                    <div style={{ fontSize: '13px', color: '#888580' }}>預購將於 {activeBatch.starts_at} 開放，敬請期待</div>
-                  </div>
-                )}
-                {(preorderStatus === 'ended' || preorderStatus === 'no_batch') && (
-                  <div style={{ padding: '16px 20px', background: '#fef0f0', border: '1px solid #f5c6c6' }}>
-                    <div style={{ fontSize: '14px', color: '#c0392b', fontWeight: 600 }}>本次預購已結束</div>
-                  </div>
-                )}
+            {/* 預購批次選擇（已在 AddToCartButton 裡顯示，這裡只保留無批次提示）*/}
+            {product.is_preorder && preorderStatus === 'no_batch' && (
+              <div style={{ marginBottom: '24px', padding: '16px 20px', background: '#fef0f0', border: '1px solid #f5c6c6' }}>
+                <div style={{ fontSize: '14px', color: '#c0392b', fontWeight: 600 }}>目前暫無開放預購批次</div>
               </div>
             )}
 
@@ -191,10 +152,18 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 slug:             product.slug,
                 isSoldOut:        product.is_sold_out,
                 isPreorder:       product.is_preorder,
-                preorderShipDate: activeBatch?.ship_date ?? undefined,
+                preorderBatches:  activeBatches,
+                preorderShipDate: activeBatches[0]?.ship_date ?? undefined,
                 preorderStatus:   (preorderStatus as any) ?? undefined,
-                preorderStartsAt: activeBatch?.starts_at ?? undefined,
-                preorderEndsAt:   activeBatch?.ends_at ?? undefined,
+                variantLabel:     (product as any).variant_label ?? '規格',
+                variants:         ((product.product_variants ?? []) as any[])
+                  .filter(v => v.is_available)
+                  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                  .map(v => ({
+                    id:    v.id,
+                    name:  v.name,
+                    price: v.price ?? (product.price + (v.price_diff ?? 0)),
+                  })),
               }}
             />
           </div>

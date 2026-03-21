@@ -24,19 +24,18 @@ export default function AnnouncementBar() {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('announcements')
         .select('content, type, speed')
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      console.log('公告資料：', data, '錯誤：', error);
-
-      if (data) {
-        setContent(data.content);
-        setType(data.type ?? 'normal');
-        setSpeed(data.speed ?? 'normal');
+      const item = data?.[0];
+      if (item) {
+        setContent(item.content);
+        setType(item.type ?? 'normal');
+        setSpeed(item.speed ?? 'normal');
       }
     };
 

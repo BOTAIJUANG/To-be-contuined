@@ -39,6 +39,8 @@ export default function Nav() {
 
   const [storeName, setStoreName] = useState('未半甜點');
   const [userName,  setUserName]  = useState<string | null>(null);
+  const [isAdmin,   setIsAdmin]   = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   // 載入商店名稱
   useEffect(() => {
@@ -55,17 +57,52 @@ export default function Nav() {
 
   // 監聽登入狀態
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUserName(session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null);
-      }
-    });
+    const checkSession = async () => {
+      // 先從 localStorage 快速顯示（避免 hydration 問題，在 useEffect 裡才讀）
+      const cachedName = localStorage.getItem('cached_user_name');
+      const cachedId   = localStorage.getItem('cached_user_id');
+      if (cachedName) setUserName(cachedName);
+      if (cachedId && localStorage.getItem(`role_${cachedId}`) === 'admin') setIsAdmin(true);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const name = session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null;
+        setUserName(name);
+        if (name) localStorage.setItem('cached_user_name', name);
+        localStorage.setItem('cached_user_id', session.user.id);
+
+        // 先從 localStorage 讀取 role（快速顯示）
+        const cachedRole = localStorage.getItem(`role_${session.user.id}`);
+        if (cachedRole === 'admin') setIsAdmin(true);
+
+        // 再從 DB 確認（背景更新）
+        const { data: member } = await supabase.from('members').select('role').eq('id', session.user.id).single();
+        const role = member?.role ?? 'user';
+        localStorage.setItem(`role_${session.user.id}`, role);
+        setIsAdmin(role === 'admin');
+      } else {
+        setIsAdmin(false);
+      }
+      setAuthReady(true);
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUserName(session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null);
+        const cachedRole = localStorage.getItem(`role_${session.user.id}`);
+        if (cachedRole === 'admin') setIsAdmin(true);
+        const { data: member } = await supabase.from('members').select('role').eq('id', session.user.id).single();
+        const role = member?.role ?? 'user';
+        localStorage.setItem(`role_${session.user.id}`, role);
+        setIsAdmin(role === 'admin');
       } else {
+        // 登出時清除所有 role cache
+        Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
+        localStorage.removeItem('cached_user_name');
+        localStorage.removeItem('cached_user_id');
         setUserName(null);
+        setIsAdmin(false);
       }
     });
 
@@ -108,6 +145,24 @@ export default function Nav() {
 
       {/* 右：登入 + 購物車 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* 後台按鈕（僅 admin 且 auth 確認後顯示）*/}
+        {authReady && isAdmin && (
+          <button
+            onClick={() => router.push('/admin')}
+            style={{
+              padding: '8px 16px',
+              border: '1px solid #1E1C1A',
+              background: 'transparent',
+              fontFamily: '"Montserrat", sans-serif',
+              fontSize: '11px', letterSpacing: '0.2em',
+              color: '#1E1C1A', cursor: 'pointer',
+              textTransform: 'uppercase',
+            }}
+          >
+            後台
+          </button>
+        )}
+
         {/* 登入/會員按鈕 */}
         <button
           onClick={() => router.push('/member')}

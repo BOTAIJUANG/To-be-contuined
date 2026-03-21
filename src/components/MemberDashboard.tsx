@@ -49,7 +49,9 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
   const [redeemNotice,    setRedeemNotice]    = useState('');
 
   // 兌換流程
-  const [activeRedemptions, setActiveRedemptions] = useState<any[]>([]); // 目前進行中的兌換
+  const [activeRedemptions, setActiveRedemptions] = useState<any[]>([]);
+  const [stampLogsData,     setStampLogsData]     = useState<any[]>([]);
+  const [showAllLogs,       setShowAllLogs]        = useState(false); // 目前進行中的兌換
   const [showRedeemModal,   setShowRedeemModal]   = useState(false);
   const [selectedReward,    setSelectedReward]    = useState<any | null>(null);
   const [redeemType,        setRedeemType]        = useState<'online' | 'code'>('online');
@@ -80,6 +82,15 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
       if (member)   { setName(member.name ?? userName); setPhone(member.phone ?? ''); setBirthday(member.birthday ?? ''); setStamps(member.stamps ?? 0); setStampsFrozen(member.stamps_frozen ?? 0); }
       if (settings) { setStampGoal(settings.stamp_goal ?? 8); setStampTotalSlots(settings.stamp_total_slots ?? 10); setStampThreshold(settings.stamp_threshold ?? 200); setStampExpiry(settings.stamp_expiry ?? 365); setStampCardName(settings.stamp_card_name ?? '未半甜點護照'); setStampIconUrl(settings.stamp_icon_url ?? ''); setRedeemNotice(settings.redeem_notice_text ?? ''); }
       if (redeem)   { setRedeemItems(redeem); }
+
+      // 載入集章異動記錄
+      const { data: logs } = await supabase
+        .from('stamp_logs')
+        .select('id, change, stamps_after, reason, created_at')
+        .eq('member_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      setStampLogsData(logs ?? []);
 
       // 載入進行中的兌換
       const { data: activeReds } = await supabase
@@ -421,6 +432,34 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               <div>每消費 NT${stampThreshold.toLocaleString()} 累積 1 章</div>
               <div>章的有效期限：最後一次消費後 {stampExpiry} 天</div>
             </div>
+
+            {/* 最近異動記錄 */}
+            {stampLogsData.length > 0 && (
+              <div style={{ marginTop: '28px' }}>
+                <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#888580', marginBottom: '12px' }}>最近異動記錄</div>
+                <div>
+                  {(showAllLogs ? stampLogsData : stampLogsData.slice(0, 10)).map(log => (
+                    <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', color: '#1E1C1A', marginBottom: '2px' }}>{log.reason ?? '—'}</div>
+                        <div style={{ fontSize: '11px', color: '#888580' }}>{new Date(log.created_at).toLocaleDateString('zh-TW')}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: log.change > 0 ? '#2ab85a' : '#c0392b' }}>
+                          {log.change > 0 ? '+' : ''}{log.change}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#888580' }}>餘 {log.stamps_after} 章</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {stampLogsData.length > 10 && (
+                  <button onClick={() => setShowAllLogs(!showAllLogs)} style={{ marginTop: '12px', padding: '8px 0', background: 'transparent', border: 'none', fontSize: '12px', color: '#888580', cursor: 'pointer', textDecoration: 'underline' }}>
+                    {showAllLogs ? '收起' : `查看更多（共 ${stampLogsData.length} 筆）`}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 

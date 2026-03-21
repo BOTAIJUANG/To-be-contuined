@@ -10,14 +10,25 @@ async function getCategories() {
   return data ?? [];
 }
 
-async function getAllProducts(): Promise<Product[]> {
+async function getAllProducts(categories: { id: number; sort_order?: number }[]): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
-    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, categories(name)')
+    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, category_id, categories(name, sort_order)')
     .eq('is_available', true)
     .order('sort_order');
 
-  return (data ?? []).map((p: any) => ({
+  // 先按分類 sort_order，再按商品 sort_order
+  const catOrderMap: Record<number, number> = {};
+  categories.forEach((c, i) => { catOrderMap[c.id] = i; });
+
+  const sorted = (data ?? []).sort((a: any, b: any) => {
+    const catA = catOrderMap[a.category_id] ?? 999;
+    const catB = catOrderMap[b.category_id] ?? 999;
+    if (catA !== catB) return catA - catB;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+
+  return sorted.map((p: any) => ({
     id:         String(p.id),
     name:       p.name,
     slug:       p.slug,
@@ -35,7 +46,8 @@ async function getStoreSettings() {
 }
 
 export default async function ShopPage() {
-  const [categories, products, storeSettings] = await Promise.all([getCategories(), getAllProducts(), getStoreSettings()]);
+  const categories = await getCategories();
+  const [products, storeSettings] = await Promise.all([getAllProducts(categories), getStoreSettings()]);
 
   return (
     <>

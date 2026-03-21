@@ -16,8 +16,8 @@ export default function ContactPage() {
 
   return (
     <>
-      <div style={{ width: 'min(calc(100% - 60px), 1100px)', margin: 'auto', padding: '72px 0' }}>
-        <div style={{ maxWidth: '600px' }}>
+      <div style={{ width: 'min(calc(100% - 60px), 1100px)', margin: 'auto', padding: '72px 0', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '600px' }}>
           <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 12px' }}>
             聯絡資訊
           </h2>
@@ -45,8 +45,10 @@ export default function ContactPage() {
           {socials.length > 0 && (
             <div style={{ display: 'flex', gap: '12px', paddingTop: '24px' }}>
               {socials.map(s => (
-                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#555250', letterSpacing: '0.1em', textDecoration: 'none', padding: '8px 16px', border: '1px solid #E8E4DC' }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.6')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: '12px', color: '#555250', letterSpacing: '0.1em', textDecoration: 'none', padding: '8px 16px', border: '1px solid #E8E4DC' }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.6')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                   {s.label}
                 </a>
               ))}

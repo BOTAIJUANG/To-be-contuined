@@ -39,6 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router   = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -52,6 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .single();
 
       if (member?.role !== 'admin') { router.replace('/'); return; }
+      setUserName(session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? '');
       setChecking(false);
     };
     checkAdmin();
@@ -86,7 +88,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <nav style={{ flex: 1, padding: '0 12px' }}>
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = item.href === '/admin'
+              ? pathname === '/admin'
+              : pathname.startsWith(item.href);
             return (
               <Link key={item.href} href={item.href} style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
@@ -125,9 +129,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* 右側內容 */}
-      <main style={{ padding: '40px 48px', overflowY: 'auto' }}>
-        {children}
-      </main>
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* 右上角 header */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', padding: '14px 48px', borderBottom: '1px solid #E8E4DC', background: '#fff' }}>
+          <Link href="/" style={{ fontSize: '12px', color: '#888580', textDecoration: 'none', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.15em' }}>
+            ← 前台
+          </Link>
+          <span style={{ fontSize: '12px', color: '#1E1C1A', fontFamily: '"Noto Sans TC", sans-serif', letterSpacing: '0.1em' }}>{userName}</span>
+        </div>
+        <main style={{ padding: '40px 48px', overflowY: 'auto', flex: 1 }}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

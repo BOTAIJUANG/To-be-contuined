@@ -9,9 +9,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
-import Nav from '@/components/Nav';
-import CartDrawer from '@/components/CartDrawer';
-import AnnouncementBar from '@/components/AnnouncementBar';
+import ClientShell from '@/components/ClientShell';
 import { supabase } from '@/lib/supabase';
 import Script from 'next/script';
 
@@ -106,10 +104,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
 
         <CartProvider>
-          <AnnouncementBar />
-          <Nav />
-          {children}
-          <CartDrawer />
+          <ClientShell>
+            {children}
+          </ClientShell>
         </CartProvider>
       </body>
     </html>

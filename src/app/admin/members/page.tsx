@@ -10,9 +10,12 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 type MemberTab = 'list' | 'stamps' | 'redeem' | 'stats';
+type DetailTab = 'profile' | 'stamp_logs' | 'redemptions';
 
-interface Member { id: string; name: string; phone: string; birthday: string; stamps: number; role: string; created_at: string; }
+interface Member { id: string; name: string; phone: string; birthday: string; stamps: number; stamps_frozen?: number; role: string; created_at: string; email?: string; }
 interface RedeemItem { id: number; name: string; description: string | null; stamps: number; monthly_limit: number; redeemed_count: number; starts_at: string | null; ends_at: string | null; is_active: boolean; }
+interface StampLog { id: number; change: number; stamps_before: number; stamps_after: number; reason: string; admin_id: string | null; created_at: string; admin_name?: string; }
+interface RedemptionLog { id: number; type: string; status: string; stamps_cost: number; redeem_code: string | null; created_at: string; used_at: string | null; reward_name?: string; }
 
 const thStyle: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' };
 const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none' };
@@ -58,6 +61,14 @@ export default function AdminMembersPage() {
 
   // 顧客統計
   const [stats, setStats] = useState({ total: 0, newThisMonth: 0, withOrders: 0, avgStamps: 0, stampsFull: 0, stampsInProgress: 0, topSpenders: [] as any[] });
+
+  // 會員詳情面板
+  const [showDetail,    setShowDetail]    = useState(false);
+  const [detailMember,  setDetailMember]  = useState<Member | null>(null);
+  const [detailTab,     setDetailTab]     = useState<DetailTab>('profile');
+  const [stampLogs,     setStampLogs]     = useState<StampLog[]>([]);
+  const [redemptionLogs,setRedemptionLogs]= useState<RedemptionLog[]>([]);
+  const [logsLoading,   setLogsLoading]   = useState(false);
 
   const loadMembers = async () => {
     setLoading(true);
@@ -114,10 +125,82 @@ export default function AdminMembersPage() {
   useEffect(() => { loadMembers(); loadStampSettings(); loadRedeemItems(); loadProducts(); }, []);
   useEffect(() => { if (tab === 'stats') loadStats(); }, [tab]);
 
-  const updateStamps = async (id: string, stamps: number) => {
-    if (stamps < 0) return;
-    await supabase.from('members').update({ stamps }).eq('id', id);
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, stamps } : m));
+  // 集章手動調整 Modal
+  const [showStampModal,  setShowStampModal]  = useState(false);
+  const [stampModalMember, setStampModalMember] = useState<Member | null>(null);
+  const [stampDelta,       setStampDelta]       = useState(0);
+  const [stampReason,      setStampReason]      = useState('');
+  const [stampReasonOther, setStampReasonOther] = useState('');
+  const [savingStampAdj,   setSavingStampAdj]   = useState(false);
+
+  const STAMP_REASONS = ['手動補登', '補償', '退款', '活動', '其他'];
+
+  // 開啟會員詳情面板
+  const openDetail = async (m: Member) => {
+    setDetailMember(m);
+    setDetailTab('profile');
+    setShowDetail(true);
+    setLogsLoading(true);
+
+    const { data: logs } = await supabase
+      .from('stamp_logs')
+      .select('*')
+      .eq('member_id', m.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const adminIds = [...new Set((logs ?? []).filter((l: any) => l.admin_id).map((l: any) => l.admin_id))];
+    let adminMap: Record<string, string> = {};
+    if (adminIds.length > 0) {
+      const { data: admins } = await supabase.from('members').select('id, name').in('id', adminIds);
+      (admins ?? []).forEach((a: any) => { adminMap[a.id] = a.name; });
+    }
+    setStampLogs((logs ?? []).map((l: any) => ({ ...l, admin_name: l.admin_id ? (adminMap[l.admin_id] ?? '管理員') : null })));
+
+    const { data: redemptions } = await supabase
+      .from('redemptions')
+      .select('id, type, status, stamps_cost, redeem_code, created_at, used_at, redeem_items(name)')
+      .eq('member_id', m.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    setRedemptionLogs((redemptions ?? []).map((r: any) => ({ ...r, reward_name: r.redeem_items?.name ?? '—' })));
+    setLogsLoading(false);
+  };
+
+  const openStampModal = (m: Member, delta: number) => {
+    setStampModalMember(m);
+    setStampDelta(delta);
+    setStampReason('手動補登');
+    setStampReasonOther('');
+    setShowStampModal(true);
+  };
+
+  const handleStampAdjust = async () => {
+    if (!stampModalMember) return;
+    const reason = stampReason === '其他' ? stampReasonOther : stampReason;
+    if (!reason.trim()) { alert('請填寫原因'); return; }
+
+    const newStamps = Math.max(0, stampModalMember.stamps + stampDelta);
+    setSavingStampAdj(true);
+
+    // 更新章數
+    await supabase.from('members').update({ stamps: newStamps }).eq('id', stampModalMember.id);
+
+    // 寫入 stamp_logs
+    const { data: { session } } = await supabase.auth.getSession();
+    await supabase.from('stamp_logs').insert({
+      member_id:     stampModalMember.id,
+      change:        stampDelta,
+      stamps_before: stampModalMember.stamps,
+      stamps_after:  newStamps,
+      reason:        `手動調整（${reason}）`,
+      admin_id:      session?.user?.id ?? null,
+    });
+
+    setMembers(prev => prev.map(m => m.id === stampModalMember.id ? { ...m, stamps: newStamps } : m));
+    setSavingStampAdj(false);
+    setShowStampModal(false);
   };
 
   const saveStampSettings = async () => {
@@ -213,16 +296,18 @@ export default function AdminMembersPage() {
                   <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>沒有符合條件的會員</td></tr>
                 ) : filtered.map(m => (
                   <tr key={m.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                    <td style={{ padding: '14px 16px', fontSize: '13px', color: '#1E1C1A' }}>{m.name ?? '—'}</td>
+                    <td style={{ padding: '14px 16px', fontSize: '13px', color: '#1E1C1A' }}>
+                      <span onClick={() => openDetail(m)} style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}>{m.name ?? '—'}</span>
+                    </td>
                     <td style={{ padding: '14px 16px', fontSize: '12px', color: '#555250' }}>{m.phone ?? '—'}</td>
                     <td style={{ padding: '14px 16px', fontSize: '12px', color: '#555250' }}>{m.birthday ?? '—'}</td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button onClick={() => updateStamps(m.id, m.stamps - 1)} style={{ width: '24px', height: '24px', border: '1px solid #E8E4DC', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>−</button>
-                        <span style={{ fontSize: '13px', color: m.stamps >= stampGoal ? '#2ab85a' : '#1E1C1A', minWidth: '24px', textAlign: 'center', fontWeight: m.stamps >= stampGoal ? 700 : 400 }}>{m.stamps}</span>
-                        <button onClick={() => updateStamps(m.id, m.stamps + 1)} style={{ width: '24px', height: '24px', border: '1px solid #E8E4DC', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>+</button>
-                        <span style={{ fontSize: '11px', color: '#888580' }}>/ {stampGoal}</span>
-                        {m.stamps >= stampGoal && <span style={{ fontSize: '10px', color: '#2ab85a', border: '1px solid #2ab85a', padding: '1px 6px', fontFamily: '"Montserrat", sans-serif' }}>可兌換</span>}
+                        <button onClick={() => openStampModal(m, -1)} disabled={m.stamps <= 0} style={{ width: '24px', height: '24px', border: '1px solid #E8E4DC', background: 'transparent', cursor: m.stamps <= 0 ? 'not-allowed' : 'pointer', fontSize: '14px', opacity: m.stamps <= 0 ? 0.4 : 1 }}>−</button>
+                        <span style={{ fontSize: '13px', color: m.stamps >= stampTotalSlots ? '#2ab85a' : '#1E1C1A', minWidth: '24px', textAlign: 'center', fontWeight: m.stamps >= stampTotalSlots ? 700 : 400 }}>{m.stamps}</span>
+                        <button onClick={() => openStampModal(m, +1)} style={{ width: '24px', height: '24px', border: '1px solid #E8E4DC', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>+</button>
+                        <span style={{ fontSize: '11px', color: '#888580' }}>/ {stampTotalSlots}</span>
+                        {m.stamps >= stampTotalSlots && <span style={{ fontSize: '10px', color: '#2ab85a', border: '1px solid #2ab85a', padding: '1px 6px', fontFamily: '"Montserrat", sans-serif' }}>集滿</span>}
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
@@ -495,6 +580,165 @@ export default function AdminMembersPage() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ════ 會員詳情側邊面板 ════ */}
+      {showDetail && detailMember && (
+        <>
+          <div onClick={() => setShowDetail(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 300 }} />
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '520px', maxWidth: '90vw', background: '#fff', zIndex: 301, display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
+
+            {/* 頭部 */}
+            <div style={{ padding: '24px 28px', borderBottom: '1px solid #E8E4DC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '16px', color: '#1E1C1A' }}>{detailMember.name ?? '—'}</div>
+                <div style={{ fontSize: '12px', color: '#888580', marginTop: '4px' }}>{detailMember.phone ?? '無電話'}</div>
+              </div>
+              <button onClick={() => setShowDetail(false)} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#888580' }}>×</button>
+            </div>
+
+            {/* 頁籤 */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #E8E4DC', padding: '0 28px' }}>
+              {([
+                { key: 'profile',      label: '基本資料' },
+                { key: 'stamp_logs',   label: '集章記錄' },
+                { key: 'redemptions',  label: '兌換記錄' },
+              ] as { key: DetailTab; label: string }[]).map(({ key, label }) => (
+                <div key={key} onClick={() => setDetailTab(key)} style={{ padding: '12px 16px', cursor: 'pointer', fontSize: '13px', borderBottom: detailTab === key ? '2px solid #1E1C1A' : '2px solid transparent', color: detailTab === key ? '#1E1C1A' : '#888580', marginBottom: '-1px' }}>
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            {/* 內容 */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+
+              {/* 基本資料 */}
+              {detailTab === 'profile' && (
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {[
+                    { label: '姓名',     value: detailMember.name },
+                    { label: '手機',     value: detailMember.phone },
+                    { label: '生日',     value: detailMember.birthday },
+                    { label: '身份',     value: detailMember.role === 'admin' ? 'Admin' : 'Member' },
+                    { label: '集章數',   value: `${detailMember.stamps} 章${(detailMember.stamps_frozen ?? 0) > 0 ? `（凍結 ${detailMember.stamps_frozen} 章）` : ''}` },
+                    { label: '加入時間', value: new Date(detailMember.created_at).toLocaleString('zh-TW') },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ display: 'flex', gap: '16px', padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
+                      <span style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.2em', color: '#888580', textTransform: 'uppercase', width: '80px', flexShrink: 0, paddingTop: '2px' }}>{label}</span>
+                      <span style={{ fontSize: '13px', color: '#1E1C1A' }}>{value ?? '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 集章記錄 */}
+              {detailTab === 'stamp_logs' && (
+                logsLoading ? <div style={{ color: '#888580', fontSize: '13px' }}>載入中...</div> :
+                stampLogs.length === 0 ? <div style={{ color: '#888580', fontSize: '13px' }}>尚無集章記錄</div> : (
+                  <div>
+                    {stampLogs.map(log => (
+                      <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '14px 0', borderBottom: '1px solid #E8E4DC', gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', color: '#1E1C1A', marginBottom: '4px' }}>{log.reason ?? '—'}</div>
+                          <div style={{ fontSize: '11px', color: '#888580' }}>
+                            {new Date(log.created_at).toLocaleString('zh-TW')}
+                            {log.admin_name && <span style={{ marginLeft: '8px', color: '#b87a2a' }}>· {log.admin_name}</span>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: log.change > 0 ? '#2ab85a' : '#c0392b' }}>
+                            {log.change > 0 ? '+' : ''}{log.change}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#888580' }}>餘 {log.stamps_after} 章</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {/* 兌換記錄 */}
+              {detailTab === 'redemptions' && (
+                logsLoading ? <div style={{ color: '#888580', fontSize: '13px' }}>載入中...</div> :
+                redemptionLogs.length === 0 ? <div style={{ color: '#888580', fontSize: '13px' }}>尚無兌換記錄</div> : (
+                  <div>
+                    {redemptionLogs.map(r => {
+                      const statusLabel: Record<string, string> = { pending_cart: '等待中', pending_order: '訂單中', used: '已完成', released: '已取消', expired: '已過期', refunded: '已退還' };
+                      const statusColor: Record<string, string> = { pending_cart: '#b87a2a', pending_order: '#2a7ab8', used: '#2ab85a', released: '#888580', expired: '#888580', refunded: '#c0392b' };
+                      return (
+                        <div key={r.id} style={{ padding: '14px 0', borderBottom: '1px solid #E8E4DC' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <div style={{ fontSize: '13px', color: '#1E1C1A', fontWeight: 500 }}>{r.reward_name}</div>
+                            <span style={{ fontSize: '11px', color: statusColor[r.status] ?? '#888580', border: `1px solid ${statusColor[r.status] ?? '#888580'}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>
+                              {statusLabel[r.status] ?? r.status}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#888580', display: 'flex', gap: '12px' }}>
+                            <span>{new Date(r.created_at).toLocaleString('zh-TW')}</span>
+                            <span style={{ color: '#c0392b' }}>−{r.stamps_cost} 章</span>
+                            <span>{r.type === 'code' ? `兌換碼：${r.redeem_code}` : '線上兌換'}</span>
+                          </div>
+                          {r.used_at && <div style={{ fontSize: '11px', color: '#2ab85a', marginTop: '4px' }}>核銷時間：{new Date(r.used_at).toLocaleString('zh-TW')}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ════ 集章手動調整 Modal ════ */}
+      {showStampModal && stampModalMember && (
+        <>
+          <div onClick={() => setShowStampModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '400px', maxWidth: '90vw', zIndex: 201, padding: '28px' }}>
+            <h3 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A', marginBottom: '20px' }}>
+              手動{stampDelta > 0 ? '增加' : '扣除'}集章
+            </h3>
+
+            {/* 會員資訊 */}
+            <div style={{ background: '#F7F4EF', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#555250' }}>
+              <strong style={{ color: '#1E1C1A' }}>{stampModalMember.name}</strong>
+              <span style={{ marginLeft: '12px' }}>目前 {stampModalMember.stamps} 章</span>
+              <span style={{ marginLeft: '8px', color: stampDelta > 0 ? '#2ab85a' : '#c0392b', fontWeight: 600 }}>
+                → {Math.max(0, stampModalMember.stamps + stampDelta)} 章（{stampDelta > 0 ? '+' : ''}{stampDelta}）
+              </span>
+            </div>
+
+            {/* 原因選擇 */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>調整原因 *</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                {STAMP_REASONS.map(r => (
+                  <button key={r} onClick={() => setStampReason(r)} style={{ padding: '6px 14px', border: `1px solid ${stampReason === r ? '#1E1C1A' : '#E8E4DC'}`, background: stampReason === r ? '#1E1C1A' : 'transparent', color: stampReason === r ? '#F7F4EF' : '#555250', fontSize: '12px', cursor: 'pointer' }}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 其他原因輸入 */}
+            {stampReason === '其他' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>請說明原因</label>
+                <input value={stampReasonOther} onChange={e => setStampReasonOther(e.target.value)} placeholder="請輸入原因" style={{ ...inputStyle, width: '100%', marginTop: '8px' }} />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button onClick={handleStampAdjust} disabled={savingStampAdj} style={{ flex: 1, padding: '10px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer', opacity: savingStampAdj ? 0.6 : 1 }}>
+                {savingStampAdj ? '處理中...' : '確認'}
+              </button>
+              <button onClick={() => setShowStampModal(false)} style={{ flex: 1, padding: '10px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>
+                取消
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -46,6 +46,13 @@ export default function AdminProductsPage() {
   const [uploading,  setUploading]  = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 規格選項
+  const [hasVariants,   setHasVariants]   = useState(false);
+  const [variantLabel,  setVariantLabel]  = useState('規格');
+  const [variants,      setVariants]      = useState<{ id?: number; name: string; price: string; sku: string; stock: string; is_available: boolean }[]>([]);
+
+  const EMPTY_VARIANT = { name: '', price: '', sku: '', stock: '', is_available: true };
+
   // 可出貨日設定
   const [shipDates,      setShipDates]      = useState<ShipDate[]>([]);
   const [showDateModal,  setShowDateModal]  = useState(false);
@@ -82,15 +89,29 @@ export default function AdminProductsPage() {
   useEffect(() => { loadData(); }, []);
 
   // ── 商品 CRUD ──────────────────────────────────
-  const openAdd = () => { setForm({ ...EMPTY_FORM, category_id: categories[0]?.id ?? 0 }); setSpecs([]); setEditingId(null); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const openAdd = () => {
+    setForm({ ...EMPTY_FORM, category_id: categories[0]?.id ?? 0 });
+    setSpecs([]);
+    setHasVariants(false);
+    setVariantLabel('規格');
+    setVariants([]);
+    setEditingId(null);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const openEdit = async (p: Product) => {
     setForm({ name: p.name, name_en: p.name_en ?? '', slug: p.slug, price: p.price, description: p.description ?? '', image_url: p.image_url ?? '', is_available: p.is_available, is_sold_out: p.is_sold_out, is_preorder: p.is_preorder, is_featured: p.is_featured, sort_order: p.sort_order, category_id: p.category_id, stock_mode: p.stock_mode ?? 'stock_mode', ship_start_date: (p as any).ship_start_date ?? '', ship_end_date: (p as any).ship_end_date ?? '', ship_blocked_dates: (p as any).ship_blocked_dates ?? '[]' });
-    const [{ data: specData }, { data: shipDateData }] = await Promise.all([
+    const [{ data: specData }, { data: shipDateData }, { data: variantData }] = await Promise.all([
       supabase.from('product_specs').select('id, label, value, sort_order').eq('product_id', p.id).order('sort_order'),
       supabase.from('product_ship_dates').select('id, ship_date, capacity, reserved, is_open').eq('product_id', p.id).is('variant_id', null).order('ship_date'),
+      supabase.from('product_variants').select('*').eq('product_id', p.id).order('sort_order'),
     ]);
     setSpecs(specData ?? []);
     setShipDates((shipDateData ?? []).map((d: any) => ({ id: d.id, ship_date: d.ship_date, capacity: d.capacity, reserved: d.reserved, is_open: d.is_open })));
+    const vData = variantData ?? [];
+    setHasVariants(vData.length > 0);
+    setVariantLabel((p as any).variant_label ?? '規格');
+    setVariants(vData.map((v: any) => ({ id: v.id, name: v.name, price: String(v.price ?? (p.price + (v.price_diff ?? 0))), sku: v.sku ?? '', stock: String(v.stock ?? 0), is_available: v.is_available })));
     setEditingId(p.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -119,10 +140,22 @@ export default function AdminProductsPage() {
 
     setSaving(true);
     let productId = editingId;
+
+    // 空字串的日期欄位要改成 null，避免 date 型別錯誤
+    const cleanForm = {
+      ...form,
+      variant_label:     hasVariants ? variantLabel : null,
+      ship_start_date:   (form as any).ship_start_date   || null,
+      ship_end_date:     (form as any).ship_end_date     || null,
+      ship_blocked_dates:(form as any).ship_blocked_dates || '[]',
+    };
+
     if (editingId) {
-      await supabase.from('products').update(form).eq('id', editingId);
+      const { error } = await supabase.from('products').update(cleanForm).eq('id', editingId);
+      if (error) { alert('儲存失敗：' + error.message); setSaving(false); return; }
     } else {
-      const { data } = await supabase.from('products').insert(form).select('id').single();
+      const { data, error } = await supabase.from('products').insert(cleanForm).select('id').single();
+      if (error) { alert('新增失敗：' + error.message); setSaving(false); return; }
       productId = data?.id ?? null;
     }
     if (productId) {
@@ -130,6 +163,24 @@ export default function AdminProductsPage() {
       await supabase.from('product_specs').delete().eq('product_id', productId);
       const valid = specs.filter(s => s.label && s.value);
       if (valid.length > 0) await supabase.from('product_specs').insert(valid.map((s, i) => ({ product_id: productId, label: s.label, value: s.value, sort_order: i+1 })));
+
+      // 儲存規格選項（variants）
+      await supabase.from('product_variants').delete().eq('product_id', productId);
+      if (hasVariants && variants.length > 0) {
+        const validVariants = variants.filter(v => v.name);
+        if (validVariants.length > 0) {
+          await supabase.from('product_variants').insert(validVariants.map((v, i) => ({
+            product_id:   productId,
+            name:         v.name,
+            price:        Number(v.price) || form.price,
+            price_diff:   (Number(v.price) || form.price) - form.price,
+            sku:          v.sku || null,
+            stock:        Number(v.stock) || 0,
+            is_available: v.is_available,
+            sort_order:   i + 1,
+          })));
+        }
+      }
 
       // 儲存可出貨日（日期模式才處理）
       if (form.stock_mode === 'date_mode' && !form.is_preorder) {
@@ -152,6 +203,29 @@ export default function AdminProductsPage() {
   const toggleField = async (p: Product, field: 'is_available' | 'is_sold_out' | 'is_featured') => {
     await supabase.from('products').update({ [field]: !p[field] }).eq('id', p.id);
     setProducts(prev => prev.map(x => x.id === p.id ? { ...x, [field]: !x[field] } : x));
+  };
+
+  // 同分類內上移/下移
+  const moveProduct = async (p: Product, direction: 'up' | 'down', list?: Product[]) => {
+    const sameCat = (list ?? filtered).filter(x => x.category_id === p.category_id);
+    const idx     = sameCat.findIndex(x => x.id === p.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sameCat.length) return;
+
+    const target   = sameCat[swapIdx];
+    const newOrder = target.sort_order;
+    const oldOrder = p.sort_order;
+
+    // 交換 sort_order
+    await Promise.all([
+      supabase.from('products').update({ sort_order: newOrder }).eq('id', p.id),
+      supabase.from('products').update({ sort_order: oldOrder }).eq('id', target.id),
+    ]);
+    setProducts(prev => prev.map(x => {
+      if (x.id === p.id)      return { ...x, sort_order: newOrder };
+      if (x.id === target.id) return { ...x, sort_order: oldOrder };
+      return x;
+    }));
   };
 
   // ── 可出貨日 CRUD ──────────────────────────────
@@ -226,7 +300,32 @@ export default function AdminProductsPage() {
     setShipDates(prev => prev.map((x, i) => i === idx ? { ...x, is_open: newVal } : x));
   };
 
-  // ── 分類 CRUD ──────────────────────────────────
+  // 分類展開狀態
+  const [expandedCats, setExpandedCats] = useState<number[]>([]);
+
+  const toggleExpandCat = (id: number) => {
+    setExpandedCats(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  // 分類上移/下移
+  const moveCategory = async (cat: Category, direction: 'up' | 'down') => {
+    const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order);
+    const idx    = sorted.findIndex(c => c.id === cat.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    const target   = sorted[swapIdx];
+    const newOrder = target.sort_order;
+    const oldOrder = cat.sort_order;
+    await Promise.all([
+      supabase.from('categories').update({ sort_order: newOrder }).eq('id', cat.id),
+      supabase.from('categories').update({ sort_order: oldOrder }).eq('id', target.id),
+    ]);
+    setCategories(prev => prev.map(c => {
+      if (c.id === cat.id)    return { ...c, sort_order: newOrder };
+      if (c.id === target.id) return { ...c, sort_order: oldOrder };
+      return c;
+    }));
+  };
   const openCatEdit = (c: Category) => { setCatForm({ name: c.name, slug: c.slug, sort_order: c.sort_order }); setEditingCatId(c.id); setShowCatForm(true); };
   const handleCatSave = async () => {
     if (!catForm.name || !catForm.slug) { alert('請填寫分類名稱和網址'); return; }
@@ -237,6 +336,17 @@ export default function AdminProductsPage() {
     setShowCatForm(false);
     loadData();
   };
+  const handleDeleteProduct = async (p: Product) => {
+    if (!confirm(`確定要刪除「${p.name}」？此操作無法復原。`)) return;
+    // 同時刪除規格、可出貨日、variants
+    await supabase.from('product_specs').delete().eq('product_id', p.id);
+    await supabase.from('product_ship_dates').delete().eq('product_id', p.id);
+    await supabase.from('product_variants').delete().eq('product_id', p.id);
+    const { error } = await supabase.from('products').delete().eq('id', p.id);
+    if (error) { alert('刪除失敗：' + error.message); return; }
+    setProducts(prev => prev.filter(x => x.id !== p.id));
+  };
+
   const handleCatDelete = async (id: number) => {
     if (!confirm('刪除分類後，底下的商品將失去分類連結，確定要刪除？')) return;
     await supabase.from('categories').delete().eq('id', id);
@@ -295,7 +405,6 @@ export default function AdminProductsPage() {
                 <div><label style={labelStyle}>網址 slug * （只能英文和 -）</label><input value={form.slug} onChange={e => setForm({...form, slug: e.target.value})} placeholder="例：dubai-qbing" style={{...inputStyle, width:'100%'}} /></div>
                 <div><label style={labelStyle}>售價（NT$）*</label><input type="number" value={form.price} onChange={e => setForm({...form, price: Number(e.target.value)})} style={{...inputStyle, width:'100%'}} /></div>
                 <div><label style={labelStyle}>分類</label><select value={form.category_id} onChange={e => setForm({...form, category_id: Number(e.target.value)})} style={{...inputStyle, width:'100%'}}>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                <div><label style={labelStyle}>排序</label><input type="number" value={form.sort_order} onChange={e => setForm({...form, sort_order: Number(e.target.value)})} style={{...inputStyle, width:'100%'}} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>商品描述</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} style={{...inputStyle, width:'100%', resize:'vertical'}} /></div>
               </div>
 
@@ -440,10 +549,56 @@ export default function AdminProductsPage() {
                 </div>
               )}
 
-              {/* 商品規格 */}
+              {/* 規格選項 */}
+              <div style={{ borderTop: '1px solid #E8E4DC', paddingTop: '20px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <label style={{ ...labelStyle, fontSize: '11px', marginBottom: 0 }}>規格選項</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[{ val: false, label: '無規格' }, { val: true, label: '有規格' }].map(opt => (
+                      <button key={String(opt.val)} onClick={() => setHasVariants(opt.val)} style={{ padding: '5px 14px', border: `1px solid ${hasVariants === opt.val ? '#1E1C1A' : '#E8E4DC'}`, background: hasVariants === opt.val ? '#1E1C1A' : 'transparent', color: hasVariants === opt.val ? '#F7F4EF' : '#555250', fontSize: '12px', cursor: 'pointer' }}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {hasVariants && (
+                  <div>
+                    {/* 規格名稱 */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={labelStyle}>規格名稱（例：尺寸、口味）</label>
+                      <input value={variantLabel} onChange={e => setVariantLabel(e.target.value)} placeholder="例：尺寸" style={{ ...inputStyle, width: '200px' }} />
+                    </div>
+
+                    {/* 規格選項表格 */}
+                    <div style={{ border: '1px solid #E8E4DC', marginBottom: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 80px 40px', gap: '0', background: '#F7F4EF', borderBottom: '1px solid #E8E4DC' }}>
+                        {['選項名稱', '售價', 'SKU', '啟用', '', ''].map((h, i) => (
+                          <div key={i} style={{ padding: '8px 12px', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.2em', color: '#888580', textTransform: 'uppercase' }}>{h}</div>
+                        ))}
+                      </div>
+                      {variants.map((v, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 80px 40px', gap: '0', borderBottom: i < variants.length - 1 ? '1px solid #E8E4DC' : 'none', alignItems: 'center' }}>
+                          <input value={v.name} onChange={e => setVariants(prev => prev.map((x, j) => j===i ? {...x, name: e.target.value} : x))} placeholder="例：4吋" style={{ ...inputStyle, border: 'none', borderRight: '1px solid #E8E4DC', margin: 0 }} />
+                          <input type="number" value={v.price} onChange={e => setVariants(prev => prev.map((x, j) => j===i ? {...x, price: e.target.value} : x))} placeholder={String(form.price)} style={{ ...inputStyle, border: 'none', borderRight: '1px solid #E8E4DC', margin: 0 }} />
+                          <input value={v.sku} onChange={e => setVariants(prev => prev.map((x, j) => j===i ? {...x, sku: e.target.value} : x))} placeholder="SKU（選填）" style={{ ...inputStyle, border: 'none', borderRight: '1px solid #E8E4DC', margin: 0 }} />
+                          <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', borderRight: '1px solid #E8E4DC' }}>
+                            <input type="checkbox" checked={v.is_available} onChange={() => setVariants(prev => prev.map((x, j) => j===i ? {...x, is_available: !x.is_available} : x))} style={{ accentColor: '#1E1C1A', cursor: 'pointer' }} />
+                          </div>
+                          <div style={{ padding: '8px 12px', fontSize: '11px', color: '#888580' }}>第 {i+1} 項</div>
+                          <button onClick={() => setVariants(prev => prev.filter((_,j) => j!==i))} style={{ padding: '8px', background: 'transparent', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => setVariants(prev => [...prev, { ...EMPTY_VARIANT }])} style={{ padding: '6px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>＋ 新增選項</button>
+                  </div>
+                )}
+              </div>
+
+              {/* 商品規格說明（product_specs，保存方式等） */}
               <div style={{ borderTop: '1px solid #E8E4DC', paddingTop: '20px', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <label style={{ ...labelStyle, fontSize: '11px' }}>商品規格</label>
+                  <label style={{ ...labelStyle, fontSize: '11px' }}>商品說明規格（保存方式、份量等）</label>
                   <button onClick={() => setSpecs(prev => [...prev, { label: '', value: '', sort_order: prev.length+1 }])} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>＋ 新增</button>
                 </div>
                 {specs.map((s, i) => (
@@ -483,7 +638,7 @@ export default function AdminProductsPage() {
                 <tr>{['圖片', '商品名稱', '分類', '售價', '上架', '完售', '熱銷', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
               </thead>
               <tbody>
-                {filtered.map(p => (
+                {filtered.map((p) => (
                   <tr key={p.id} style={{ borderBottom: '1px solid #E8E4DC', opacity: p.is_available ? 1 : 0.5 }}>
                     <td style={{ padding: '10px 16px' }}>
                       {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '44px', height: '44px', objectFit: 'cover' }} /> : <div style={{ width: '44px', height: '44px', background: '#EDE9E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🍰</div>}
@@ -497,7 +652,12 @@ export default function AdminProductsPage() {
                     <td style={{ padding: '10px 16px' }}><input type="checkbox" checked={p.is_available} onChange={() => toggleField(p, 'is_available')} style={{ accentColor: '#1E1C1A', cursor: 'pointer' }} /></td>
                     <td style={{ padding: '10px 16px' }}><input type="checkbox" checked={p.is_sold_out}  onChange={() => toggleField(p, 'is_sold_out')}  style={{ accentColor: '#1E1C1A', cursor: 'pointer' }} /></td>
                     <td style={{ padding: '10px 16px', fontSize: '12px', color: p.is_featured ? '#2ab85a' : '#888580' }}>{p.is_featured ? '✓' : '—'}</td>
-                    <td style={{ padding: '10px 16px' }}><button onClick={() => openEdit(p)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif' }}>編輯</button></td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button onClick={() => openEdit(p)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif' }}>編輯</button>
+                        <button onClick={() => handleDeleteProduct(p)} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -510,17 +670,16 @@ export default function AdminProductsPage() {
       {tab === 'category' && (
         <>
           <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#555250' }}>
-            分類名稱會顯示在前台選購頁的側邊欄。
+            分類順序即為前台顯示順序。點擊分類可展開，並對底下商品排序。
           </div>
 
           {/* 分類表單 */}
           {showCatForm && (
             <div style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '24px', marginBottom: '20px' }}>
               <h3 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A', margin: '0 0 20px' }}>{editingCatId ? '編輯分類' : '新增分類'}</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div><label style={labelStyle}>分類名稱 *</label><input value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})} placeholder="例：Q餅系列" style={{...inputStyle, width:'100%'}} /></div>
                 <div><label style={labelStyle}>網址 slug * （只能英文和 -）</label><input value={catForm.slug} onChange={e => setCatForm({...catForm, slug: e.target.value})} placeholder="例：q-bing" style={{...inputStyle, width:'100%'}} /></div>
-                <div><label style={labelStyle}>排序</label><input type="number" value={catForm.sort_order} onChange={e => setCatForm({...catForm, sort_order: Number(e.target.value)})} style={{...inputStyle, width:'100%'}} /></div>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button onClick={handleCatSave} disabled={savingCat} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingCat ? 0.6 : 1 }}>{savingCat ? '儲存中...' : '儲存'}</button>
@@ -529,24 +688,77 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          <div style={{ background: '#fff', border: '1px solid #E8E4DC' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['分類名稱', 'Slug', '商品數量', '排序', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
-              <tbody>
-                {categories.map(c => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                    <td style={{ padding: '14px 16px', fontSize: '13px', color: '#1E1C1A' }}>{c.name}</td>
-                    <td style={{ padding: '14px 16px', fontSize: '12px', color: '#888580', fontFamily: '"Montserrat", sans-serif' }}>/shop/{c.slug}</td>
-                    <td style={{ padding: '14px 16px', fontSize: '12px', color: '#555250' }}>{products.filter(p => p.category_id === c.id).length} 件</td>
-                    <td style={{ padding: '14px 16px', fontSize: '12px', color: '#888580' }}>{c.sort_order}</td>
-                    <td style={{ padding: '14px 16px', display: 'flex', gap: '6px' }}>
-                      <button onClick={() => openCatEdit(c)} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>編輯</button>
-                      <button onClick={() => handleCatDelete(c.id)} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* 分類列表（可展開）*/}
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {[...categories].sort((a, b) => a.sort_order - b.sort_order).map((c, idx, sorted) => {
+              const isExpanded  = expandedCats.includes(c.id);
+              const isFirst     = idx === 0;
+              const isLast      = idx === sorted.length - 1;
+              const catProducts = [...products.filter(p => p.category_id === c.id)].sort((a, b) => a.sort_order - b.sort_order);
+
+              return (
+                <div key={c.id} style={{ background: '#fff', border: '1px solid #E8E4DC' }}>
+                  {/* 分類列 */}
+                  <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', gap: '8px' }}>
+                    {/* 展開按鈕 */}
+                    <button onClick={() => toggleExpandCat(c.id)} style={{ width: '28px', height: '28px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', cursor: 'pointer', color: '#555250', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>▶</button>
+
+                    {/* 分類名稱 */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E1C1A' }}>{c.name}</div>
+                      <div style={{ fontSize: '11px', color: '#888580', fontFamily: '"Montserrat", sans-serif' }}>/shop/{c.slug} · {catProducts.length} 件商品</div>
+                    </div>
+
+                    {/* 分類排序 ↑↓ */}
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => moveCategory(c, 'up')} disabled={isFirst} title="上移" style={{ width: '28px', height: '28px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '13px', cursor: isFirst ? 'not-allowed' : 'pointer', color: isFirst ? '#E8E4DC' : '#555250', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↑</button>
+                      <button onClick={() => moveCategory(c, 'down')} disabled={isLast} title="下移" style={{ width: '28px', height: '28px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '13px', cursor: isLast ? 'not-allowed' : 'pointer', color: isLast ? '#E8E4DC' : '#555250', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↓</button>
+                    </div>
+
+                    {/* 編輯/刪除 */}
+                    <button onClick={() => openCatEdit(c)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>編輯</button>
+                    <button onClick={() => handleCatDelete(c.id)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
+                  </div>
+
+                  {/* 展開：商品列表 */}
+                  {isExpanded && (
+                    <div style={{ borderTop: '1px solid #E8E4DC', background: '#F7F4EF' }}>
+                      {catProducts.length === 0 ? (
+                        <div style={{ padding: '16px 24px', fontSize: '12px', color: '#888580' }}>此分類目前沒有商品</div>
+                      ) : (
+                        catProducts.map((p, pIdx) => {
+                          const pIsFirst = pIdx === 0;
+                          const pIsLast  = pIdx === catProducts.length - 1;
+                          return (
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 10px 52px', borderBottom: pIsLast ? 'none' : '1px solid #E8E4DC', gap: '12px' }}>
+                              {/* 商品圖 */}
+                              <div style={{ width: '36px', height: '36px', flexShrink: 0, background: '#EDE9E2', overflow: 'hidden' }}>
+                                {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🍰</div>}
+                              </div>
+
+                              {/* 商品名稱 */}
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '13px', color: p.is_available ? '#1E1C1A' : '#888580' }}>{p.name}</div>
+                                <div style={{ fontSize: '11px', color: '#888580' }}>NT$ {p.price.toLocaleString()} {!p.is_available && '· 已下架'}</div>
+                              </div>
+
+                              {/* 商品排序 ↑↓ */}
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button onClick={() => moveProduct(p, 'up', catProducts)} disabled={pIsFirst} style={{ width: '26px', height: '26px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', cursor: pIsFirst ? 'not-allowed' : 'pointer', color: pIsFirst ? '#E8E4DC' : '#555250', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↑</button>
+                                <button onClick={() => moveProduct(p, 'down', catProducts)} disabled={pIsLast} style={{ width: '26px', height: '26px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', cursor: pIsLast ? 'not-allowed' : 'pointer', color: pIsLast ? '#E8E4DC' : '#555250', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↓</button>
+                              </div>
+
+                              <button onClick={() => { setTab('list'); openEdit(p); }} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>編輯</button>
+                              <button onClick={() => handleDeleteProduct(p)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

@@ -51,6 +51,7 @@ export default function AdminStoreSettingsPage() {
   const [freeShipCold, setFreeShipCold] = useState(false);
   const [shipMinDays, setShipMinDays] = useState(1);
   const [shipMaxDays, setShipMaxDays] = useState(14);
+  const [sidebarProductLimit, setSidebarProductLimit] = useState(3);
   const [blockedWeekdays, setBlockedWeekdays] = useState<string[]>(['0', '6']);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [newBlockedDate, setNewBlockedDate] = useState('');
@@ -112,6 +113,7 @@ export default function AdminStoreSettingsPage() {
         setFreeShipCold(data.free_ship_cold ?? false);
         setShipMinDays(data.ship_min_days ?? 1);
         setShipMaxDays(data.ship_max_days ?? 14);
+        setSidebarProductLimit(data.sidebar_product_limit ?? 3);
         setBlockedWeekdays(JSON.parse(data.ship_blocked_weekdays ?? '["0","6"]'));
         setBlockedDates(JSON.parse(data.ship_blocked_dates ?? '[]'));
         if (data.business_hours) {
@@ -175,6 +177,7 @@ export default function AdminStoreSettingsPage() {
       fee_home_normal: feeHomeNormal, fee_home_cold: feeHomeCold, fee_cvs: feeCvs,
       free_ship_amount: freeShipEnabled ? freeShip : 0, free_ship_cold: freeShipCold,
       ship_min_days: shipMinDays, ship_max_days: shipMaxDays,
+      sidebar_product_limit: sidebarProductLimit,
       ship_blocked_weekdays: JSON.stringify(blockedWeekdays),
       ship_blocked_dates: JSON.stringify(blockedDates),
       business_hours: JSON.stringify(hours),
@@ -333,6 +336,13 @@ export default function AdminStoreSettingsPage() {
               </div>
             </>
           )}
+
+          <div style={{ ...sectionTitle, marginTop: '28px' }}>前台側邊欄設定</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+            <label style={{ ...labelStyle, marginBottom: 0, width: '200px', flexShrink: 0 }}>每個分類顯示商品數</label>
+            <input type="number" min={1} max={10} value={sidebarProductLimit} onChange={e => setSidebarProductLimit(Number(e.target.value))} style={{ ...inputStyle, width: '70px' }} />
+            <span style={{ fontSize: '12px', color: '#888580' }}>個（超過的折疊至「查看全部」）</span>
+          </div>
 
           <div style={{ ...sectionTitle, marginTop: '28px' }}>出貨日期限制</div>
           {[

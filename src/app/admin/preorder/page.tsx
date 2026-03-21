@@ -16,7 +16,14 @@ const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px sol
 const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' };
 const numVal = (v: number) => v === 0 ? '' : String(v);
 
-const EMPTY_BATCH = { name: '', starts_at: '', ends_at: '', ship_date: '', limit_qty: 0, is_active: true, note: '' };
+const EMPTY_BATCH = { name: '', starts_at: '', ends_at: '', ship_date: '', limit_qty: 0, status: 'draft' as string, note: '' };
+
+const STATUS_OPTIONS = [
+  { value: 'draft',    label: '草稿',  color: '#888580' },
+  { value: 'active',   label: '開放中', color: '#2ab85a' },
+  { value: 'closed',   label: '關閉',  color: '#555250' },
+  { value: 'sold_out', label: '售完',  color: '#c0392b' },
+];
 
 const Toggle = ({ val, onChange }: { val: boolean; onChange: () => void }) => (
   <div onClick={onChange} style={{ width: '40px', height: '22px', borderRadius: '11px', background: val ? '#1E1C1A' : '#E8E4DC', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}>
@@ -87,7 +94,7 @@ export default function AdminPreorderPage() {
   const openEditBatch = async (batch: any) => {
     setBatchProductId(batch.product_id);
     setBatchVariantId(batch.variant_id);
-    setBatchForm({ name: batch.name, starts_at: batch.starts_at ?? '', ends_at: batch.ends_at ?? '', ship_date: batch.ship_date, limit_qty: batch.limit_qty, is_active: batch.is_active, note: batch.note ?? '' });
+    setBatchForm({ name: batch.name, starts_at: batch.starts_at ?? '', ends_at: batch.ends_at ?? '', ship_date: batch.ship_date, limit_qty: batch.limit_qty, status: batch.status ?? (batch.is_active ? 'active' : 'closed'), note: batch.note ?? '' });
     setEditingBatchId(batch.id);
     const { data } = await supabase.from('product_variants').select('*').eq('product_id', batch.product_id).eq('is_available', true).order('sort_order');
     setVariants(data ?? []);
@@ -98,6 +105,20 @@ export default function AdminPreorderPage() {
   const saveBatch = async () => {
     if (!batchForm.name)      { alert('請填寫批次名稱'); return; }
     if (!batchForm.ship_date) { alert('請填寫預計出貨日'); return; }
+
+    // 出貨日衝突驗證（同商品同出貨日只能有一個批次）
+    const conflictQuery = supabase
+      .from('preorder_batches')
+      .select('id, name')
+      .eq('product_id', batchProductId)
+      .eq('ship_date', batchForm.ship_date);
+    if (editingBatchId) conflictQuery.neq('id', editingBatchId);
+    const { data: conflict } = await conflictQuery;
+    if (conflict && conflict.length > 0) {
+      alert(`此商品在 ${batchForm.ship_date} 已有批次「${conflict[0].name}」，出貨日不能重複。`);
+      return;
+    }
+
     setSavingBatch(true);
     const data = {
       product_id: batchProductId,
@@ -107,7 +128,8 @@ export default function AdminPreorderPage() {
       ends_at:    batchForm.ends_at    || null,
       ship_date:  batchForm.ship_date,
       limit_qty:  batchForm.limit_qty,
-      is_active:  batchForm.is_active,
+      status:     batchForm.status,
+      is_active:  batchForm.status === 'active',  // 同步舊欄位
       note:       batchForm.note || null,
     };
     if (editingBatchId) {
@@ -115,11 +137,7 @@ export default function AdminPreorderPage() {
       if (error) { alert(error.message); setSavingBatch(false); return; }
     } else {
       const { error } = await supabase.from('preorder_batches').insert(data);
-      if (error) {
-        if (error.message.includes('uq_active_batch')) alert('此商品規格已有一個進行中的批次，請先關閉舊批次再新增。');
-        else alert(error.message);
-        setSavingBatch(false); return;
-      }
+      if (error) { alert(error.message); setSavingBatch(false); return; }
     }
     setSavingBatch(false);
     setShowBatchModal(false);
@@ -128,9 +146,10 @@ export default function AdminPreorderPage() {
 
   // 切換批次接單開關
   const toggleBatch = async (batch: any) => {
-    const { error } = await supabase.from('preorder_batches').update({ is_active: !batch.is_active }).eq('id', batch.id);
+    const newStatus = (batch.status === 'active') ? 'closed' : 'active';
+    const { error } = await supabase.from('preorder_batches').update({ status: newStatus, is_active: newStatus === 'active' }).eq('id', batch.id);
     if (error) { alert(error.message); return; }
-    setBatches(prev => prev.map(b => b.id === batch.id ? { ...b, is_active: !b.is_active } : b));
+    setBatches(prev => prev.map(b => b.id === batch.id ? { ...b, status: newStatus, is_active: newStatus === 'active' } : b));
   };
 
   const deleteBatch = async (id: number) => {
@@ -145,8 +164,11 @@ export default function AdminPreorderPage() {
 
   // 批次狀態
   const getBatchStatus = (batch: any) => {
+    const s = batch.status ?? (batch.is_active ? 'active' : 'closed');
+    const opt = STATUS_OPTIONS.find(o => o.value === s);
+    if (opt) return { label: opt.label, color: opt.color };
+    // fallback：用日期判斷
     const today = new Date().toISOString().split('T')[0];
-    if (!batch.is_active) return { label: '已關閉', color: '#888580' };
     if (batch.starts_at && batch.starts_at > today) return { label: '未開始', color: '#b87a2a' };
     if (batch.ends_at   && batch.ends_at   < today) return { label: '已結束', color: '#888580' };
     return { label: '接單中', color: '#2ab85a' };
@@ -309,9 +331,31 @@ export default function AdminPreorderPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
-                <span style={{ fontSize: '13px', color: '#1E1C1A' }}>立即開放接單</span>
-                <Toggle val={batchForm.is_active} onChange={() => setBatchForm({...batchForm, is_active: !batchForm.is_active})} />
+              <div>
+                <label style={labelStyle}>批次狀態</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {STATUS_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setBatchForm({...batchForm, status: opt.value})}
+                      style={{
+                        padding: '7px 16px', border: `1px solid ${batchForm.status === opt.value ? opt.color : '#E8E4DC'}`,
+                        background: batchForm.status === opt.value ? opt.color : 'transparent',
+                        color: batchForm.status === opt.value ? '#fff' : '#555250',
+                        fontSize: '12px', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif',
+                        letterSpacing: '0.1em', transition: 'all 0.2s',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: '11px', color: '#888580', marginTop: '6px' }}>
+                  {batchForm.status === 'draft'    && '草稿：前台不顯示，尚未開放'}
+                  {batchForm.status === 'active'   && '開放中：前台可見，顧客可選購'}
+                  {batchForm.status === 'closed'   && '關閉：前台不顯示，暫停接單'}
+                  {batchForm.status === 'sold_out' && '售完：前台顯示「已售完」，無法下單'}
+                </div>
               </div>
 
               <div>
@@ -357,7 +401,7 @@ function BatchList({ batches, orderStats, productId, getBatchStatus, onEdit, onT
                 <span style={{ fontSize: '11px', color: status.color, border: `1px solid ${status.color}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>{status.label}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Toggle val={batch.is_active} onChange={() => onToggle(batch)} />
+                <Toggle val={batch.status === 'active'} onChange={() => onToggle(batch)} />
                 <button onClick={() => onEdit(batch)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>編輯</button>
                 <button onClick={() => onDelete(batch.id)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
               </div>
