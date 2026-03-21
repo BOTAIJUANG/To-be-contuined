@@ -73,6 +73,8 @@ export default function HeroCarousel({ slides, autoplayMs = 4000 }: HeroCarousel
                 src={slide.src}
                 alt={slide.alt}
                 onLoad={() => { if (i === 0) setLoaded(true); }}
+                onError={() => { if (i === 0) setLoaded(true); }}
+                ref={el => { if (el && i === 0 && el.complete) setLoaded(true); }}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'saturate(0.92)' }}
               />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '120px', background: 'linear-gradient(to top, rgba(30,28,26,0.45), transparent)', pointerEvents: 'none' }} />
