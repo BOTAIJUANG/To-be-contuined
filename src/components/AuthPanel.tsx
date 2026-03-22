@@ -92,8 +92,11 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
 
     setLoading(false);
     if (error) {
-      if (error.message.includes('Invalid login')) setErrorMsg('電子信箱或密碼錯誤');
-      else setErrorMsg(error.message);
+      const msg = error.message;
+      if (msg.includes('Invalid login'))        setErrorMsg('電子信箱或密碼錯誤');
+      else if (msg.includes('Email not confirmed')) setErrorMsg('請先至信箱驗證帳號');
+      else if (msg.includes('rate limit'))      setErrorMsg('登入過於頻繁，請稍後再試');
+      else                                      setErrorMsg('登入失敗，請稍後再試');
       return;
     }
 
@@ -113,12 +116,29 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
       options: { data: { name: regName } },
     });
 
-    if (error) { setLoading(false); setErrorMsg(error.message); return; }
+    if (error) {
+      setLoading(false);
+      const msg = error.message;
+      if (msg.includes('already registered'))       setErrorMsg('此電子信箱已被註冊');
+      else if (msg.includes('valid email'))          setErrorMsg('請輸入有效的電子信箱');
+      else if (msg.includes('least 6'))              setErrorMsg('密碼至少需要 6 個字元');
+      else if (msg.includes('Password'))             setErrorMsg('密碼格式不符合要求');
+      else if (msg.includes('rate limit'))           setErrorMsg('操作過於頻繁，請稍後再試');
+      else if (msg.includes('network'))              setErrorMsg('網路連線異常，請稍後再試');
+      else                                           setErrorMsg('註冊失敗，請稍後再試');
+      return;
+    }
 
     if (data.user) {
-      await supabase.from('members').insert({
-        id: data.user.id, name: regName,
-        phone: regPhone || null, birthday: regBirthday || null,
+      await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id:  data.user.id,
+          name:     regName,
+          phone:    regPhone || null,
+          birthday: regBirthday || null,
+        }),
       });
     }
 
@@ -137,7 +157,11 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
     });
 
     setLoading(false);
-    if (error) { setErrorMsg(error.message); return; }
+    if (error) {
+      if (error.message.includes('rate limit')) setErrorMsg('操作過於頻繁，請稍後再試');
+      else setErrorMsg('發送失敗，請確認信箱是否正確');
+      return;
+    }
 
     setSuccessMsg('重設密碼信已寄出！請檢查您的電子信箱（包含垃圾郵件匣）。');
   };

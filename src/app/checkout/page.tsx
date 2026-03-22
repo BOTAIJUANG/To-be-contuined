@@ -46,7 +46,18 @@ const RadioCard = ({ value, title, sub, checked, onChange, fee }: { value: strin
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart, mixedShipDate } = useCart();
-  const [step, setStep] = useState<1|2|3|'done'>(1);
+  const [step, _setStep] = useState<1|2|3|'done'>(() => {
+    if (typeof window === 'undefined') return 1;
+    const saved = sessionStorage.getItem('checkout_step');
+    if (saved === '2') return 2;
+    if (saved === '3') return 3;
+    if (saved === 'done') return 'done';
+    return 1;
+  });
+  const setStep = (s: 1|2|3|'done') => {
+    _setStep(s);
+    sessionStorage.setItem('checkout_step', String(s));
+  };
 
   // 兌換品相關
   const redeemItem    = items.find(i => i.isRedeemItem);           // 購物車裡的兌換品
@@ -97,7 +108,10 @@ export default function CheckoutPage() {
   const [discount,   setDiscount]   = useState(0);
   const [payMethod,  setPayMethod]  = useState('credit');
   const [submitting, setSubmitting] = useState(false);
-  const [orderNo,    setOrderNo]    = useState('');
+  const [orderNo,    setOrderNo]    = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem('checkout_orderNo') ?? '';
+  });
 
   const isHomeDelivery = shipMethod === 'home_normal' || shipMethod === 'home_cold';
 
@@ -303,6 +317,7 @@ export default function CheckoutPage() {
       // 4. 訂單建立成功！清空購物車
       clearCart();
       setOrderNo(result.order_no);
+      sessionStorage.setItem('checkout_orderNo', result.order_no);
 
       // 5. 根據付款方式決定下一步
       if (payMethod === 'credit' || payMethod === 'atm') {
@@ -647,7 +662,7 @@ export default function CheckoutPage() {
           <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.3em', color: '#1E1C1A', marginBottom: '12px' }}>訂單已成立</h2>
           <p style={{ fontSize: '13px', color: '#555250', marginBottom: '8px' }}>訂單確認信已寄至您的 Email</p>
           <p style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.2em', color: '#888580', marginBottom: '32px' }}>{orderNo}</p>
-          <Link href="/" style={{ ...btnStyle, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>返回首頁</Link>
+          <Link href="/" onClick={() => { sessionStorage.removeItem('checkout_step'); sessionStorage.removeItem('checkout_orderNo'); }} style={{ ...btnStyle, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>返回首頁</Link>
         </div>
       )}
       {/* 混購確認彈窗 */}

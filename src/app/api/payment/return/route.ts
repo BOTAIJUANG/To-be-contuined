@@ -24,6 +24,12 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { verifyEcpayCallback } from '@/lib/ecpay';
 import { awardStampsForOrder } from '@/lib/stamps';
 
+// 綠界「返回商店」有時用 GET 導回，直接轉到訂單查詢頁
+export async function GET() {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  return NextResponse.redirect(`${baseUrl}/order-search`, 303);
+}
+
 export async function POST(req: NextRequest) {
   // ── 1. 解析綠界送來的資料 ────────────────────────
   const formData = await req.formData();

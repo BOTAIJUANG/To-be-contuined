@@ -26,15 +26,13 @@ export default function Footer({
   return (
     <footer style={{
       padding: '40px 48px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
       fontFamily: '"Montserrat", sans-serif',
       fontSize: '12px',
       letterSpacing: '0.25em',
       borderTop: '1px solid #E8E4DC',
       marginTop: '20px',
     }}>
+      <div style={{ width: 'min(calc(100% - 60px), 1100px)', margin: '0 auto', display: 'flex', justifyContent: 'flex-end' }}>
       <div style={{ textAlign: 'right', lineHeight: 2.6, color: '#1E1C1A', textTransform: 'uppercase' }}>
         {showTel && tel && <div>TEL &nbsp; {tel}</div>}
         {showEmail && email && (
@@ -47,6 +45,7 @@ export default function Footer({
         )}
         {showAddress && address && <div style={{ textTransform: 'none', letterSpacing: '0.08em' }}>{address}</div>}
         {showCopyright && copyright && <div style={{ fontSize: '11px', color: '#888580', marginTop: '8px', textTransform: 'none' }}>{copyright}</div>}
+      </div>
       </div>
     </footer>
   );

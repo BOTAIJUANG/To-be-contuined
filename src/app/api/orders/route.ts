@@ -150,15 +150,10 @@ export async function POST(req: NextRequest) {
     subtotal += itemSubtotal;
 
     orderItems.push({
-      product_id:            item.product_id,
-      variant_id:            item.variant_id ?? null,
-      product_name_snapshot: product.name,
-      variant_name_snapshot: item.variant_id ? (variantsMap[item.variant_id]?.name ?? null) : null,
-      unit_price:            unitPrice,
-      qty:                   item.qty,
-      subtotal:              itemSubtotal,
-      name:                  product.name,
-      price:                 unitPrice,
+      product_id:  item.product_id,
+      name:        product.name,
+      price:       unitPrice,
+      qty:         item.qty,
     });
   }
 
@@ -308,7 +303,7 @@ export async function POST(req: NextRequest) {
         });
       } catch { /* best effort */ }
     }
-    return NextResponse.json({ error: '訂單建立失敗，請稍後再試' }, { status: 500 });
+    return NextResponse.json({ error: `訂單建立失敗：${orderError?.message ?? '未知錯誤'}` }, { status: 500 });
   }
 
   // ── 10. 寫入訂單明細 ────────────────────────────
@@ -324,7 +319,7 @@ export async function POST(req: NextRequest) {
   if (itemsError) {
     console.error('訂單明細寫入失敗:', itemsError);
     await supabaseAdmin.from('orders').delete().eq('id', order.id);
-    return NextResponse.json({ error: '訂單建立失敗，請稍後再試' }, { status: 500 });
+    return NextResponse.json({ error: `訂單明細寫入失敗：${itemsError.message}` }, { status: 500 });
   }
 
   // ── 11. 預留庫存（已在步驟 6 預檢過，這裡直接扣）──

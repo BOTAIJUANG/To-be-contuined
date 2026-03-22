@@ -127,7 +127,9 @@ export default function Nav() {
       {/* 中：導覽連結 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
         {NAV_LINKS.map(({ label, href }) => {
-          const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const isActive = href === '/'
+            ? pathname === '/'
+            : pathname === href || pathname.startsWith(href + '/');
           return (
             <Link key={href} href={href} style={{
               fontFamily: '"Noto Sans TC", sans-serif',

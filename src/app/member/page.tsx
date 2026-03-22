@@ -20,17 +20,24 @@ export default function MemberPage() {
   // 登入的使用者資料（null = 未登入）
   const [user, setUser] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true); // 初始載入中
+  const [storeSettings, setStoreSettings] = useState<any>(null);
 
   // ── 頁面載入時檢查是否已登入 ──────────────────────
   useEffect(() => {
     // 取得目前的登入 session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.all([
+      supabase.auth.getSession(),
+      supabase.from('store_settings').select('phone, email, address').eq('id', 1).single(),
+    ]).then(([{ data: { session } }, { data: settings }]) => {
       if (session?.user) {
         setUser({
           id:   session.user.id,
           name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
         });
       }
+      if (settings) setStoreSettings(settings);
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -91,7 +98,11 @@ export default function MemberPage() {
         )}
       </div>
 
-      <Footer />
+      <Footer
+        tel={storeSettings?.phone}
+        email={storeSettings?.email}
+        address={storeSettings?.address}
+      />
     </>
   );
 }

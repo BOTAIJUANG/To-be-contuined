@@ -75,32 +75,36 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
   // 載入會員資料 + 集章設定
   useEffect(() => {
     const load = async () => {
-      const [{ data: member }, { data: settings }, { data: redeem }] = await Promise.all([
-        supabase.from('members').select('name, phone, birthday, stamps, stamps_frozen').eq('id', userId).single(),
-        supabase.from('store_settings').select('stamp_goal, stamp_total_slots, stamp_threshold, stamp_expiry, stamp_card_name, stamp_icon_url, redeem_notice_text').eq('id', 1).single(),
-        supabase.from('redeem_items').select('id, name, description, stamps, is_active, product_id, variant_id, products(id, name, slug, image_url)').eq('is_active', true).order('stamps'),
-      ]);
-      if (member)   { setName(member.name ?? userName); setPhone(member.phone ?? ''); setBirthday(member.birthday ?? ''); setStamps(member.stamps ?? 0); setStampsFrozen(member.stamps_frozen ?? 0); }
-      if (settings) { setStampGoal(settings.stamp_goal ?? 8); setStampTotalSlots(settings.stamp_total_slots ?? 10); setStampThreshold(settings.stamp_threshold ?? 200); setStampExpiry(settings.stamp_expiry ?? 365); setStampCardName(settings.stamp_card_name ?? '未半甜點護照'); setStampIconUrl(settings.stamp_icon_url ?? ''); setRedeemNotice(settings.redeem_notice_text ?? ''); }
-      if (redeem)   { setRedeemItems(redeem); }
+      try {
+        const [{ data: member }, { data: settings }, { data: redeem }] = await Promise.all([
+          supabase.from('members').select('name, phone, birthday, stamps, stamps_frozen').eq('id', userId).single(),
+          supabase.from('store_settings').select('stamp_goal, stamp_total_slots, stamp_threshold, stamp_expiry, stamp_card_name, stamp_icon_url, redeem_notice_text').eq('id', 1).single(),
+          supabase.from('redeem_items').select('id, name, description, stamps, is_active, product_id, variant_id, products(id, name, slug, image_url)').eq('is_active', true).order('stamps'),
+        ]);
+        if (member)   { setName(member.name ?? userName); setPhone(member.phone ?? ''); setBirthday(member.birthday ?? ''); setStamps(member.stamps ?? 0); setStampsFrozen(member.stamps_frozen ?? 0); }
+        if (settings) { setStampGoal(settings.stamp_goal ?? 8); setStampTotalSlots(settings.stamp_total_slots ?? 10); setStampThreshold(settings.stamp_threshold ?? 200); setStampExpiry(settings.stamp_expiry ?? 365); setStampCardName(settings.stamp_card_name ?? '未半甜點護照'); setStampIconUrl(settings.stamp_icon_url ?? ''); setRedeemNotice(settings.redeem_notice_text ?? ''); }
+        if (redeem)   { setRedeemItems(redeem); }
 
-      // 載入集章異動記錄
-      const { data: logs } = await supabase
-        .from('stamp_logs')
-        .select('id, change, stamps_after, reason, created_at')
-        .eq('member_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      setStampLogsData(logs ?? []);
+        // 載入集章異動記錄
+        const { data: logs } = await supabase
+          .from('stamp_logs')
+          .select('id, change, stamps_after, reason, created_at')
+          .eq('member_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setStampLogsData(logs ?? []);
 
-      // 載入進行中的兌換
-      const { data: activeReds } = await supabase
-        .from('redemptions')
-        .select('*, redeem_items(name, stamps)')
-        .eq('member_id', userId)
-        .in('status', ['pending_cart', 'pending_order'])
-        .order('created_at', { ascending: false });
-      setActiveRedemptions(activeReds ?? []);
+        // 載入進行中的兌換
+        const { data: activeReds } = await supabase
+          .from('redemptions')
+          .select('*, redeem_items(name, stamps)')
+          .eq('member_id', userId)
+          .in('status', ['pending_cart', 'pending_order'])
+          .order('created_at', { ascending: false });
+        setActiveRedemptions(activeReds ?? []);
+      } catch (err) {
+        console.error('會員資料載入失敗:', err);
+      }
     };
     load();
   }, [userId]);

@@ -51,7 +51,7 @@ export function middleware(req: NextRequest) {
   // 不需要驗證的 API：
   //   - /api/available-dates（公開的日期查詢）
   //   - /api/payment/notify（綠界的 webhook，由綠界 server 呼叫）
-  const publicApiPaths = ['/api/available-dates', '/api/payment/notify', '/api/payment/return'];
+  const publicApiPaths = ['/api/available-dates', '/api/payment/notify', '/api/payment/return', '/api/register'];
   const isPublicApi = publicApiPaths.some(p => pathname.startsWith(p));
 
   if (pathname.startsWith('/api/') && !isPublicApi) {
