@@ -104,11 +104,49 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
     onLoginSuccess(name);
   };
 
+  // ── Email 信箱域名防呆 ─────────────────────────────
+  const checkEmailDomain = (email: string): string | null => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return '請輸入有效的電子信箱';
+
+    // 常見錯誤域名 → 正確域名
+    const typoMap: Record<string, string> = {
+      'gmial.com': 'gmail.com', 'gmil.com': 'gmail.com', 'gmai.com': 'gmail.com',
+      'gmal.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com',
+      'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'gmail.cm': 'gmail.com',
+      'gmaill.com': 'gmail.com', 'gmaiil.com': 'gmail.com',
+      'yaoo.com': 'yahoo.com', 'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com',
+      'yahoo.con': 'yahoo.com', 'yhoo.com': 'yahoo.com',
+      'yaoo.com.tw': 'yahoo.com.tw', 'yaho.com.tw': 'yahoo.com.tw',
+      'yahoo.com.t': 'yahoo.com.tw', 'yahooo.com.tw': 'yahoo.com.tw',
+      'hotmal.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'hotmial.com': 'hotmail.com',
+      'hotmail.con': 'hotmail.com', 'hotmeil.com': 'hotmail.com',
+      'outloo.com': 'outlook.com', 'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com',
+      'iclod.com': 'icloud.com', 'icloud.con': 'icloud.com',
+    };
+
+    const suggestion = typoMap[domain];
+    if (suggestion) return `電子信箱域名可能有誤，您是否要輸入 @${suggestion}？`;
+
+    // 基本格式檢查：至少有一個 . 且 . 後面至少兩個字元
+    const parts = domain.split('.');
+    if (parts.length < 2 || parts[parts.length - 1].length < 2) {
+      return '電子信箱格式不正確，請確認域名是否正確';
+    }
+
+    return null;
+  };
+
   // ── Email 註冊 ────────────────────────────────────
   const handleRegister = async () => {
     if (!regName || !regEmail || !regPassword) { setErrorMsg('請填寫必填欄位'); return; }
     if (regPassword !== regPassword2) { setErrorMsg('兩次密碼不一致'); return; }
     if (regPassword.length < 8)       { setErrorMsg('密碼至少 8 個字元'); return; }
+
+    // 信箱域名防呆
+    const emailWarning = checkEmailDomain(regEmail);
+    if (emailWarning) { setErrorMsg(emailWarning); return; }
+
     setLoading(true); clearMessages();
 
     const { data, error } = await supabase.auth.signUp({
@@ -129,17 +167,26 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
       return;
     }
 
-    if (data.user) {
-      await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id:  data.user.id,
-          name:     regName,
-          phone:    regPhone || null,
-          birthday: regBirthday || null,
-        }),
-      });
+    // 寫入會員資料（user 或 session 任一有 id 都嘗試寫入）
+    const userId = data.user?.id ?? data.session?.user?.id;
+    if (userId) {
+      try {
+        const regRes = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id:  userId,
+            name:     regName,
+            phone:    regPhone || null,
+            birthday: regBirthday || null,
+          }),
+        });
+        if (!regRes.ok) {
+          console.error('會員資料寫入失敗:', await regRes.text());
+        }
+      } catch (err) {
+        console.error('會員資料寫入失敗:', err);
+      }
     }
 
     setLoading(false);
