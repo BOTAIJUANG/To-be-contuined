@@ -252,7 +252,7 @@ export default function AdminOrdersPage() {
             <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr>{['訂單編號', '日期', '買家', '商品', '金額', '付款', '配送', '配送狀態', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                  <tr>{['訂單編號', '日期', '買家', '商品', '金額', '付款狀態', '配送', '配送狀態', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {orders.length === 0 ? (

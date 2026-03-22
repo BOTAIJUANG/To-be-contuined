@@ -242,16 +242,38 @@ export async function POST(req: NextRequest) {
           ? Math.floor(subtotal * coupon.value / 100)
           : coupon.value;
 
-        // 原子性扣額度：UPDATE ... WHERE used_count < max_uses
-        // 兩個併發請求不可能同時成功超過 max_uses
-        const { data: claimed } = await supabaseAdmin.rpc('claim_coupon_usage', {
-          p_coupon_id: coupon.id,
-        });
+        // 嘗試用原子性 RPC 扣額度，如果 RPC 不存在則用普通 UPDATE
+        try {
+          const { data: claimed, error: rpcError } = await supabaseAdmin.rpc('claim_coupon_usage', {
+            p_coupon_id: coupon.id,
+          });
 
-        if (!claimed) {
-          // 額度已被搶完 → 不套用折扣
-          discount = 0;
-        } else {
+          if (rpcError) {
+            // RPC 不存在或失敗 → 改用普通 UPDATE
+            console.warn('claim_coupon_usage RPC 失敗，改用普通更新:', rpcError.message);
+            const { error: updateErr } = await supabaseAdmin
+              .from('coupons')
+              .update({ used_count: (coupon.used_count ?? 0) + 1 })
+              .eq('id', coupon.id);
+            if (updateErr) {
+              console.error('折扣碼更新失敗:', updateErr);
+              discount = 0;
+            } else {
+              couponClaimedId = coupon.id;
+            }
+          } else if (!claimed) {
+            // 額度已被搶完 → 不套用折扣
+            discount = 0;
+          } else {
+            couponClaimedId = coupon.id;
+          }
+        } catch (err) {
+          // RPC 完全不存在 → 改用普通 UPDATE
+          console.warn('claim_coupon_usage RPC 不存在，改用普通更新');
+          await supabaseAdmin
+            .from('coupons')
+            .update({ used_count: (coupon.used_count ?? 0) + 1 })
+            .eq('id', coupon.id);
           couponClaimedId = coupon.id;
         }
       }
@@ -298,9 +320,16 @@ export async function POST(req: NextRequest) {
     // 如果已扣折扣碼額度，退回
     if (couponClaimedId) {
       try {
-        await supabaseAdmin.rpc('release_coupon_usage', {
+        const { error: rpcErr } = await supabaseAdmin.rpc('release_coupon_usage', {
           p_coupon_id: couponClaimedId,
         });
+        if (rpcErr) {
+          // RPC 不存在 → 用 SQL 退回 used_count
+          await supabaseAdmin
+            .from('coupons')
+            .update({ used_count: 0 })
+            .eq('id', couponClaimedId);
+        }
       } catch { /* best effort */ }
     }
     return NextResponse.json({ error: `訂單建立失敗：${orderError?.message ?? '未知錯誤'}` }, { status: 500 });
