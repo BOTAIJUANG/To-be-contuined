@@ -25,6 +25,8 @@ import { verifyEcpayCallback } from '@/lib/ecpay';
 import { awardStampsForOrder } from '@/lib/stamps';
 
 export async function POST(req: NextRequest) {
+  console.log('=== ECPay Notify 收到請求 ===');
+
   // ── 1. 解析綠界送來的資料 ──────────────────────────
   // 綠界用 application/x-www-form-urlencoded 格式送資料
   const formData = await req.formData();
@@ -32,6 +34,8 @@ export async function POST(req: NextRequest) {
   formData.forEach((value, key) => {
     params[key] = String(value);
   });
+
+  console.log('ECPay Notify 參數:', JSON.stringify(params));
 
   // ── 2. 驗證 CheckMacValue ─────────────────────────
   // 確認這個通知真的是從綠界來的，不是有人偽造的

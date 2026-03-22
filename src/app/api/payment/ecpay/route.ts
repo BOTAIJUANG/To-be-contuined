@@ -60,6 +60,8 @@ export async function POST(req: NextRequest) {
     ?? req.headers.get('origin')
     ?? 'http://localhost:3000';
 
+  console.log('ECPay 付款 baseUrl:', baseUrl);
+
   const { url, params } = buildEcpayParams({
     orderNo:     order.order_no,
     total:       order.total,
