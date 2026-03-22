@@ -77,7 +77,7 @@ export default function AdminDailyPage() {
       {/* ── 低庫存警示 ── */}
       {lowStockItems.length > 0 && (
         <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a3c00' }}>
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>⚠️ 商品庫存警示</div>
+          <div style={{ fontWeight: 600, marginBottom: '8px' }}>商品庫存警示</div>
           {lowStockItems.map((item: any) => {
             const available = item.inventory_mode === 'stock' ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
             return (
@@ -94,7 +94,7 @@ export default function AdminDailyPage() {
 
       {lowIngredients.length > 0 && (
         <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a3c00' }}>
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>⚠️ 原料庫存警示</div>
+          <div style={{ fontWeight: 600, marginBottom: '8px' }}>原料庫存警示</div>
           {lowIngredients.map((ing: any) => (
             <div key={ing.id} style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span onClick={() => router.push('/admin/inventory?tab=ingredient')} style={{ color: '#c0392b', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>

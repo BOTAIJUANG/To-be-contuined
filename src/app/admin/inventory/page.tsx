@@ -384,9 +384,13 @@ export default function AdminInventoryPage() {
     </div>
   );
 
-  const DisabledPlaceholder = ({ icon, label, desc, onEnable }: { icon: string; label: string; desc: string; onEnable: () => void }) => (
+  const DisabledPlaceholder = ({ label, desc, onEnable }: { label: string; desc: string; onEnable: () => void }) => (
     <div style={{ padding: '64px 0', textAlign: 'center', border: '1px solid #E8E4DC', background: '#fff' }}>
-      <div style={{ fontSize: '32px', marginBottom: '16px' }}>{icon}</div>
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
       <div style={{ fontSize: '14px', color: '#888580', marginBottom: '8px' }}>{label}</div>
       <div style={{ fontSize: '12px', color: '#888580', marginBottom: '24px' }}>{desc}</div>
       <button onClick={onEnable} style={{ padding: '10px 28px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>啟用功能</button>
@@ -410,7 +414,7 @@ export default function AdminInventoryPage() {
           {/* 低庫存警示 */}
           {inventory.some(i => i.inventory_mode === 'stock' && (i.stock - i.reserved) <= i.safety_stock && i.safety_stock > 0) && (
             <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#7a3c00' }}>
-              ⚠️ 有商品庫存低於安全庫存，請盡快補貨。
+              有商品庫存低於安全庫存，請盡快補貨。
             </div>
           )}
 
@@ -477,7 +481,7 @@ export default function AdminInventoryPage() {
                           <span style={{ fontSize: '11px', color: isSoldOut ? '#c0392b' : '#2ab85a', border: `1px solid ${isSoldOut ? '#c0392b' : '#2ab85a'}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>
                             {isSoldOut ? '完售' : '販售中'}
                           </span>
-                          {isLow && !isSoldOut && <span style={{ fontSize: '10px', color: '#b87a2a', display: 'block', marginTop: '3px' }}>⚠ 低庫存</span>}
+                          {isLow && !isSoldOut && <span style={{ fontSize: '10px', color: '#b87a2a', display: 'block', marginTop: '3px' }}>低庫存</span>}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap' }}>
@@ -502,13 +506,13 @@ export default function AdminInventoryPage() {
         <div>
           <FeatureToggleBar enabled={featureIngredient} onToggle={() => toggleFeature('feature_ingredient', !featureIngredient)} label="原料 / 包材 / 耗材庫存" desc="啟用後可追蹤庫存量，低庫存自動警示" />
           {!featureIngredient ? (
-            <DisabledPlaceholder icon="🌾" label="原料庫存功能已停用" desc="開啟此功能可追蹤食材、包材、耗材庫存" onEnable={() => toggleFeature('feature_ingredient', true)} />
+            <DisabledPlaceholder label="原料庫存功能已停用" desc="開啟此功能可追蹤食材、包材、耗材庫存" onEnable={() => toggleFeature('feature_ingredient', true)} />
           ) : (
             <>
               {/* 低庫存警示 */}
               {ingredients.some(i => Number(i.stock) <= Number(i.safety_stock) && Number(i.safety_stock) > 0) && (
                 <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#7a3c00' }}>
-                  ⚠️ 有品項庫存低於安全庫存，請盡快補貨。
+                  有品項庫存低於安全庫存，請盡快補貨。
                 </div>
               )}
 
@@ -550,7 +554,9 @@ export default function AdminInventoryPage() {
                         .filter(i => (!ingSearch || i.name.includes(ingSearch)) && (!ingCatFilter || i.category === ingCatFilter))
                         .map(ing => {
                           const isLow     = Number(ing.safety_stock) > 0 && Number(ing.stock) <= Number(ing.safety_stock);
-                          const isExpired = ing.expiry_date && new Date(ing.expiry_date) < new Date();
+                          // 比較日期時用當天 0:00，避免「今天到期」被誤判為已過期
+                          const today = new Date(); today.setHours(0, 0, 0, 0);
+                          const isExpired = ing.expiry_date && new Date(ing.expiry_date + 'T23:59:59') < today;
                           return (
                             <tr key={ing.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
                               <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', fontWeight: isLow ? 600 : 400 }}>{ing.name}</td>
@@ -570,7 +576,7 @@ export default function AdminInventoryPage() {
                                 </span>
                               </td>
                               <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{ing.restocked_at ?? '—'}</td>
-                              <td style={{ padding: '12px 16px', fontSize: '12px', color: isExpired ? '#c0392b' : '#555250' }}>{ing.expiry_date ?? '—'}{isExpired && ' ⚠️'}</td>
+                              <td style={{ padding: '12px 16px', fontSize: '12px', color: isExpired ? '#c0392b' : '#555250' }}>{ing.expiry_date ?? '—'}{isExpired && ' 已過期'}</td>
                               <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{ing.location ?? '—'}</td>
                               <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
                                 <button onClick={() => openIngAudit(ing)} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#2ab85a', cursor: 'pointer', whiteSpace: 'nowrap' }}>盤點</button>
@@ -670,7 +676,7 @@ export default function AdminInventoryPage() {
         <div>
           <FeatureToggleBar enabled={featureCapacity} onToggle={() => toggleFeature('feature_capacity', !featureCapacity)} label="產能管理功能" desc="啟用後可查看訂單出貨排程，掌握每日製作量" />
           {!featureCapacity ? (
-            <DisabledPlaceholder icon="📅" label="產能管理功能已停用" desc="開啟此功能可查看出貨排程，預估每日製作量" onEnable={() => toggleFeature('feature_capacity', true)} />
+            <DisabledPlaceholder label="產能管理功能已停用" desc="開啟此功能可查看出貨排程，預估每日製作量" onEnable={() => toggleFeature('feature_capacity', true)} />
           ) : (
             <>
               {/* 今日產能 */}
@@ -981,7 +987,7 @@ export default function AdminInventoryPage() {
                 </>
               ) : (
                 <div style={{ padding: '12px 16px', background: '#f0faf4', border: '1px solid #b2dfdb', fontSize: '13px', color: '#2ab85a', textAlign: 'center' }}>
-                  ✓ 庫存數量與系統一致，無需調整
+                  庫存數量與系統一致，無需調整
                 </div>
               )}
 

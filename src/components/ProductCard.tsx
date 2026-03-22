@@ -37,7 +37,11 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.imageUrl ? (
               <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 1.2s cubic-bezier(0.6,0,0.2,1)', filter: 'saturate(0.95)' }} />
             ) : (
-              <div style={{ width: '100%', height: '100%', background: '#EDE9E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 1.2s cubic-bezier(0.6,0,0.2,1)' }}>🍰</div>
+              <div style={{ width: '100%', height: '100%', background: '#EDE9E2', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: hovered ? 'scale(1.06)' : 'scale(1)', transition: 'transform 1.2s cubic-bezier(0.6,0,0.2,1)' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /><path d="M3.27 6.96L12 12.01l8.73-5.05" /><path d="M12 22.08V12" />
+                </svg>
+              </div>
             )}
           </div>
 

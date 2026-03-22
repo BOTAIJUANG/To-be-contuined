@@ -100,7 +100,7 @@ export default function AdminPaymentPage() {
       <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 24px' }}>金流狀態</h1>
 
       <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '24px', fontSize: '13px', color: '#555250' }}>
-        💡 串接綠界 ECPay 後，付款狀態將自動更新。目前可手動調整。
+        串接綠界 ECPay 後，付款狀態將自動更新。目前可手動調整。
       </div>
 
       {/* 統計卡片 */}
@@ -203,7 +203,7 @@ export default function AdminPaymentPage() {
                 <textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} rows={3} placeholder="例：商品破損、顧客取消訂單" style={{ ...inputStyle, width: '100%', resize: 'vertical' }} />
               </div>
               <div style={{ background: '#fef0f0', border: '1px solid #f5c6c6', padding: '12px 16px', fontSize: '12px', color: '#c0392b' }}>
-                ⚠️ 實際退款需透過綠界後台操作，此處僅記錄退款申請狀態。
+                實際退款需透過綠界後台操作，此處僅記錄退款申請狀態。
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button onClick={saveRefund} disabled={savingRefund} style={{ padding: '10px 32px', background: '#c0392b', color: '#fff', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingRefund ? 0.6 : 1 }}>

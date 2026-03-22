@@ -163,7 +163,11 @@ export default function ResetPasswordPage() {
       {/* ── 完成 ── */}
       {pageState === 'done' && (
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
+          <div style={{ marginBottom: '16px' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1E1C1A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="9 12 11.5 14.5 16 9.5" />
+            </svg>
+          </div>
           <div style={{ fontSize: '18px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A', marginBottom: '8px' }}>
             密碼已重設
           </div>

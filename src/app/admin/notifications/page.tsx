@@ -60,7 +60,7 @@ export default function AdminNotificationsPage() {
       const list = [];
       if ((pendingPay ?? 0) > 0)      list.push({ type: 'warn',  msg: `有 ${pendingPay} 筆訂單待核款` });
       if ((paidNotShipped ?? 0) > 0)  list.push({ type: 'warn',  msg: `有 ${paidNotShipped} 筆已付款訂單尚未出貨` });
-      if (list.length === 0)          list.push({ type: 'ok',    msg: '目前沒有待處理事項 ✓' });
+      if (list.length === 0)          list.push({ type: 'ok',    msg: '目前沒有待處理事項' });
       setAlerts(list);
     };
     loadAlerts();
@@ -122,7 +122,7 @@ export default function AdminNotificationsPage() {
           <div style={{ fontSize: '11px', color: '#888580', marginBottom: '16px' }}>每次進入頁面自動更新</div>
           {alerts.map((a, i) => (
             <div key={i} style={{ padding: '14px 20px', background: a.type === 'ok' ? '#f0faf4' : '#fff8e1', border: `1px solid ${a.type === 'ok' ? '#b2dfdb' : '#f0c040'}`, marginBottom: '10px', fontSize: '13px', color: a.type === 'ok' ? '#2ab85a' : '#7a5c00', borderRadius: '2px' }}>
-              {a.type === 'warn' ? '⚠️ ' : '✅ '}{a.msg}
+              {a.msg}
             </div>
           ))}
         </div>
@@ -176,7 +176,7 @@ export default function AdminNotificationsPage() {
       {tab === 'batch' && (
         <div>
           <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '12px 16px', marginBottom: '20px', fontSize: '12px', color: '#7a3c00' }}>
-            ⚠️ 批次 Email 將同時寄送給所有選取的訂單收件人，請確認內容後再送出。
+            批次 Email 將同時寄送給所有選取的訂單收件人，請確認內容後再送出。
           </div>
 
           {/* 篩選 */}

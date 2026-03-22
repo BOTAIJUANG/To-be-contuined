@@ -168,7 +168,9 @@ export default function AdminPreorderPage() {
     const opt = STATUS_OPTIONS.find(o => o.value === s);
     if (opt) return { label: opt.label, color: opt.color };
     // fallback：用日期判斷
-    const today = new Date().toISOString().split('T')[0];
+    // 用本地日期（不用 UTC，避免時區誤差）
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     if (batch.starts_at && batch.starts_at > today) return { label: '未開始', color: '#b87a2a' };
     if (batch.ends_at   && batch.ends_at   < today) return { label: '已結束', color: '#888580' };
     return { label: '接單中', color: '#2ab85a' };
@@ -187,7 +189,11 @@ export default function AdminPreorderPage() {
 
       {products.length === 0 ? (
         <div style={{ padding: '64px 0', textAlign: 'center', border: '1px solid #E8E4DC', background: '#fff' }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>📦</div>
+          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /><path d="M3.27 6.96L12 12.01l8.73-5.05" /><path d="M12 22.08V12" />
+            </svg>
+          </div>
           <div style={{ fontSize: '14px', color: '#888580', marginBottom: '8px' }}>尚無預購商品</div>
           <div style={{ fontSize: '12px', color: '#888580', marginBottom: '24px' }}>請先至商品管理，將商品標記為「預購商品」</div>
           <button onClick={() => router.push('/admin/products')} style={{ padding: '10px 28px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>

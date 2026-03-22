@@ -1,6 +1,12 @@
 'use client';
 
 // app/checkout/page.tsx  ──  結帳頁（含運費計算、地址自動帶入）
+//
+// 【重要修改】
+// 原本是在前端直接用 supabase.from('orders').insert(...) 建立訂單，
+// 這樣很危險（使用者可以竄改價格）。
+// 現在改成呼叫後端的 /api/orders API 來建立訂單，
+// 所有金額計算都在 server 端完成。
 
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
@@ -68,6 +74,7 @@ export default function CheckoutPage() {
   // 登入狀態
   const [memberId, setMemberId] = useState<string | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddrId, setSelectedAddrId] = useState<number | null>(null);
 
   // 商店配送設定
   const [storeSettings, setStoreSettings] = useState<any>(null);
@@ -137,8 +144,19 @@ export default function CheckoutPage() {
     }
   }, [shipMethod, totalPrice, storeSettings]);
 
-  // 帶入已儲存地址
+  // 帶入已儲存地址（再點一次同一個 = 取消選取，清空欄位）
   const applyAddress = (addr: any) => {
+    if (selectedAddrId === addr.id) {
+      // 取消選取，清空欄位
+      setSelectedAddrId(null);
+      setName('');
+      setPhone('');
+      setCity('');
+      setDistrict('');
+      setAddress('');
+      return;
+    }
+    setSelectedAddrId(addr.id);
     setName(addr.name ?? '');
     setPhone(addr.phone ?? '');
     if (addr.type === 'home') {
@@ -155,13 +173,13 @@ export default function CheckoutPage() {
   const applyCoupon = async () => {
     if (!coupon.trim()) return;
     const { data, error } = await supabase.from('coupons').select('*').eq('code', coupon.trim().toUpperCase()).eq('is_active', true).single();
-    if (error || !data) { setDiscount(0); setCouponMsg('✗ 折扣碼無效'); return; }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) { setCouponMsg('✗ 折扣碼已過期'); return; }
-    if (data.min_amount > 0 && totalPrice < data.min_amount) { setCouponMsg(`✗ 需消費滿 NT$${data.min_amount} 才能使用`); return; }
-    if (data.max_uses > 0 && data.used_count >= data.max_uses) { setCouponMsg('✗ 折扣碼已達使用上限'); return; }
+    if (error || !data) { setDiscount(0); setCouponMsg('折扣碼無效'); return; }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) { setCouponMsg('折扣碼已過期'); return; }
+    if (data.min_amount > 0 && totalPrice < data.min_amount) { setCouponMsg(`需消費滿 NT$${data.min_amount} 才能使用`); return; }
+    if (data.max_uses > 0 && data.used_count >= data.max_uses) { setCouponMsg('折扣碼已達使用上限'); return; }
     const amt = data.type === 'percent' ? Math.floor(totalPrice * data.value / 100) : data.value;
     setDiscount(amt);
-    setCouponMsg(`✓ 折扣碼套用成功，折抵 NT$${amt}`);
+    setCouponMsg(`折扣碼已套用，折抵 NT$${amt}`);
   };
 
   // 載入可選出貨日期
@@ -214,86 +232,115 @@ export default function CheckoutPage() {
     setStep(3);
   };
 
-  const generateOrderNo = () => {
-    const now = new Date();
-    const d = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-    return `WB${d}${String(Math.floor(Math.random() * 9000) + 1000)}`;
+  // ── 取得目前登入的 token（給 API 用）────────────
+  // 每次呼叫後端 API 都要帶這個 token，後端才知道「你是誰」
+  const getAuthToken = async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
   };
 
+  // ── 送出訂單 ──────────────────────────────────────
+  // 【重要改動】
+  // 之前：前端直接寫入資料庫 → 不安全（可以竄改價格）
+  // 現在：呼叫後端 API → 安全（價格由後端計算）
   const handleSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
-    const no    = generateOrderNo();
-    const total = totalPrice - discount + shippingFee;
-    const fullAddress = isHomeDelivery ? `${city}${district}${address}` : undefined;
 
-    // 有預購或混購時，出貨日固定用統一出貨日
-    const finalShipDate = (hasMixed || items.every(i => i.isPreorder)) && mixedShipDate
-      ? mixedShipDate
-      : date || null;
+    try {
+      // 1. 取得登入 token
+      const token = await getAuthToken();
+      if (!token) {
+        alert('請先登入後再結帳');
+        setSubmitting(false);
+        return;
+      }
 
-    const { data: order, error: orderError } = await supabase.from('orders').insert({
-      order_no: no, member_id: memberId, buyer_name: name, buyer_phone: phone, buyer_email: email,
-      ship_method: shipMethod, city: city || null, district: district || null, address: fullAddress || null,
-      ship_date: finalShipDate, note: note || null,
-      subtotal: totalPrice, discount, shipping_fee: shippingFee, total,
-      coupon_code: coupon || null, pay_method: payMethod, pay_status: 'pending', status: 'processing',
-    }).select('id').single();
+      // 2. 計算出貨日
+      const finalShipDate = (hasMixed || items.every(i => i.isPreorder)) && mixedShipDate
+        ? mixedShipDate
+        : date || null;
 
-    if (orderError || !order) { setSubmitting(false); alert('訂單建立失敗，請稍後再試'); return; }
-
-    // 寫入訂單明細（含 snapshot，兌換品price=0）
-    await supabase.from('order_items').insert(items.map(item => ({
-      order_id:              order.id,
-      product_id:            parseInt(item.id),
-      variant_id:            (item as any).variantId ?? null,
-      product_name_snapshot: item.name,
-      variant_name_snapshot: (item as any).variantName ?? null,
-      unit_price:            item.isRedeemItem ? 0 : item.price,
-      qty:                   item.qty,
-      subtotal:              item.isRedeemItem ? 0 : item.price * item.qty,
-      name:  item.name,
-      price: item.isRedeemItem ? 0 : item.price,
-    })));
-
-    // 預留庫存（兌換品也要預留）
-    await fetch('/api/inventory?action=reserve', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        order_id: order.id,
-        items: items.map(item => ({
-          product_id: item.productRealId ?? parseInt(item.id),
-          variant_id: (item as any).variantId ?? null,
-          qty:        item.qty,
-        })),
-      }),
-    });
-
-    // 兌換品：更新 redemption 狀態為 pending_order 並綁定訂單
-    if (redeemItem?.redemptionId) {
-      await fetch('/api/redeem?action=update_order', {
+      // 3. 呼叫後端 API 建立訂單
+      // 只傳「商品 ID + 數量」和「收件資訊」，
+      // 價格、運費、折扣全部由後端重新計算
+      const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // 帶上登入 token
+        },
         body: JSON.stringify({
-          redemption_id: redeemItem.redemptionId,
-          order_id:      order.id,
+          items: items.map(item => ({
+            product_id: item.productRealId ?? parseInt(item.id),
+            variant_id: item.variantId ?? null,
+            qty:        item.qty,
+            is_redeem:  item.isRedeemItem ?? false,
+          })),
+          ship_method:   shipMethod,
+          name,
+          phone,
+          email,
+          city:          city || undefined,
+          district:      district || undefined,
+          address:       address || undefined,
+          ship_date:     finalShipDate,
+          note:          note || undefined,
+          coupon_code:   coupon || undefined,
+          pay_method:    payMethod,
+          redemption_id: redeemItem?.redemptionId,
         }),
       });
 
-      // 更新訂單的兌換欄位
-      await supabase.from('orders').update({
-        redemption_id:  redeemItem.redemptionId,
-        redeem_stamps:  redeemItem.redemptionId ? 1 : 0,
-      }).eq('id', order.id);
+      const result = await res.json();
+
+      if (!res.ok || !result.ok) {
+        alert(result.error ?? '訂單建立失敗，請稍後再試');
+        setSubmitting(false);
+        return;
+      }
+
+      // 4. 訂單建立成功！清空購物車
+      clearCart();
+      setOrderNo(result.order_no);
+
+      // 5. 根據付款方式決定下一步
+      if (payMethod === 'credit' || payMethod === 'atm') {
+        // 信用卡或 ATM → 導向綠界付款頁面
+        // 呼叫 /api/payment/ecpay 取得付款表單
+        const payRes = await fetch('/api/payment/ecpay', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ order_id: result.order_id }),
+        });
+
+        if (payRes.ok) {
+          // 取得 HTML 表單，寫入新頁面自動提交到綠界
+          const html = await payRes.text();
+          const newWindow = window.open('', '_self');
+          if (newWindow) {
+            newWindow.document.write(html);
+            newWindow.document.close();
+            return; // 頁面會被導走，不需要繼續
+          }
+        }
+
+        // 如果付款頁面打不開，還是顯示成功畫面（使用者可以稍後付款）
+        console.warn('無法自動導向付款頁面');
+      }
+
+      // 6. 顯示訂單完成畫面
+      setSubmitting(false);
+      setStep('done');
+
+    } catch (err) {
+      console.error('結帳失敗:', err);
+      alert('結帳失敗，請稍後再試');
+      setSubmitting(false);
     }
-
-    if (coupon && discount > 0) await supabase.rpc('increment_coupon_usage', { coupon_code: coupon.toUpperCase() });
-
-    clearCart();
-    setOrderNo(no);
-    setSubmitting(false);
-    setStep('done');
   };
 
   // 運費顯示文字
@@ -318,7 +365,7 @@ export default function CheckoutPage() {
           <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: isActive || isPast ? '#1E1C1A' : 'transparent', border: `2px solid ${isActive || isPast ? '#1E1C1A' : '#E8E4DC'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 500, color: isActive || isPast ? '#F7F4EF' : '#888580' }}>
-                {isPast ? '✓' : s}
+                {isPast ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : s}
               </div>
               <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: isActive ? '#1E1C1A' : '#888580', whiteSpace: 'nowrap' }}>{labels[i]}</div>
             </div>
@@ -347,7 +394,7 @@ export default function CheckoutPage() {
                     <div style={{ width: '56px', height: '56px', background: item.isRedeemItem ? '#f0faf4' : '#EDE9E2', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {item.imageUrl
                         ? <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : item.isRedeemItem ? <span style={{ fontSize: '20px' }}>🎁</span> : null
+                        : item.isRedeemItem ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2ab85a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" /></svg> : null
                       }
                     </div>
                     <div>
@@ -370,12 +417,12 @@ export default function CheckoutPage() {
               {/* 混購提示條 */}
               {hasMixed && mixedShipDate && (
                 <div style={{ margin: '16px 0', padding: '14px 20px', background: '#fff8e1', border: '1px solid #f0c040', fontSize: '13px', color: '#7a5c00', lineHeight: 2 }}>
-                  ⚠️ 此購物車包含預購商品，若一起結帳，所有商品將於 <strong>{mixedShipDate}</strong> 統一出貨。
+                  此購物車包含預購商品，若一起結帳，所有商品將於 <strong>{mixedShipDate}</strong> 統一出貨。
                 </div>
               )}
               {!memberId && (
                 <div style={{ margin: '24px 0', padding: '16px 20px', background: '#EDE9E2', fontSize: '12px', color: '#555250', lineHeight: 2 }}>
-                  💡 <Link href="/member" style={{ color: '#1E1C1A', textDecoration: 'underline' }}>登入</Link> 後結帳可累積集章、自動帶入收件地址。
+                  <Link href="/member" style={{ color: '#1E1C1A', textDecoration: 'underline' }}>登入</Link> 後結帳可累積集章、自動帶入收件地址。
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
@@ -397,12 +444,24 @@ export default function CheckoutPage() {
             <div style={{ marginBottom: '24px' }}>
               <div style={sectionTitleStyle}>選擇已儲存地址</div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {savedAddresses.map(addr => (
-                  <button key={addr.id} onClick={() => applyAddress(addr)} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer', fontFamily: '"Noto Sans TC", sans-serif' }}>
-                    {addr.label || addr.name}
-                    {addr.is_default && ' ★'}
-                  </button>
-                ))}
+                {savedAddresses.map(addr => {
+                  const isSelected = selectedAddrId === addr.id;
+                  return (
+                    <button key={addr.id} onClick={() => applyAddress(addr)} style={{
+                      padding: '8px 16px',
+                      background: isSelected ? '#1E1C1A' : 'transparent',
+                      border: isSelected ? '1px solid #1E1C1A' : '1px solid #E8E4DC',
+                      fontSize: '12px',
+                      color: isSelected ? '#F7F4EF' : '#555250',
+                      cursor: 'pointer',
+                      fontFamily: '"Noto Sans TC", sans-serif',
+                      transition: 'all 0.2s',
+                    }}>
+                      {addr.label || addr.name}
+                      {addr.is_default && ' ★'}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -456,7 +515,7 @@ export default function CheckoutPage() {
           {/* 無交集：提示分開下單 */}
           {noIntersection ? (
             <div style={{ padding: '16px 20px', background: '#fef0f0', border: '1px solid #f5c6c6', marginBottom: '24px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#c0392b', marginBottom: '6px' }}>⚠️ 無法安排同一天出貨</div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#c0392b', marginBottom: '6px' }}>無法安排同一天出貨</div>
               <div style={{ fontSize: '13px', color: '#c0392b' }}>{intersectionMsg}</div>
             </div>
           ) : (hasMixed || items.every(i => i.isPreorder)) && mixedShipDate ? (
@@ -517,7 +576,7 @@ export default function CheckoutPage() {
             <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="輸入折扣碼" style={{ ...inputStyle, maxWidth: '220px', textTransform: 'uppercase' }} />
             <button onClick={applyCoupon} style={{ ...btnStyle, padding: '11px 20px', whiteSpace: 'nowrap' }}>套用</button>
           </div>
-          {couponMsg && <div style={{ fontSize: '11px', marginTop: '6px', color: couponMsg.startsWith('✓') ? '#2ab85a' : '#c0392b' }}>{couponMsg}</div>}
+          {couponMsg && <div style={{ fontSize: '11px', marginTop: '6px', color: discount > 0 ? '#2ab85a' : '#c0392b' }}>{couponMsg}</div>}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
             <button onClick={() => setStep(1)} style={btnStyle}>← 上一步</button>
@@ -563,9 +622,9 @@ export default function CheckoutPage() {
           </div>
 
           <div style={{ fontSize: '12px', color: '#888580', lineHeight: 2.2, padding: '16px 20px', background: '#F7F4EF', border: '1px solid #E8E4DC', margin: '16px 0 28px' }}>
-            ✓ 下單後將寄送確認信至您的 Email<br />
-            ✓ 信用卡付款由綠界 ECPay 安全處理<br />
-            ✓ ATM 轉帳請於 72 小時內完成，逾時訂單自動取消
+            · 下單後將寄送確認信至您的 Email<br />
+            · 信用卡付款由綠界 ECPay 安全處理<br />
+            · ATM 轉帳請於 72 小時內完成，逾時訂單自動取消
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -580,7 +639,11 @@ export default function CheckoutPage() {
       {/* 完成 */}
       {step === 'done' && (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>✓</div>
+          <div style={{ marginBottom: '20px' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1E1C1A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="9 12 11.5 14.5 16 9.5" />
+            </svg>
+          </div>
           <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.3em', color: '#1E1C1A', marginBottom: '12px' }}>訂單已成立</h2>
           <p style={{ fontSize: '13px', color: '#555250', marginBottom: '8px' }}>訂單確認信已寄至您的 Email</p>
           <p style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.2em', color: '#888580', marginBottom: '32px' }}>{orderNo}</p>

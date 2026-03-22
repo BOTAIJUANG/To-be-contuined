@@ -384,7 +384,7 @@ export default function AdminMembersPage() {
                 <div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                     <button onClick={() => stampIconRef.current?.click()} disabled={uploadingIcon} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>
-                      {uploadingIcon ? '上傳中...' : '📁 上傳圖示'}
+                      {uploadingIcon ? '上傳中...' : '上傳圖示'}
                     </button>
                     {stampIconUrl && (
                       <button onClick={() => setStampIconUrl('')} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#c0392b', cursor: 'pointer' }}>

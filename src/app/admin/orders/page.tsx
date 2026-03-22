@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
 
 type OrderTab = 'list' | 'shiplist' | 'report';
@@ -100,65 +101,70 @@ export default function AdminOrdersPage() {
     setReportLoading(false);
   };
 
-  useEffect(() => { if (tab === 'report') loadReport(); }, [tab, reportPeriod]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === 'report') loadReport(); }, [tab, reportPeriod, reportCustomStart, reportCustomEnd]);
 
   const updateStatus = async (orderId: number, field: string, value: string) => {
-    const upd: any = { [field]: value };
-    if (field === 'status' && value === 'shipped') upd.shipped_at = new Date().toISOString();
+    try {
+      const upd: any = { [field]: value };
+      if (field === 'status' && value === 'shipped') upd.shipped_at = new Date().toISOString();
 
-    // 取得訂單明細（出貨或取消時需要）
-    if (field === 'status' && (value === 'shipped' || value === 'cancelled')) {
-      const { data: orderItems } = await supabase
-        .from('order_items')
-        .select('product_id, variant_id, qty')
-        .eq('order_id', orderId);
+      // 取得訂單明細（出貨或取消時需要）
+      if (field === 'status' && (value === 'shipped' || value === 'cancelled')) {
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('product_id, variant_id, qty')
+          .eq('order_id', orderId);
 
-      if (orderItems && orderItems.length > 0) {
-        const action = value === 'shipped' ? 'ship' : 'cancel';
-        await fetch(`/api/inventory?action=${action}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_id: orderId, items: orderItems }),
-        });
+        if (orderItems && orderItems.length > 0) {
+          const action = value === 'shipped' ? 'ship' : 'cancel';
+          const res = await fetchApi(`/api/inventory?action=${action}`, {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId, items: orderItems }),
+          });
+          if (!res.ok) console.error('庫存操作失敗:', await res.text());
+        }
       }
-    }
 
-    // 訂單狀態改為「已完成」→ 自動加章
-    if (field === 'status' && value === 'done') {
-      await fetch('/api/stamps?action=add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId }),
-      });
-    }
-
-    // 訂單狀態改為「已取消」→ 扣章（若之前已完成並加過章）
-    if (field === 'status' && value === 'cancelled') {
-      const prevOrder = orders.find(o => o.id === orderId);
-      if (prevOrder?.status === 'done') {
-        await fetch('/api/stamps?action=deduct', {
+      // 訂單狀態改為「已完成」→ 自動加章
+      if (field === 'status' && value === 'done') {
+        const res = await fetchApi('/api/stamps?action=add', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order_id: orderId }),
         });
+        if (!res.ok) console.error('集章失敗:', await res.text());
       }
-    }
 
-    // 退款申請通過時也扣章（若訂單已完成）
-    if (field === 'refund_status' && value === 'approved') {
-      const prevOrder = orders.find(o => o.id === orderId);
-      if (prevOrder?.status === 'done') {
-        await fetch('/api/stamps?action=deduct', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_id: orderId }),
-        });
+      // 訂單狀態改為「已取消」→ 扣章（若之前已完成並加過章）
+      if (field === 'status' && value === 'cancelled') {
+        const prevOrder = orders.find(o => o.id === orderId);
+        if (prevOrder?.status === 'done') {
+          await fetchApi('/api/stamps?action=deduct', {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId }),
+          });
+        }
       }
-    }
 
-    await supabase.from('orders').update(upd).eq('id', orderId);
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...upd } : o));
-    if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, ...upd }));
+      // 退款申請通過時也扣章（若訂單已完成）
+      if (field === 'refund_status' && value === 'approved') {
+        const prevOrder = orders.find(o => o.id === orderId);
+        if (prevOrder?.status === 'done') {
+          await fetchApi('/api/stamps?action=deduct', {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId }),
+          });
+        }
+      }
+
+      const { error } = await supabase.from('orders').update(upd).eq('id', orderId);
+      if (error) { alert('更新失敗：' + error.message); return; }
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...upd } : o));
+      if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, ...upd }));
+    } catch (err) {
+      console.error('updateStatus 錯誤:', err);
+      alert('操作失敗，請稍後再試');
+    }
   };
 
   const tabStyle = (t: string): React.CSSProperties => ({ padding: '10px 20px', cursor: 'pointer', fontSize: '13px', borderBottom: tab === t ? '2px solid #1E1C1A' : '2px solid transparent', color: tab === t ? '#1E1C1A' : '#888580', fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap' });
@@ -219,9 +225,18 @@ export default function AdminOrdersPage() {
                       <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250', maxWidth: '160px' }}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</td>
                       <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>NT$ {o.total.toLocaleString()}</td>
                       <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                        <select value={o.pay_status} onChange={e => updateStatus(o.id, 'pay_status', e.target.value)} style={{ ...selectStyle, fontSize: '11px', color: PAY_COLOR[o.pay_status] }}>
-                          {PAY_OPTIONS.slice(1).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
+                        {/* 付款狀態由綠界 webhook 自動更新，不給手動改 */}
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 12px',
+                          fontSize: '11px',
+                          color: PAY_COLOR[o.pay_status] ?? '#888580',
+                          border: `1px solid ${PAY_COLOR[o.pay_status] ?? '#E8E4DC'}`,
+                          fontFamily: '"Montserrat", sans-serif',
+                          letterSpacing: '0.1em',
+                        }}>
+                          {PAY_LABEL[o.pay_status] ?? o.pay_status}
+                        </span>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '11px', color: '#555250', whiteSpace: 'nowrap' }}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
                       <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>

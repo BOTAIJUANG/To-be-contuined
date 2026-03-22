@@ -389,7 +389,7 @@ export default function AdminStoreSettingsPage() {
       {tab === 'payment' && (
         <div style={{ maxWidth: '560px' }}>
           <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '14px 20px', marginBottom: '24px', fontSize: '13px', color: '#7a5c00' }}>
-            💡 金流串接（綠界 ECPay）需設定以下金鑰，請向綠界申請商家帳號後填入。
+            金流串接（綠界 ECPay）需設定以下金鑰，請向綠界申請商家帳號後填入。
           </div>
           <div style={sectionTitle}>付款方式</div>
           {[{ label: '信用卡（Visa / Master / JCB）' }, { label: 'ATM 轉帳' }].map(({ label }) => (
@@ -446,7 +446,7 @@ export default function AdminStoreSettingsPage() {
               <div style={{ flex: 1 }}>
                 <input value={aboutImageUrl} onChange={e => setAboutImageUrl(e.target.value)} placeholder="貼上圖片網址，或點下方按鈕上傳" style={{ ...inputStyle, width: '100%' }} />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ marginTop: '8px', padding: '7px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>
-                  {uploading ? '上傳中...' : '📁 從電腦上傳'}
+                  {uploading ? '上傳中...' : '從電腦上傳'}
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAboutImageUpload} style={{ display: 'none' }} />
               </div>
@@ -555,7 +555,7 @@ export default function AdminStoreSettingsPage() {
 
           <div style={{ ...sectionTitle, marginTop: '28px' }}>追蹤代碼</div>
           <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#7a5c00' }}>
-            ⚠️ 追蹤代碼將注入到前台頁面，請確認代碼正確後再儲存。
+            追蹤代碼將注入到前台頁面，請確認代碼正確後再儲存。
           </div>
           {[
             { label: 'FB Pixel ID', val: fbPixelId, set: setFbPixelId, ph: 'xxxxxxxxxxxxxxxxxx', hint: 'Facebook 廣告轉換追蹤' },

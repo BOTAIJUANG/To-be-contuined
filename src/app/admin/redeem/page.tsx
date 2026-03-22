@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/api';
 
 const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none' };
 const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' };
@@ -71,9 +72,9 @@ export default function AdminRedeemPage() {
     setLoading(true);
     setError('');
 
-    const res  = await fetch('/api/redeem?action=verify', {
+    // 用 fetchApi 自動帶上 admin token
+    const res  = await fetchApi('/api/redeem?action=verify', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ redeem_code: code.trim().toUpperCase(), admin_id: adminId }),
     });
     const data = await res.json();
@@ -84,7 +85,7 @@ export default function AdminRedeemPage() {
       return;
     }
 
-    setSuccess(`✓ 核銷成功！${data.member_name} 的「${data.reward_name}」已核銷，扣除 ${data.stamps_used} 章`);
+    setSuccess(`核銷成功 — ${data.member_name} 的「${data.reward_name}」已核銷，扣除 ${data.stamps_used} 章`);
     setResult(null);
     setCode('');
     loadRecentLogs();
@@ -129,7 +130,7 @@ export default function AdminRedeemPage() {
       {/* 錯誤訊息 */}
       {error && (
         <div style={{ padding: '14px 20px', background: '#fef0f0', border: '1px solid #f5c6c6', marginBottom: '24px', fontSize: '13px', color: '#c0392b', maxWidth: '500px' }}>
-          ✗ {error}
+          {error}
         </div>
       )}
 
@@ -182,14 +183,14 @@ export default function AdminRedeemPage() {
           {/* 有效期限 */}
           <div style={{ fontSize: '12px', color: new Date(result.expires_at) < new Date() ? '#c0392b' : '#888580', marginBottom: '20px' }}>
             有效期限：{new Date(result.expires_at).toLocaleString('zh-TW')}
-            {new Date(result.expires_at) < new Date() && ' ⚠️ 已過期'}
+            {new Date(result.expires_at) < new Date() && ' （已過期）'}
           </div>
 
           {/* 核銷按鈕 */}
           {result.status === 'pending_cart' && new Date(result.expires_at) >= new Date() ? (
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={handleVerify} disabled={loading} style={{ flex: 1, padding: '12px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
-                {loading ? '核銷中...' : '✓ 確認核銷'}
+                {loading ? '核銷中...' : '確認核銷'}
               </button>
               <button onClick={() => { setResult(null); setCode(''); inputRef.current?.focus(); }} style={{ padding: '12px 20px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', cursor: 'pointer' }}>
                 取消

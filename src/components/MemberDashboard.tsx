@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCart } from '@/context/CartContext';
+import { fetchApi } from '@/lib/api';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
@@ -148,17 +149,18 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
     if (!selectedReward || !redeemConfirmed) return;
     setRedeeming(true);
     try {
-      const res  = await fetch('/api/redeem?action=create', {
+      // 用 fetchApi 自動帶上登入 token
+      const res  = await fetchApi('/api/redeem?action=create', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ member_id: userId, reward_id: selectedReward.id, type: redeemType }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error ?? '兌換失敗'); setRedeeming(false); return; }
+      if (!res.ok) { alert(data.error ?? '兌換失敗'); setRedeeming(false); setRedeemConfirmed(false); return; }
 
       // 更新本地狀態
       setStampsFrozen(prev => prev + selectedReward.stamps);
       setShowRedeemModal(false);
+      setRedeemConfirmed(false);
 
       if (redeemType === 'code') {
         setCodeResult({ code: data.redeem_code, expiresAt: data.expires_at, rewardName: data.reward_name });
@@ -169,6 +171,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         if (!product) {
           alert('此兌換品尚未設定對應商品，請聯絡店家');
           setRedeeming(false);
+          setRedeemConfirmed(false);
           return;
         }
         addItem({
@@ -202,9 +205,9 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
   // 取消兌換
   const handleCancelRedemption = async (redemptionId: number, stampsCost: number) => {
     if (!confirm('確定要取消此兌換？章數將立即歸還。')) return;
-    const res  = await fetch('/api/redeem?action=cancel', {
+    // 用 fetchApi 自動帶上登入 token
+    const res  = await fetchApi('/api/redeem?action=cancel', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ redemption_id: redemptionId }),
     });
     if (res.ok) {
@@ -346,7 +349,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                       </div>
                       {reward && (
                         <div style={{ position: 'absolute', bottom: '-22px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', color: availableStamps >= reward.stamps ? '#2ab85a' : '#b87a2a', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                          {availableStamps >= reward.stamps ? '✓' : '↑'}
+                          {availableStamps >= reward.stamps ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : '↑'}
                         </div>
                       )}
                     </div>
@@ -371,7 +374,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                     <div key={r.id} style={{ padding: '14px 20px', background: '#fff8e1', border: '1px solid #f0c040', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: '13px', color: '#1E1C1A', fontWeight: 500, marginBottom: '4px' }}>
-                          {r.type === 'code' ? '🎫' : '🛒'} {r.redeem_items?.name}
+                          {r.redeem_items?.name}
                           <span style={{ fontSize: '11px', color: '#888580', marginLeft: '8px' }}>（{r.stamps_cost} 章）</span>
                         </div>
                         <div style={{ fontSize: '11px', color: '#888580' }}>
@@ -413,10 +416,10 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                         {canRedeem && (
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button onClick={() => openRedeemModal(item, 'online')} style={{ flex: 1, padding: '9px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', cursor: 'pointer' }}>
-                              🛒 線上兌換
+                              線上兌換
                             </button>
                             <button onClick={() => openRedeemModal(item, 'code')} style={{ flex: 1, padding: '9px', background: 'transparent', color: '#1E1C1A', border: '1px solid #1E1C1A', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', cursor: 'pointer' }}>
-                              🎫 現場兌換碼
+                              現場兌換碼
                             </button>
                           </div>
                         )}
@@ -518,7 +521,11 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
           <>
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 400 }} />
             <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '400px', maxWidth: '90vw', zIndex: 401, padding: '32px', textAlign: 'center' }}>
-              <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎫</div>
+              <div style={{ marginBottom: '16px' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1E1C1A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 5l-1 1" /><path d="M2 12h6l3-9 4 18 3-9h6" />
+                </svg>
+              </div>
               <h3 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '16px', color: '#1E1C1A', marginBottom: '8px' }}>兌換碼已產生</h3>
               <div style={{ fontSize: '13px', color: '#888580', marginBottom: '24px' }}>{codeResult.rewardName}</div>
 

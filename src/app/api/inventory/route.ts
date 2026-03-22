@@ -9,13 +9,13 @@
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
-// 使用 service role key（繞過 RLS，只在 server 端使用）
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+// 【安全說明】
+// 這個 API 使用 supabaseAdmin（有完整權限），
+// 所以一定要先驗證呼叫者是 admin，否則任何人都能操作庫存。
+// requireAdmin 會檢查：1. 有沒有登入 2. 是不是 admin 角色
 
 interface OrderItem {
   product_id:  number;
@@ -24,6 +24,13 @@ interface OrderItem {
 }
 
 export async function POST(req: NextRequest) {
+  // ── 身份驗證：只有 admin 可以操作庫存 ────────────
+  // 注意：建立訂單時的庫存預留已經移到 /api/orders 裡面，
+  // 由後端直接處理，不再從前端呼叫這個 API。
+  // 這個 API 現在只給 admin 後台使用（出貨、取消等）
+  const auth = await requireAdmin(req);
+  if (auth.error) return auth.error;
+
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
 

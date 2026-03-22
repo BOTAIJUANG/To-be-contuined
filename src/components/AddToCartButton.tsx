@@ -176,7 +176,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
           </div>
           {selectedBatch && (
             <div style={{ marginTop: '8px', padding: '8px 12px', background: '#e8f0fb', fontSize: '11px', color: '#2a5a8c' }}>
-              🗓 選擇出貨日：<strong>{selectedBatch.ship_date}</strong>，若與一般商品一起購買將統一出貨
+              選擇出貨日：<strong>{selectedBatch.ship_date}</strong>，若與一般商品一起購買將統一出貨
             </div>
           )}
         </div>
@@ -206,7 +206,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant)}
         style={{ width: '100%', padding: '14px 44px', background: added ? '#2ab85a' : '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.35em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background 0.3s', opacity: ((isPreorder && !selectedBatch) || (hasVariants && !selectedVariant)) ? 0.5 : 1 }}
       >
-        {added ? '✓ 已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
+        {added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
       </button>
     </div>
   );

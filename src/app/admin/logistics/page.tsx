@@ -212,7 +212,7 @@ export default function AdminLogisticsPage() {
                   {/* 顯示已儲存的追蹤號 */}
                   {order.tracking_no && (
                     <div style={{ fontSize: '10px', color: '#2ab85a', marginTop: '4px', fontFamily: '"Montserrat", sans-serif' }}>
-                      ✓ {order.tracking_no}
+                      {order.tracking_no}
                     </div>
                   )}
                 </td>

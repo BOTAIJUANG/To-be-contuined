@@ -12,12 +12,16 @@
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { requireAuth, requireAdmin } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+// 【安全說明】
+// 兌換 API 有些操作需要登入（create, cancel），
+// 有些操作需要 admin 權限（verify, refund）。
+// 每個 action 裡面會做不同等級的驗證。
+
+// 為了不影響現有程式碼，把 supabaseAdmin 也叫做 supabase
+const supabase = supabaseAdmin;
 
 // ── 產生現場兌換碼 ────────────────────────────────
 function generateRedeemCode(): string {
@@ -32,10 +36,19 @@ function generateRedeemCode(): string {
 }
 
 // ── GET：取得會員目前兌換狀態 ────────────────────
+// 需要登入，而且只能查自己的兌換記錄
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth.error) return auth.error;
+
   const memberId = req.nextUrl.searchParams.get("member_id");
   if (!memberId)
     return NextResponse.json({ error: "Missing member_id" }, { status: 400 });
+
+  // 只能查自己的兌換記錄（防止偷看別人的）
+  if (memberId !== auth.userId) {
+    return NextResponse.json({ error: "無權查看" }, { status: 403 });
+  }
 
   const { data } = await supabase
     .from("redemptions")
@@ -48,9 +61,24 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST ──────────────────────────────────────────
+// 不同的 action 需要不同的權限等級：
+//   - create, cancel：需要登入（一般會員就可以）
+//   - verify, refund：需要 admin（只有管理員可以核銷和退款）
+//   - use, update_order：需要登入（系統內部呼叫）
 export async function POST(req: NextRequest) {
   const action = req.nextUrl.searchParams.get("action");
   const body = await req.json();
+
+  // 需要 admin 權限的操作
+  if (action === "verify" || action === "refund") {
+    const auth = await requireAdmin(req);
+    if (auth.error) return auth.error;
+  }
+  // 其他操作至少需要登入
+  else {
+    const auth = await requireAuth(req);
+    if (auth.error) return auth.error;
+  }
 
   switch (action) {
     case "create":

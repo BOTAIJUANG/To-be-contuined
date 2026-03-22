@@ -105,7 +105,7 @@ export default function AdminDashboardPage() {
       {/* ── 訂單待處理提醒 ── */}
       {(stats.pendingPayment > 0 || stats.paidNotShipped > 0) && (
         <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a5c00', lineHeight: 2 }}>
-          📢 您有{' '}
+          您有{' '}
           <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders')} color="#c0392b" />{' '}
           筆待核款訂單，{' '}
           <ClickableNum value={stats.paidNotShipped} onClick={() => router.push('/admin/orders')} color="#c0392b" />{' '}
@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
       {/* ── 低庫存商品警示 ── */}
       {lowStockItems.length > 0 && (
         <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a3c00' }}>
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>⚠️ 商品庫存警示</div>
+          <div style={{ fontWeight: 600, marginBottom: '8px' }}>商品庫存警示</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {lowStockItems.map((item: any) => {
               const available = item.inventory_mode === 'stock' ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
@@ -139,7 +139,7 @@ export default function AdminDashboardPage() {
       {/* ── 低庫存原料警示 ── */}
       {lowIngredients.length > 0 && (
         <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a3c00' }}>
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>⚠️ 原料庫存警示</div>
+          <div style={{ fontWeight: 600, marginBottom: '8px' }}>原料庫存警示</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {lowIngredients.map((ing: any) => (
               <div key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ── 訂單統計卡片 ── */}
-      <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>≡ 訂單資訊</div>
+      <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>訂單資訊</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '32px' }}>
         <StatCard label="今日新增訂單"   value={stats.todayOrders}    onClick={() => router.push('/admin/orders')} />
         <StatCard label="待核款"         value={stats.pendingPayment} alert={stats.pendingPayment > 0} onClick={() => router.push('/admin/orders')} />
@@ -170,7 +170,7 @@ export default function AdminDashboardPage() {
       {/* ── 庫存警示卡片 ── */}
       {(lowStockItems.length > 0 || lowIngredients.length > 0) && (
         <>
-          <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>⚠ 庫存警示</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>庫存警示</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '32px' }}>
             <StatCard label="低庫存商品" value={lowStockItems.length}  alert={lowStockItems.length > 0}  onClick={() => router.push('/admin/inventory')} />
             <StatCard label="低庫存原料" value={lowIngredients.length} alert={lowIngredients.length > 0} onClick={() => router.push('/admin/inventory')} />
@@ -179,7 +179,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ── 累積數據 ── */}
-      <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>↗ 累積數據</div>
+      <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>累積數據</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '32px' }}>
         <StatCard label="總訂單數"       value={stats.totalOrders} />
         <StatCard label="總營收（已付款）" value={`NT$ ${stats.totalRevenue.toLocaleString()}`} />
@@ -187,7 +187,7 @@ export default function AdminDashboardPage() {
 
       {/* ── 最近訂單 ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>≡ 最近訂單</div>
+        <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>最近訂單</div>
         <span onClick={() => router.push('/admin/orders')} style={{ fontSize: '12px', color: '#1E1C1A', cursor: 'pointer', textDecoration: 'underline' }}>查看全部 →</span>
       </div>
       <div style={{ background: '#fff', border: '1px solid #E8E4DC' }}>

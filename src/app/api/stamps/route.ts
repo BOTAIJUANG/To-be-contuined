@@ -7,14 +7,22 @@
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+// 【安全說明】
+// 集章 API 只能由 admin 或系統內部呼叫。
+// 一般使用者的集章已經在付款成功的 webhook (/api/payment/notify) 裡自動處理了。
+// 這個 API 現在保留給 admin 手動加/扣章使用。
+
+// 為了不影響現有程式碼，把 supabaseAdmin 也叫做 supabase
+const supabase = supabaseAdmin;
 
 export async function POST(req: NextRequest) {
+  // ── 身份驗證：只有 admin 可以手動操作集章 ─────────
+  const auth = await requireAdmin(req);
+  if (auth.error) return auth.error;
+
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action'); // 'add' | 'deduct'
 
@@ -39,7 +47,7 @@ export async function POST(req: NextRequest) {
   // ── 2. 取得集章設定 ──────────────────────────────
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('stamp_enabled, stamp_threshold')
+    .select('stamp_enabled, stamp_threshold, stamp_total_slots')
     .eq('id', 1)
     .single();
 
@@ -48,9 +56,10 @@ export async function POST(req: NextRequest) {
   }
 
   const threshold = settings.stamp_threshold ?? 200;
+  const maxStamps = settings.stamp_total_slots ?? 10;  // 集章卡總格數上限
 
   // ── 3. 計算章數 ──────────────────────────────────
-  const stampsToChange = Math.floor(order.total / threshold);
+  let stampsToChange = Math.floor(order.total / threshold);
   if (stampsToChange <= 0) {
     return NextResponse.json({ ok: false, reason: '消費金額不足一章' });
   }
@@ -68,6 +77,11 @@ export async function POST(req: NextRequest) {
   let   stampsAfter: number;
 
   if (action === 'add') {
+    // 不能超過集章卡上限
+    if (stampsBefore >= maxStamps) {
+      return NextResponse.json({ ok: false, reason: `章數已達上限 ${maxStamps}` });
+    }
+    stampsToChange = Math.min(stampsToChange, maxStamps - stampsBefore);
     stampsAfter = stampsBefore + stampsToChange;
   } else {
     // deduct：扣回章數，最低為 0

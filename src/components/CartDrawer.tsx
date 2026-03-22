@@ -4,6 +4,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { fetchApi } from '@/lib/api';
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -14,9 +15,9 @@ export default function CartDrawer() {
   const handleCancelRedeem = async (item: any) => {
     if (!confirm(`確定要取消「${item.name}」的兌換嗎？章數將立即歸還。`)) return;
     if (item.redemptionId) {
-      await fetch('/api/redeem?action=cancel', {
+      // 用 fetchApi 自動帶上登入 token
+      await fetchApi('/api/redeem?action=cancel', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ redemption_id: item.redemptionId }),
       });
     }
@@ -55,7 +56,7 @@ export default function CartDrawer() {
         {/* 混購提示條 */}
         {hasMixed && mixedShipDate && (
           <div style={{ padding: '10px 16px', background: '#fff8e1', borderBottom: '1px solid #f0c040', fontSize: '12px', color: '#7a5c00', lineHeight: 1.8 }}>
-            ⚠️ 此購物車包含預購商品，若一起結帳，將於 <strong>{mixedShipDate}</strong> 統一出貨。
+            此購物車包含預購商品，若一起結帳，將於 <strong>{mixedShipDate}</strong> 統一出貨。
           </div>
         )}
 
@@ -63,7 +64,11 @@ export default function CartDrawer() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
           {items.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🛍</div>
+              <div style={{ marginBottom: '12px' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 01-8 0" />
+                </svg>
+              </div>
               <p style={{ fontSize: '13px', color: '#888580' }}>購物車是空的</p>
             </div>
           ) : items.map(item => {

@@ -158,12 +158,29 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', color: '#888580', display: 'block', marginBottom: '6px' }}>付款狀態</label>
-                    <select value={order.pay_status} onChange={e => onStatusChange(order.id, 'pay_status', e.target.value)} style={{ ...selectStyle, color: PAY_COLOR[order.pay_status] }}>
-                      {[{ value: 'pending', label: '待付款' }, { value: 'paid', label: '已付款' }, { value: 'failed', label: '付款失敗' }].map(s => (
-                        <option key={s.value} value={s.value}>{s.label}</option>
-                      ))}
-                    </select>
+                    <label style={{ fontSize: '11px', color: '#888580', display: 'block', marginBottom: '6px' }}>付款狀態（由金流系統自動更新）</label>
+                    {/* 付款狀態由綠界 ECPay webhook 自動更新，不給手動改 */}
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '6px 14px',
+                      fontSize: '12px',
+                      color: PAY_COLOR[order.pay_status] ?? '#888580',
+                      border: `1px solid ${PAY_COLOR[order.pay_status] ?? '#E8E4DC'}`,
+                      fontFamily: '"Montserrat", sans-serif',
+                      letterSpacing: '0.1em',
+                    }}>
+                      {PAY_LABEL[order.pay_status] ?? order.pay_status}
+                    </span>
+                    {order.ecpay_trade_no && (
+                      <div style={{ fontSize: '11px', color: '#888580', marginTop: '6px' }}>
+                        綠界交易號：{order.ecpay_trade_no}
+                      </div>
+                    )}
+                    {order.paid_at && (
+                      <div style={{ fontSize: '11px', color: '#888580', marginTop: '2px' }}>
+                        付款時間：{new Date(order.paid_at).toLocaleString('zh-TW')}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

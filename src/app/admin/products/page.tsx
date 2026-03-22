@@ -416,7 +416,7 @@ export default function AdminProductsPage() {
                   <div style={{ flex: 1 }}>
                     <input value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} placeholder="貼上圖片網址，或點下方按鈕上傳" style={{...inputStyle, width:'100%'}} />
                     <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>{uploading ? '上傳中...' : '📁 從電腦上傳'}</button>
+                      <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>{uploading ? '上傳中...' : '從電腦上傳'}</button>
                       <span style={{ fontSize: '11px', color: '#888580' }}>建議尺寸 800×800px</span>
                     </div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
@@ -641,7 +641,7 @@ export default function AdminProductsPage() {
                 {filtered.map((p) => (
                   <tr key={p.id} style={{ borderBottom: '1px solid #E8E4DC', opacity: p.is_available ? 1 : 0.5 }}>
                     <td style={{ padding: '10px 16px' }}>
-                      {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '44px', height: '44px', objectFit: 'cover' }} /> : <div style={{ width: '44px', height: '44px', background: '#EDE9E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🍰</div>}
+                      {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '44px', height: '44px', objectFit: 'cover' }} /> : <div style={{ width: '44px', height: '44px', background: '#EDE9E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></svg></div>}
                     </td>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ fontSize: '13px', color: '#1E1C1A' }}>{p.name}</div>
@@ -651,7 +651,7 @@ export default function AdminProductsPage() {
                     <td style={{ padding: '10px 16px', fontSize: '13px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>NT$ {p.price.toLocaleString()}</td>
                     <td style={{ padding: '10px 16px' }}><input type="checkbox" checked={p.is_available} onChange={() => toggleField(p, 'is_available')} style={{ accentColor: '#1E1C1A', cursor: 'pointer' }} /></td>
                     <td style={{ padding: '10px 16px' }}><input type="checkbox" checked={p.is_sold_out}  onChange={() => toggleField(p, 'is_sold_out')}  style={{ accentColor: '#1E1C1A', cursor: 'pointer' }} /></td>
-                    <td style={{ padding: '10px 16px', fontSize: '12px', color: p.is_featured ? '#2ab85a' : '#888580' }}>{p.is_featured ? '✓' : '—'}</td>
+                    <td style={{ padding: '10px 16px', fontSize: '12px', color: p.is_featured ? '#2ab85a' : '#888580' }}>{p.is_featured ? '是' : '—'}</td>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <button onClick={() => openEdit(p)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif' }}>編輯</button>
@@ -733,7 +733,7 @@ export default function AdminProductsPage() {
                             <div key={p.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px 10px 52px', borderBottom: pIsLast ? 'none' : '1px solid #E8E4DC', gap: '12px' }}>
                               {/* 商品圖 */}
                               <div style={{ width: '36px', height: '36px', flexShrink: 0, background: '#EDE9E2', overflow: 'hidden' }}>
-                                {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🍰</div>}
+                                {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></svg></div>}
                               </div>
 
                               {/* 商品名稱 */}
