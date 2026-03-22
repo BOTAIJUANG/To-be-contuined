@@ -11,8 +11,14 @@ type OrderTab = 'list' | 'shiplist' | 'report';
 type ReportPeriod = 'today' | 'week' | 'month' | 'custom';
 
 const STATUS_OPTIONS = [
-  { value: '', label: '全部狀態' }, { value: 'processing', label: '處理中' },
+  { value: '', label: '全部配送狀態' }, { value: 'processing', label: '處理中' },
   { value: 'shipped', label: '已出貨' }, { value: 'done', label: '已完成' }, { value: 'cancelled', label: '已取消' },
+];
+// 配送狀態下拉選項（不含已取消，取消走獨立按鈕）
+const SHIP_STATUS_OPTIONS = [
+  { value: 'processing', label: '處理中' },
+  { value: 'shipped', label: '已出貨' },
+  { value: 'done', label: '已完成' },
 ];
 const PAY_OPTIONS = [
   { value: '', label: '全部' }, { value: 'pending', label: '待付款' },
@@ -42,6 +48,10 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  // 取消訂單 modal
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   // 搜尋條件
   const [keyword, setKeyword] = useState('');
@@ -167,6 +177,39 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleCancelOrder = async (order: any) => {
+    setCancelLoading(true);
+    try {
+      // 信用卡已付款 → 呼叫綠界退款 API
+      if (order.pay_method === 'credit' && order.pay_status === 'paid') {
+        const res = await fetchApi('/api/payment/refund', {
+          method: 'POST',
+          body: JSON.stringify({ order_id: order.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert('退款失敗：' + (data.error ?? '未知錯誤'));
+          setCancelLoading(false);
+          return;
+        }
+        if (data.message) alert(data.message);
+      }
+
+      // ATM 已付款 → 提示需手動退款
+      if (order.pay_method === 'atm' && order.pay_status === 'paid') {
+        alert('此訂單為 ATM虛擬帳號付款，退款將以銀行轉帳方式另行辦理，請手動處理退款。');
+      }
+
+      // 更新訂單狀態為已取消（會觸發庫存回補、扣章等邏輯）
+      await updateStatus(order.id, 'status', 'cancelled');
+      setCancelTarget(null);
+    } catch (err) {
+      console.error('取消訂單失敗:', err);
+      alert('取消訂單失敗，請稍後再試');
+    }
+    setCancelLoading(false);
+  };
+
   const tabStyle = (t: string): React.CSSProperties => ({ padding: '10px 20px', cursor: 'pointer', fontSize: '13px', borderBottom: tab === t ? '2px solid #1E1C1A' : '2px solid transparent', color: tab === t ? '#1E1C1A' : '#888580', fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap' });
   const thStyle: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' };
   const selectStyle: React.CSSProperties = { padding: '8px 10px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#555250', outline: 'none' };
@@ -209,7 +252,7 @@ export default function AdminOrdersPage() {
             <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr>{['訂單編號', '日期', '買家', '商品', '金額', '付款', '配送', '狀態', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                  <tr>{['訂單編號', '日期', '買家', '商品', '金額', '付款', '配送', '配送狀態', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {orders.length === 0 ? (
@@ -240,12 +283,19 @@ export default function AdminOrdersPage() {
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '11px', color: '#555250', whiteSpace: 'nowrap' }}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
                       <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                        <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} style={{ ...selectStyle, fontSize: '11px', color: STATUS_COLOR[o.status] }}>
-                          {STATUS_OPTIONS.slice(1).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
+                        {o.status === 'cancelled' ? (
+                          <span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '11px', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.1em' }}>已取消</span>
+                        ) : (
+                          <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} style={{ ...selectStyle, fontSize: '11px', color: STATUS_COLOR[o.status] }}>
+                            {SHIP_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          </select>
+                        )}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>詳細</button>
+                      <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                        <button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', marginRight: '6px' }}>詳細</button>
+                        {o.status !== 'cancelled' && (
+                          <button onClick={e => { e.stopPropagation(); setCancelTarget(o); }} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #c0392b', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>取消</button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -262,7 +312,7 @@ export default function AdminOrdersPage() {
           <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#555250' }}>顯示所有待出貨和已出貨的訂單。</div>
           <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['訂單編號', '收件人', '地址', '配送方式', '指定出貨日', '狀態'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
+              <thead><tr>{['訂單編號', '收件人', '地址', '配送方式', '指定出貨日', '配送狀態'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
               <tbody>
                 {orders.filter(o => o.status !== 'cancelled').map(o => (
                   <tr key={o.id} style={{ borderBottom: '1px solid #E8E4DC', cursor: 'pointer' }} onClick={() => setSelectedOrder(o)}>
@@ -273,7 +323,7 @@ export default function AdminOrdersPage() {
                     <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{o.ship_date ?? '—'}</td>
                     <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
                       <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} style={{ ...selectStyle, fontSize: '11px', color: STATUS_COLOR[o.status] }}>
-                        {STATUS_OPTIONS.slice(1).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        {SHIP_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                       </select>
                     </td>
                   </tr>
@@ -368,6 +418,55 @@ export default function AdminOrdersPage() {
         onClose={() => setSelectedOrder(null)}
         onStatusChange={updateStatus}
       />
+
+      {/* 取消訂單確認 Modal */}
+      {cancelTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => !cancelLoading && setCancelTarget(null)}>
+          <div style={{ background: '#fff', padding: '32px 36px', maxWidth: '420px', width: '90%', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#1E1C1A', marginBottom: '16px', letterSpacing: '0.1em' }}>確認取消訂單</div>
+            <div style={{ fontSize: '13px', color: '#555250', lineHeight: 1.8, marginBottom: '8px' }}>
+              確定要取消這筆訂單嗎？
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E1C1A', marginBottom: '4px', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.08em' }}>
+              {cancelTarget.order_no}
+            </div>
+            <div style={{ fontSize: '13px', color: '#555250', marginBottom: '20px' }}>
+              {cancelTarget.buyer_name} ・ NT$ {cancelTarget.total?.toLocaleString()}
+            </div>
+
+            {/* 信用卡已付款 → 自動退款提示 */}
+            {cancelTarget.pay_method === 'credit' && cancelTarget.pay_status === 'paid' && (
+              <div style={{ background: '#FFF8E7', border: '1px solid #E8D5A3', padding: '12px 14px', fontSize: '12px', color: '#8B6914', lineHeight: 1.7, marginBottom: '16px' }}>
+                此訂單為信用卡付款（已付款），取消後將自動進行信用卡刷退。
+              </div>
+            )}
+
+            {/* ATM 已付款 → 手動退款提示 */}
+            {cancelTarget.pay_method === 'atm' && cancelTarget.pay_status === 'paid' && (
+              <div style={{ background: '#FFF0F0', border: '1px solid #E8BFBF', padding: '12px 14px', fontSize: '12px', color: '#8B1414', lineHeight: 1.7, marginBottom: '16px' }}>
+                此訂單為 ATM虛擬帳號付款，退款將以銀行轉帳方式另行辦理，無法原路退回。請取消後手動處理退款。
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => setCancelTarget(null)}
+                disabled={cancelLoading}
+                style={{ padding: '9px 24px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}
+              >
+                返回
+              </button>
+              <button
+                onClick={() => handleCancelOrder(cancelTarget)}
+                disabled={cancelLoading}
+                style={{ padding: '9px 24px', background: '#c0392b', border: 'none', fontSize: '12px', color: '#fff', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.08em', opacity: cancelLoading ? 0.6 : 1 }}
+              >
+                {cancelLoading ? '處理中...' : '確認取消'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -139,7 +139,7 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
 
   // ── Email 註冊 ────────────────────────────────────
   const handleRegister = async () => {
-    if (!regName || !regEmail || !regPassword) { setErrorMsg('請填寫必填欄位'); return; }
+    if (!regName || !regPhone || !regEmail || !regPassword) { setErrorMsg('請填寫必填欄位（姓名、手機、電子信箱、密碼）'); return; }
     if (regPassword !== regPassword2) { setErrorMsg('兩次密碼不一致'); return; }
     if (regPassword.length < 8)       { setErrorMsg('密碼至少 8 個字元'); return; }
 
@@ -167,11 +167,11 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
       return;
     }
 
-    // 寫入會員資料（user 或 session 任一有 id 都嘗試寫入）
+    // 寫入會員資料
     const userId = data.user?.id ?? data.session?.user?.id;
     if (userId) {
       try {
-        const regRes = await fetch('/api/register', {
+        await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -181,9 +181,6 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
             birthday: regBirthday || null,
           }),
         });
-        if (!regRes.ok) {
-          console.error('會員資料寫入失敗:', await regRes.text());
-        }
       } catch (err) {
         console.error('會員資料寫入失敗:', err);
       }
@@ -266,11 +263,15 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
           </div>
 
           {/* Google 登入 */}
-          {false && (
-            <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px' }}>
-              <GoogleLogo /> 使用 Google 帳號登入
-            </button>
-          )}
+          <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px' }}>
+            <GoogleLogo /> 使用 Google 帳號登入
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
+            <span style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.15em' }}>或</span>
+            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
+          </div>
 
           {/* Email 登入 */}
           <div style={{ marginBottom: '24px' }}>
@@ -314,16 +315,20 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
           </div>
 
           {/* Google 快速註冊 */}
-          {false && (
-            <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px' }}>
-              <GoogleLogo /> 使用 Google 帳號快速註冊
-            </button>
-          )}
+          <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px' }}>
+            <GoogleLogo /> 使用 Google 帳號快速註冊
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
+            <span style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.15em' }}>或使用 Email 註冊</span>
+            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
+          </div>
 
           {[
             { label: '姓名 *',    type: 'text',     val: regName,      set: setRegName,      ph: '請輸入姓名' },
             { label: '電子信箱 *',type: 'email',    val: regEmail,     set: setRegEmail,     ph: 'your@email.com' },
-            { label: '手機號碼',  type: 'tel',      val: regPhone,     set: setRegPhone,     ph: '09XXXXXXXX（選填）' },
+            { label: '手機號碼 *',type: 'tel',      val: regPhone,     set: setRegPhone,     ph: '09XXXXXXXX' },
             { label: '生日',      type: 'date',     val: regBirthday,  set: setRegBirthday,  ph: '' },
             { label: '密碼 *',    type: 'password', val: regPassword,  set: setRegPassword,  ph: '至少 8 個字元' },
             { label: '確認密碼 *',type: 'password', val: regPassword2, set: setRegPassword2, ph: '再輸入一次密碼' },

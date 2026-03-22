@@ -15,17 +15,17 @@ import Link from 'next/link';
 
 const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
 
-// 配送方式設定
+// 配送方式設定（settingKey 對應 store_settings 的開關欄位）
 const SHIP_OPTIONS = [
-  { value: 'home_normal', title: '一般宅配',  sub: '黑貓 / 新竹 — 常溫商品',  feeKey: 'fee_home_normal' },
-  { value: 'home_cold',   title: '低溫宅配',  sub: '冷藏配送 — 蛋糕類商品',   feeKey: 'fee_home_cold' },
-  { value: 'cvs_711',     title: '7-11 取貨', sub: '超商取貨付款',             feeKey: 'fee_cvs' },
-  { value: 'cvs_family',  title: '全家取貨',  sub: '超商取貨付款',             feeKey: 'fee_cvs' },
-  { value: 'store',       title: '門市自取',  sub: '宜蘭市神農路二段 96 號',   feeKey: null },
+  { value: 'home_normal', title: '一般宅配',  sub: '黑貓 / 新竹 — 常溫商品',  feeKey: 'fee_home_normal', settingKey: 'ship_home_normal' },
+  { value: 'home_cold',   title: '低溫宅配',  sub: '冷藏配送 — 蛋糕類商品',   feeKey: 'fee_home_cold',   settingKey: 'ship_home_cold' },
+  { value: 'cvs_711',     title: '7-11 取貨', sub: '超商取貨付款',             feeKey: 'fee_cvs',         settingKey: 'ship_cvs_711' },
+  { value: 'cvs_family',  title: '全家取貨',  sub: '超商取貨付款',             feeKey: 'fee_cvs',         settingKey: 'ship_cvs_family' },
+  { value: 'store',       title: '門市自取',  sub: '宜蘭市神農路二段 96 號',   feeKey: null,              settingKey: 'ship_store' },
 ];
 const PAY_OPTIONS = [
   { value: 'credit', title: '信用卡',   sub: 'Visa / Master / JCB — 綠界 ECPay 安全加密' },
-  { value: 'atm',    title: 'ATM 轉帳', sub: '系統產生虛擬帳號，請於 3 天內完成轉帳' },
+  { value: 'atm',    title: 'ATM虛擬帳號', sub: '虛擬 ATM 付款之退款，將以銀行轉帳方式另行辦理，無法原路退回。' },
 ];
 
 const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '8px' };
@@ -101,6 +101,8 @@ export default function CheckoutPage() {
   const [city,       setCity]       = useState('');
   const [district,   setDistrict]   = useState('');
   const [address,    setAddress]    = useState('');
+  const [cvsStoreName, setCvsStoreName] = useState('');
+  const [cvsStoreAddr, setCvsStoreAddr] = useState('');
   const [date,       setDate]       = useState('');
   const [note,       setNote]       = useState('');
   const [coupon,     setCoupon]     = useState('');
@@ -114,13 +116,20 @@ export default function CheckoutPage() {
   });
 
   const isHomeDelivery = shipMethod === 'home_normal' || shipMethod === 'home_cold';
+  const isCvsPickup    = shipMethod === 'cvs_711' || shipMethod === 'cvs_family';
+  const isStorePickup  = shipMethod === 'store';
+
+  // 根據後台設定過濾可用的配送方式
+  const availableShipOptions = storeSettings
+    ? SHIP_OPTIONS.filter(opt => storeSettings[opt.settingKey] !== false)
+    : SHIP_OPTIONS;
 
   // 載入登入狀態 + 商店設定
   useEffect(() => {
     const load = async () => {
       const [{ data: { session } }, { data: settings }] = await Promise.all([
         supabase.auth.getSession(),
-        supabase.from('store_settings').select('fee_home_normal, fee_home_cold, fee_cvs, free_ship_amount, free_ship_cold').eq('id', 1).single(),
+        supabase.from('store_settings').select('fee_home_normal, fee_home_cold, fee_cvs, free_ship_amount, free_ship_cold, ship_home_normal, ship_home_cold, ship_cvs_711, ship_cvs_family, ship_store').eq('id', 1).single(),
       ]);
       setStoreSettings(settings);
       if (session?.user) {
@@ -141,6 +150,16 @@ export default function CheckoutPage() {
     };
     load();
   }, []);
+
+  // 如果目前選的配送方式被後台關閉了，自動切到第一個可用的
+  useEffect(() => {
+    if (!storeSettings) return;
+    const currentAvailable = SHIP_OPTIONS.filter(opt => storeSettings[opt.settingKey] !== false);
+    const currentStillValid = currentAvailable.some(opt => opt.value === shipMethod);
+    if (!currentStillValid && currentAvailable.length > 0) {
+      setShipMethod(currentAvailable[0].value);
+    }
+  }, [storeSettings]);
 
   // 計算運費
   useEffect(() => {
@@ -241,6 +260,7 @@ export default function CheckoutPage() {
   const validateStep2 = () => {
     if (!name || !phone || !email) { alert('請填寫收件人資訊'); return; }
     if (isHomeDelivery && (!city || !address)) { alert('請填寫完整收件地址'); return; }
+    if (isCvsPickup && (!cvsStoreName || !cvsStoreAddr)) { alert('請填寫取貨門市名稱與地址'); return; }
     if (noIntersection) { alert('您的購物車商品無法安排在同一天出貨，請分開下單。'); return; }
     if (!date && availableDates.length > 0) { alert('請選擇出貨日期'); return; }
     setStep(3);
@@ -297,7 +317,9 @@ export default function CheckoutPage() {
           email,
           city:          city || undefined,
           district:      district || undefined,
-          address:       address || undefined,
+          address:       isCvsPickup ? `${cvsStoreName} ${cvsStoreAddr}` : (address || undefined),
+          cvs_store_name: isCvsPickup ? cvsStoreName : undefined,
+          cvs_store_addr: isCvsPickup ? cvsStoreAddr : undefined,
           ship_date:     finalShipDate,
           note:          note || undefined,
           coupon_code:   coupon || undefined,
@@ -482,7 +504,7 @@ export default function CheckoutPage() {
           )}
 
           <div style={sectionTitleStyle}>配送方式</div>
-          {SHIP_OPTIONS.map(opt => (
+          {availableShipOptions.map(opt => (
             <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
           ))}
 
@@ -521,6 +543,29 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </>
+          )}
+
+          {isCvsPickup && (
+            <>
+              <div style={{ ...sectionTitleStyle, marginTop: '20px' }}>取貨門市資訊</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>門市名稱 *</label>
+                  <input value={cvsStoreName} onChange={e => setCvsStoreName(e.target.value)} placeholder={`${shipMethod === 'cvs_711' ? '7-11' : '全家'} ○○門市`} style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>門市地址 *</label>
+                  <input value={cvsStoreAddr} onChange={e => setCvsStoreAddr(e.target.value)} placeholder="門市所在地址" style={inputStyle} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {isStorePickup && (
+            <div style={{ marginTop: '20px', padding: '14px 20px', background: '#EDE9E2', fontSize: '13px', color: '#555250', lineHeight: 1.8 }}>
+              門市自取地址：宜蘭市神農路二段 96 號<br />
+              請於指定日期攜帶訂單編號至門市取貨。
+            </div>
           )}
 
           <div style={{ ...sectionTitleStyle, marginTop: '24px' }}>
@@ -639,7 +684,7 @@ export default function CheckoutPage() {
           <div style={{ fontSize: '12px', color: '#888580', lineHeight: 2.2, padding: '16px 20px', background: '#F7F4EF', border: '1px solid #E8E4DC', margin: '16px 0 28px' }}>
             · 下單後將寄送確認信至您的 Email<br />
             · 信用卡付款由綠界 ECPay 安全處理<br />
-            · ATM 轉帳請於 72 小時內完成，逾時訂單自動取消
+            · ATM虛擬帳號請於 72 小時內完成轉帳，逾時訂單自動取消
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>

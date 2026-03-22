@@ -13,23 +13,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.from('members').insert({
+  const { error } = await supabaseAdmin.from('members').upsert({
     id:       user_id,
     name,
     phone:    phone || null,
     birthday: birthday || null,
-  });
+  }, { onConflict: 'id' });
 
   if (error) {
-    // 如果已存在（重複註冊），用 upsert 更新
-    if (error.code === '23505') {
-      await supabaseAdmin.from('members').update({
-        name,
-        phone:    phone || null,
-        birthday: birthday || null,
-      }).eq('id', user_id);
-      return NextResponse.json({ ok: true });
-    }
     console.error('會員資料建立失敗:', error);
     return NextResponse.json({ error: '會員資料建立失敗' }, { status: 500 });
   }

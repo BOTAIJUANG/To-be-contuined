@@ -23,6 +23,7 @@ export default function Footer({
   showCopyright = false,
   copyright     = '© 未半甜點 版權所有',
 }: FooterProps) {
+
   return (
     <footer style={{
       padding: '40px 48px',

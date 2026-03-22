@@ -35,8 +35,6 @@ export default function AdminStoreSettingsPage() {
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
   const [lineId, setLineId] = useState('');
-  const [hours, setHours] = useState(DAYS_TW.map((d, i) => ({ day: d, open: i > 0 && i < 6, start: '10:00', end: '20:00' })));
-
   // 配送設定
   const [shipHomeNormal, setShipHomeNormal] = useState(true);
   const [shipHomeCold, setShipHomeCold] = useState(true);
@@ -116,9 +114,6 @@ export default function AdminStoreSettingsPage() {
         setSidebarProductLimit(data.sidebar_product_limit ?? 3);
         setBlockedWeekdays(JSON.parse(data.ship_blocked_weekdays ?? '["0","6"]'));
         setBlockedDates(JSON.parse(data.ship_blocked_dates ?? '[]'));
-        if (data.business_hours) {
-          try { setHours(JSON.parse(data.business_hours)); } catch {}
-        }
         setHeroTitle(data.hero_title ?? '未半甜點');
         setHeroSub(data.hero_sub ?? '手工甜點 · 2024');
         setHeroDesc(data.hero_desc ?? '');
@@ -180,7 +175,6 @@ export default function AdminStoreSettingsPage() {
       sidebar_product_limit: sidebarProductLimit,
       ship_blocked_weekdays: JSON.stringify(blockedWeekdays),
       ship_blocked_dates: JSON.stringify(blockedDates),
-      business_hours: JSON.stringify(hours),
       hero_title: heroTitle, hero_sub: heroSub, hero_desc: heroDesc, hero_btn: heroBtn,
       about_title: aboutTitle, about_body: aboutBody, about_image_url: aboutImageUrl,
       color_bg: colorBg, color_surface: colorSurface, color_dark: colorDark,
@@ -244,33 +238,6 @@ export default function AdminStoreSettingsPage() {
               <label style={labelStyle}>{label}</label>
               {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={3} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: max, resize: 'vertical' }} />
                 : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: max }} />}
-            </div>
-          ))}
-
-          <div style={{ ...sectionTitle, marginTop: '32px' }}>營業時間</div>
-          {hours.map((h, i) => (
-            <div key={h.day} style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-              <span style={{ width: '44px', fontSize: '13px', color: '#1E1C1A', flexShrink: 0 }}>{h.day}</span>
-              <Toggle val={h.open} onChange={() => setHours(prev => prev.map((d, j) => j === i ? { ...d, open: !d.open } : d))} />
-              {h.open ? (
-                <>
-                  <input
-                    type="time"
-                    value={h.start}
-                    onChange={e => setHours(prev => prev.map((d, j) => j === i ? { ...d, start: e.target.value } : d))}
-                    style={{ ...inputStyle, width: '130px', minWidth: '130px' }}
-                  />
-                  <span style={{ color: '#888580', flexShrink: 0 }}>—</span>
-                  <input
-                    type="time"
-                    value={h.end}
-                    onChange={e => setHours(prev => prev.map((d, j) => j === i ? { ...d, end: e.target.value } : d))}
-                    style={{ ...inputStyle, width: '130px', minWidth: '130px' }}
-                  />
-                </>
-              ) : (
-                <span style={{ fontSize: '12px', color: '#888580' }}>公休</span>
-              )}
             </div>
           ))}
 

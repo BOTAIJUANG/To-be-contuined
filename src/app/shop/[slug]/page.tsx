@@ -12,6 +12,12 @@ import ShopSidebar from "@/components/ShopSidebar";
 import ProductCard, { Product } from "@/components/ProductCard";
 import Footer from "@/components/Footer";
 
+// ── 取得商店設定 ────────────────────────────────
+async function getStoreSettings() {
+  const { data } = await supabase.from("store_settings").select("phone, email, address").eq("id", 1).single();
+  return data;
+}
+
 // ── 取得所有分類（側欄用）────────────────────────
 async function getCategories() {
   const { data, error } = await supabase
@@ -59,9 +65,10 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
   // 同時取分類資料和側欄分類
-  const [result, categories] = await Promise.all([
+  const [result, categories, storeSettings] = await Promise.all([
     getCategoryWithProducts(slug),
     getCategories(),
+    getStoreSettings(),
   ]);
 
   // 找不到分類 → 404
@@ -173,7 +180,7 @@ export default async function CategoryPage({
         </div>
       </div>
 
-      <Footer />
+      <Footer tel={storeSettings?.phone} email={storeSettings?.email} address={storeSettings?.address} />
     </>
   );
 }

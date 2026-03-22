@@ -76,11 +76,12 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
   useEffect(() => {
     const load = async () => {
       try {
-        const [{ data: member }, { data: settings }, { data: redeem }] = await Promise.all([
-          supabase.from('members').select('name, phone, birthday, stamps, stamps_frozen').eq('id', userId).single(),
+        const [memberRes, { data: settings }, { data: redeem }] = await Promise.all([
+          fetchApi('/api/member/profile'),
           supabase.from('store_settings').select('stamp_goal, stamp_total_slots, stamp_threshold, stamp_expiry, stamp_card_name, stamp_icon_url, redeem_notice_text').eq('id', 1).single(),
           supabase.from('redeem_items').select('id, name, description, stamps, is_active, product_id, variant_id, products(id, name, slug, image_url)').eq('is_active', true).order('stamps'),
         ]);
+        const member = memberRes.ok ? await memberRes.json() : null;
         if (member)   { setName(member.name ?? userName); setPhone(member.phone ?? ''); setBirthday(member.birthday ?? ''); setStamps(member.stamps ?? 0); setStampsFrozen(member.stamps_frozen ?? 0); }
         if (settings) { setStampGoal(settings.stamp_goal ?? 8); setStampTotalSlots(settings.stamp_total_slots ?? 10); setStampThreshold(settings.stamp_threshold ?? 200); setStampExpiry(settings.stamp_expiry ?? 365); setStampCardName(settings.stamp_card_name ?? '未半甜點護照'); setStampIconUrl(settings.stamp_icon_url ?? ''); setRedeemNotice(settings.redeem_notice_text ?? ''); }
         if (redeem)   { setRedeemItems(redeem); }
@@ -134,8 +135,12 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
 
   // 儲存個人資料
   const handleSaveProfile = async () => {
-    await supabase.from('members').upsert({ id: userId, name, phone, birthday }).eq('id', userId);
-    alert('個人資料已儲存');
+    const res = await fetchApi('/api/member/profile', {
+      method: 'POST',
+      body: JSON.stringify({ name, phone, birthday }),
+    });
+    if (res.ok) alert('個人資料已儲存');
+    else alert('儲存失敗，請稍後再試');
   };
 
   // ── 兌換相關 ─────────────────────────────────────

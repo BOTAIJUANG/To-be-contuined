@@ -426,7 +426,7 @@ export default function AdminProductsPage() {
 
               {/* 開關 */}
               <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                {[{ key: 'is_available', label: '上架中' }, { key: 'is_featured', label: '首頁熱銷' }, { key: 'is_preorder', label: '預購商品' }, { key: 'is_sold_out', label: '今日完售' }].map(({ key, label }) => (
+                {[{ key: 'is_available', label: '前台顯示' }, { key: 'is_featured', label: '首頁熱銷' }, { key: 'is_preorder', label: '預購商品' }, { key: 'is_sold_out', label: '今日完售' }].map(({ key, label }) => (
                   <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#555250', cursor: 'pointer' }}>
                     <input type="checkbox" checked={(form as any)[key]} onChange={e => setForm({...form, [key]: e.target.checked})} style={{ accentColor: '#1E1C1A' }} /> {label}
                   </label>
@@ -626,7 +626,7 @@ export default function AdminProductsPage() {
             </select>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#555250', outline: 'none' }}>
               <option value="">全部狀態</option>
-              <option value="on">上架中</option>
+              <option value="on">前台顯示</option>
               <option value="off">已下架</option>
             </select>
           </div>
@@ -635,7 +635,7 @@ export default function AdminProductsPage() {
           <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>{['圖片', '商品名稱', '分類', '售價', '上架', '完售', '熱銷', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                <tr>{['圖片', '商品名稱', '分類', '售價', '前台顯示', '完售', '熱銷', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {filtered.map((p) => (

@@ -150,12 +150,16 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                 <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', marginBottom: '12px' }}>快速操作</div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <div>
-                    <label style={{ fontSize: '11px', color: '#888580', display: 'block', marginBottom: '6px' }}>訂單狀態</label>
-                    <select value={order.status} onChange={e => onStatusChange(order.id, 'status', e.target.value)} style={{ ...selectStyle, color: STATUS_COLOR[order.status] }}>
-                      {[{ value: 'processing', label: '處理中' }, { value: 'shipped', label: '已出貨' }, { value: 'done', label: '已完成' }, { value: 'cancelled', label: '已取消' }].map(s => (
-                        <option key={s.value} value={s.value}>{s.label}</option>
-                      ))}
-                    </select>
+                    <label style={{ fontSize: '11px', color: '#888580', display: 'block', marginBottom: '6px' }}>配送狀態</label>
+                    {order.status === 'cancelled' ? (
+                      <span style={{ display: 'inline-block', padding: '6px 14px', fontSize: '12px', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif' }}>已取消</span>
+                    ) : (
+                      <select value={order.status} onChange={e => onStatusChange(order.id, 'status', e.target.value)} style={{ ...selectStyle, color: STATUS_COLOR[order.status] }}>
+                        {[{ value: 'processing', label: '處理中' }, { value: 'shipped', label: '已出貨' }, { value: 'done', label: '已完成' }].map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label style={{ fontSize: '11px', color: '#888580', display: 'block', marginBottom: '6px' }}>付款狀態（由金流系統自動更新）</label>
