@@ -56,11 +56,12 @@ export async function POST(req: NextRequest) {
 
   // ── 3. 產生綠界付款參數 ──────────────────────────
   // 取得目前網站的網址（用來組合回呼網址）
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL
     ?? req.headers.get('origin')
-    ?? 'http://localhost:3000';
+    ?? 'http://localhost:3000').trim().replace(/\/+$/, '');
 
   console.log('ECPay 付款 baseUrl:', baseUrl);
+  console.log('ECPay 訂單 total:', order.total, 'pay_method:', order.pay_method);
 
   const { url, params } = buildEcpayParams({
     orderNo:     order.order_no,
@@ -70,6 +71,8 @@ export async function POST(req: NextRequest) {
     returnUrl:   `${baseUrl}/api/payment/notify`,   // 綠界通知我們的網址（server 對 server）
     clientBackUrl: `${baseUrl}/api/payment/return`, // 使用者導回的網址（會再跳轉到訂單頁）
   });
+
+  console.log('ECPay 送出參數:', JSON.stringify(params));
 
   // ── 4. 產生自動提交的 HTML 表單 ─────────────────
   // 這個 HTML 會在瀏覽器載入後自動提交表單，

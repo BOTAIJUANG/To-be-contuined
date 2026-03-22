@@ -28,9 +28,9 @@ import crypto from 'crypto';
 
 // ── 綠界設定（從環境變數讀取）─────────────────────
 // 這些值要去綠界後台申請：https://www.ecpay.com.tw/
-const MERCHANT_ID = process.env.ECPAY_MERCHANT_ID ?? '3002607';   // 測試商店代號
-const HASH_KEY    = process.env.ECPAY_HASH_KEY    ?? 'pwFHCqoQZGmho4w6';  // 測試用 HashKey
-const HASH_IV     = process.env.ECPAY_HASH_IV     ?? 'EkRm7iFT261dpevs';  // 測試用 HashIV
+const MERCHANT_ID = (process.env.ECPAY_MERCHANT_ID ?? '3002607').trim();   // 測試商店代號
+const HASH_KEY    = (process.env.ECPAY_HASH_KEY    ?? 'pwFHCqoQZGmho4w6').trim();  // 測試用 HashKey
+const HASH_IV     = (process.env.ECPAY_HASH_IV     ?? 'EkRm7iFT261dpevs').trim();  // 測試用 HashIV
 
 // 綠界 API 網址（測試 vs 正式）
 const ECPAY_URL = process.env.ECPAY_API_URL
