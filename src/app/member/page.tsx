@@ -42,21 +42,19 @@ export default function MemberPage() {
     });
 
     // 監聽登入狀態變化（登入/登出時自動更新）
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const u = session.user;
         const name = u.user_metadata?.name ?? u.user_metadata?.full_name ?? u.email ?? '會員';
         setUser({ id: u.id, name });
 
-        // Google OAuth 首次登入 → 自動建立 members 資料
+        // Google OAuth 首次登入 → 自動建立 members 資料（非阻塞）
         if (u.app_metadata?.provider === 'google' || u.identities?.some((i: any) => i.provider === 'google')) {
-          try {
-            await fetch('/api/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: u.id, name }),
-            });
-          } catch {}
+          fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: u.id, name }),
+          }).catch(() => {});
         }
       } else {
         setUser(null);
