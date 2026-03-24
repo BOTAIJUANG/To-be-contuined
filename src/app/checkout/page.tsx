@@ -8,9 +8,11 @@
 // 現在改成呼叫後端的 /api/orders API 來建立訂單，
 // 所有金額計算都在 server 端完成。
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
+import { usePromotions } from '@/hooks/usePromotions';
+import { CartItemForCalc } from '@/lib/promotions';
 import Link from 'next/link';
 
 const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
@@ -92,6 +94,19 @@ export default function CheckoutPage() {
 
   // 運費
   const [shippingFee, setShippingFee] = useState(0);
+
+  // 優惠活動
+  const cartItemsForCalc: CartItemForCalc[] = useMemo(() =>
+    items.filter(i => !i.isRedeemItem).map(i => ({
+      product_id: i.productRealId ?? parseInt(i.id),
+      qty: i.qty,
+      price: i.price,
+      name: i.name,
+    })),
+    [items]
+  );
+  const { promoResult } = usePromotions(cartItemsForCalc);
+  const promoDiscount = promoResult.total_discount;
 
   // Step 2 欄位
   const [shipMethod, setShipMethod] = useState('home_cold');
@@ -298,19 +313,30 @@ export default function CheckoutPage() {
       // 3. 呼叫後端 API 建立訂單
       // 只傳「商品 ID + 數量」和「收件資訊」，
       // 價格、運費、折扣全部由後端重新計算
+      // 贈品也加入 items（is_gift=true, price 由後端設為 0）
+      const orderItems = [
+        ...items.map(item => ({
+          product_id: item.productRealId ?? parseInt(item.id),
+          variant_id: item.variantId ?? null,
+          qty:        item.qty,
+          is_redeem:  item.isRedeemItem ?? false,
+        })),
+        ...promoResult.gifts.map(g => ({
+          product_id: g.product_id,
+          variant_id: null,
+          qty:        g.qty,
+          is_gift:    true,
+        })),
+      ];
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,  // 帶上登入 token
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          items: items.map(item => ({
-            product_id: item.productRealId ?? parseInt(item.id),
-            variant_id: item.variantId ?? null,
-            qty:        item.qty,
-            is_redeem:  item.isRedeemItem ?? false,
-          })),
+          items: orderItems,
           ship_method:   shipMethod,
           name,
           phone,
@@ -325,6 +351,7 @@ export default function CheckoutPage() {
           coupon_code:   coupon || undefined,
           pay_method:    payMethod,
           redemption_id: redeemItem?.redemptionId,
+          promotion_ids: promoResult.discounts.map(d => d.promotion_id),
         }),
       });
 
@@ -666,7 +693,8 @@ export default function CheckoutPage() {
           {[
             { label: '商品小計', value: `NT$ ${totalPrice.toLocaleString()}` },
             { label: '運費', value: shippingFee === 0 ? '免運' : `NT$ ${shippingFee.toLocaleString()}` },
-            ...(discount > 0 ? [{ label: '折扣', value: `− NT$ ${discount.toLocaleString()}`, green: true }] : []),
+            ...(promoDiscount > 0 ? promoResult.discounts.map(d => ({ label: d.promotion_name, value: `− NT$ ${d.discount_amount.toLocaleString()}`, green: true })) : []),
+            ...(discount > 0 ? [{ label: '折扣碼', value: `− NT$ ${discount.toLocaleString()}`, green: true }] : []),
           ].map(({ label, value, green }: any) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '13px' }}>
               <span style={{ color: green ? '#2ab85a' : '#888580' }}>{label}</span>
@@ -677,7 +705,7 @@ export default function CheckoutPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', marginTop: '8px' }}>
             <span style={{ fontSize: '14px', color: '#1E1C1A', letterSpacing: '0.1em' }}>應付金額</span>
             <span style={{ fontFamily: '"Noto Serif TC", serif', fontSize: '20px', fontWeight: 200, color: '#b35252' }}>
-              NT$ {(totalPrice - discount + shippingFee).toLocaleString()}
+              NT$ {(totalPrice - discount - promoDiscount + shippingFee).toLocaleString()}
             </span>
           </div>
 

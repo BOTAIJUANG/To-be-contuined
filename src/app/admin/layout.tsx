@@ -45,6 +45,7 @@ const NAV_SECTIONS = [
       { label: '預購系統', href: '/admin/preorder',    icon: <MultiIcon paths={['M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z', 'M12 6v6l4 2']} /> },
       { label: '分類管理', href: '/admin/categories',  icon: <MultiIcon paths={['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M3 14h7v7H3z', 'M14 14h7v7h-7z']} /> },
       { label: '折扣碼',   href: '/admin/coupons',     icon: <MultiIcon paths={['M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z', 'M7 7h.01']} /> },
+      { label: '優惠活動', href: '/admin/promotions',  icon: <MultiIcon paths={['M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z']} /> },
       { label: '會員管理', href: '/admin/members',     icon: <MultiIcon paths={['M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2', 'M9 11a4 4 0 100-8 4 4 0 000 8z', 'M23 21v-2a4 4 0 00-3-3.87', 'M16 3.13a4 4 0 010 7.75']} /> },
       { label: '兌換核銷', href: '/admin/redeem',      icon: <MultiIcon paths={['M15 5l-1 1', 'M2 12h6l3-9 4 18 3-9h6']} /> },
     ],

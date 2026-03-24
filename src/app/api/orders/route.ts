@@ -27,6 +27,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { Promotion, CartItemForCalc, calculatePromotions } from '@/lib/promotions';
 
 // ── 訂單編號產生器 ──────────────────────────────
 // 格式：WB + 日期 + 6 位隨機碼（比之前的 4 位更不容易重複）
@@ -56,6 +57,7 @@ interface CartItemInput {
   variant_id?:  number | null;
   qty:          number;
   is_redeem?:   boolean;  // 是不是兌換品
+  is_gift?:     boolean;  // 是不是贈品
 }
 
 // ── 前端送來的完整訂單資料 ───────────────────────
@@ -73,6 +75,7 @@ interface OrderInput {
   coupon_code?:   string;
   pay_method:     string;       // 'credit' | 'atm'
   redemption_id?: number;       // 兌換品的 redemption ID
+  promotion_ids?: number[];     // 前端套用的活動 ID（後端會重新驗算）
 }
 
 export async function POST(req: NextRequest) {
@@ -263,8 +266,79 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── 7.5 後端重新計算優惠活動折扣（防竄改）──────────
+  let promoDiscount = 0;
+  let appliedPromoIds: number[] = [];
+  let giftItems: { product_id: number; qty: number; name: string }[] = [];
+
+  {
+    // 載入所有啟用中的活動（含關聯資料）
+    const { data: promos } = await supabaseAdmin
+      .from('promotions')
+      .select('*, promotion_products(product_id), promotion_volume_tiers(*), promotion_bundle_items(*)')
+      .eq('is_active', true);
+
+    if (promos && promos.length > 0) {
+      const mapped: Promotion[] = promos.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        is_active: p.is_active,
+        stackable: p.stackable,
+        start_at: p.start_at,
+        end_at: p.end_at,
+        bundle_price: p.bundle_price,
+        bundle_repeatable: p.bundle_repeatable,
+        gift_product_id: p.gift_product_id,
+        gift_qty: p.gift_qty ?? 1,
+        gift_condition_qty: p.gift_condition_qty ?? 1,
+        product_ids: p.promotion_products?.map((pp: any) => pp.product_id) ?? [],
+        volume_tiers: p.promotion_volume_tiers?.map((t: any) => ({ min_qty: t.min_qty, price: t.price })) ?? [],
+        bundle_items: p.promotion_bundle_items?.map((bi: any) => ({ product_id: bi.product_id, qty: bi.qty })) ?? [],
+      }));
+
+      // 用非贈品、非兌換品的購物車商品來計算優惠
+      const calcItems: CartItemForCalc[] = body.items
+        .filter(i => !i.is_gift && !i.is_redeem)
+        .map(i => {
+          const product = productMap.get(i.product_id)!;
+          const variant = i.variant_id ? variantsMap[i.variant_id] : null;
+          const unitPrice = variant
+            ? (variant.price ?? (product.price + (variant.price_diff ?? 0)))
+            : product.price;
+          return {
+            product_id: i.product_id,
+            qty: i.qty,
+            price: unitPrice,
+            name: product.name,
+          };
+        });
+
+      const result = calculatePromotions(calcItems, mapped);
+      promoDiscount = result.total_discount;
+      appliedPromoIds = result.discounts.map(d => d.promotion_id);
+
+      // 處理贈品：查出贈品商品名稱
+      if (result.gifts.length > 0) {
+        const giftProductIds = [...new Set(result.gifts.map(g => g.product_id))];
+        const { data: giftProducts } = await supabaseAdmin
+          .from('products')
+          .select('id, name')
+          .in('id', giftProductIds);
+
+        const giftNameMap = new Map((giftProducts ?? []).map(p => [p.id, p.name]));
+
+        giftItems = result.gifts.map(g => ({
+          product_id: g.product_id,
+          qty: g.qty,
+          name: giftNameMap.get(g.product_id) ?? `贈品 #${g.product_id}`,
+        }));
+      }
+    }
+  }
+
   // ── 8. 計算最終應付金額 ─────────────────────────
-  const total = subtotal - discount + shippingFee;
+  const total = Math.max(0, subtotal - discount - promoDiscount) + shippingFee;
 
   // ── 9. 寫入訂單到資料庫 ─────────────────────────
   const orderNo = generateOrderNo();
@@ -288,6 +362,7 @@ export async function POST(req: NextRequest) {
       note:        body.note ?? null,
       subtotal,
       discount,
+      promo_discount: promoDiscount,
       shipping_fee: shippingFee,
       total,
       coupon_code:  body.coupon_code?.toUpperCase() ?? null,
@@ -314,7 +389,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `訂單建立失敗：${orderError?.message ?? '未知錯誤'}` }, { status: 500 });
   }
 
-  // ── 10. 寫入訂單明細 ────────────────────────────
+  // ── 10. 寫入訂單明細（含贈品）─────────────────────
+  // 贈品以 price=0 加入訂單明細
+  for (const gift of giftItems) {
+    orderItems.push({
+      product_id: gift.product_id,
+      name: gift.name,
+      price: 0,
+      qty: gift.qty,
+      is_gift: true,
+    });
+  }
+
   const itemsWithOrderId = orderItems.map(item => ({
     ...item,
     order_id: order.id,
@@ -330,8 +416,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `訂單明細寫入失敗：${itemsError.message}` }, { status: 500 });
   }
 
-  // ── 11. 預留庫存（已在步驟 6 預檢過，這裡直接扣）──
-  for (const item of body.items) {
+  // ── 11. 預留庫存（含贈品）──────────────────────────
+  // 合併原始商品 + 贈品一起預留庫存
+  const allItemsForInventory = [
+    ...body.items.map(i => ({ product_id: i.product_id, variant_id: i.variant_id ?? null, qty: i.qty, is_redeem: i.is_redeem })),
+    ...giftItems.map(g => ({ product_id: g.product_id, variant_id: null, qty: g.qty, is_redeem: false })),
+  ];
+  for (const item of allItemsForInventory) {
     let query = supabaseAdmin
       .from('inventory')
       .select('*')
