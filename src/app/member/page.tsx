@@ -24,22 +24,32 @@ export default function MemberPage() {
 
   // ── 頁面載入時檢查是否已登入 ──────────────────────
   useEffect(() => {
-    // 取得目前的登入 session
-    Promise.all([
-      supabase.auth.getSession(),
-      supabase.from('store_settings').select('phone, email, address').eq('id', 1).single(),
-    ]).then(([{ data: { session } }, { data: settings }]) => {
-      if (session?.user) {
-        setUser({
-          id:   session.user.id,
-          name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
-        });
-      }
-      if (settings) setStoreSettings(settings);
+    const init = async () => {
+      try {
+        const [sessionResult, settingsResult] = await Promise.all([
+          supabase.auth.getSession(),
+          supabase.from('store_settings').select('phone, email, address').eq('id', 1).single(),
+        ]);
+
+        let session = sessionResult.data.session;
+
+        // session 存在但 token 可能過期 → 嘗試刷新
+        if (session?.user) {
+          const { data } = await supabase.auth.refreshSession();
+          if (data.session) session = data.session;
+        }
+
+        if (session?.user) {
+          setUser({
+            id:   session.user.id,
+            name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
+          });
+        }
+        if (settingsResult.data) setStoreSettings(settingsResult.data);
+      } catch { /* ignore */ }
       setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
+    };
+    init();
 
     // 監聽登入狀態變化（登入/登出時自動更新）
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

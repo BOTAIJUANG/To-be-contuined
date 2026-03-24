@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/api';
 
 const CartIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -55,10 +56,26 @@ export default function Nav() {
     loadName();
   }, []);
 
+  // 用 API 驗證身份 + 取 role（繞過 RLS，token 過期時自動刷新重試）
+  const verifyRole = async (): Promise<{ name: string | null; role: string } | null> => {
+    const res = await fetchApi('/api/auth/me');
+    if (res.ok) return res.json();
+
+    // 401 → token 可能過期，嘗試刷新一次
+    if (res.status === 401) {
+      const { error } = await supabase.auth.refreshSession();
+      if (!error) {
+        const retry = await fetchApi('/api/auth/me');
+        if (retry.ok) return retry.json();
+      }
+    }
+    return null; // 真的過期或無 session
+  };
+
   // 監聽登入狀態
   useEffect(() => {
     const checkSession = async () => {
-      // 先從 localStorage 快速顯示（避免 hydration 問題，在 useEffect 裡才讀）
+      // 先從 localStorage 快速顯示（避免閃爍）
       const cachedName = localStorage.getItem('cached_user_name');
       const cachedId   = localStorage.getItem('cached_user_id');
       if (cachedName) setUserName(cachedName);
@@ -71,16 +88,15 @@ export default function Nav() {
         if (name) localStorage.setItem('cached_user_name', name);
         localStorage.setItem('cached_user_id', session.user.id);
 
-        // 先從 localStorage 讀取 role（快速顯示）
-        const cachedRole = localStorage.getItem(`role_${session.user.id}`);
-        if (cachedRole === 'admin') setIsAdmin(true);
-
-        // 再從 DB 確認（背景更新）
-        const { data: member } = await supabase.from('members').select('role').eq('id', session.user.id).single();
-        const role = member?.role ?? 'user';
-        localStorage.setItem(`role_${session.user.id}`, role);
-        setIsAdmin(role === 'admin');
+        // 用 API 確認真實 role（繞過 RLS）
+        const me = await verifyRole();
+        if (me) {
+          localStorage.setItem(`role_${session.user.id}`, me.role);
+          setIsAdmin(me.role === 'admin');
+        }
+        // me 為 null → API 失敗，保留 cache 的 role 不動
       } else {
+        setUserName(null);
         setIsAdmin(false);
       }
       setAuthReady(true);
@@ -89,15 +105,19 @@ export default function Nav() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        setUserName(session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null);
-        const cachedRole = localStorage.getItem(`role_${session.user.id}`);
-        if (cachedRole === 'admin') setIsAdmin(true);
-        const { data: member } = await supabase.from('members').select('role').eq('id', session.user.id).single();
-        const role = member?.role ?? 'user';
-        localStorage.setItem(`role_${session.user.id}`, role);
-        setIsAdmin(role === 'admin');
+        const name = session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null;
+        setUserName(name);
+        if (name) localStorage.setItem('cached_user_name', name);
+        localStorage.setItem('cached_user_id', session.user.id);
+
+        // 用 API 確認真實 role
+        const me = await verifyRole();
+        if (me) {
+          localStorage.setItem(`role_${session.user.id}`, me.role);
+          setIsAdmin(me.role === 'admin');
+        }
       } else {
-        // 登出時清除所有 role cache
+        // 登出時清除 cache
         Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
         localStorage.removeItem('cached_user_name');
         localStorage.removeItem('cached_user_id');
