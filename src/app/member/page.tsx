@@ -24,34 +24,28 @@ export default function MemberPage() {
 
   // ── 頁面載入時檢查是否已登入 ──────────────────────
   useEffect(() => {
-    const init = async () => {
-      try {
-        const [sessionResult, settingsResult] = await Promise.all([
-          supabase.auth.getSession(),
-          supabase.from('store_settings').select('phone, email, address').eq('id', 1).single(),
-        ]);
+    // settings 獨立載入，不影響 auth
+    supabase.from('store_settings').select('phone, email, address').eq('id', 1).single()
+      .then(({ data }) => { if (data) setStoreSettings(data); }, () => {});
 
-        let session = sessionResult.data.session;
-
-        // session 存在但 token 可能過期 → 嘗試刷新
-        if (session?.user) {
-          const { data } = await supabase.auth.refreshSession();
-          if (data.session) session = data.session;
-        }
-
-        if (session?.user) {
-          setUser({
-            id:   session.user.id,
-            name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
-          });
-        }
-        if (settingsResult.data) setStoreSettings(settingsResult.data);
-      } catch { /* ignore */ }
+    // auth：只用 getSession 快速取，不呼叫 refreshSession
+    // token 刷新交給 onAuthStateChange 自動處理
+    const timeout = setTimeout(() => setLoading(false), 3000); // 最多等 3 秒
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id:   session.user.id,
+          name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
+        });
+      }
+      clearTimeout(timeout);
       setLoading(false);
-    };
-    init();
+    }).catch(() => {
+      clearTimeout(timeout);
+      setLoading(false);
+    });
 
-    // 監聽登入狀態變化（登入/登出時自動更新）
+    // 監聽登入狀態變化（登入/登出/token 刷新時自動更新）
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const u = session.user;
@@ -69,9 +63,9 @@ export default function MemberPage() {
       } else {
         setUser(null);
       }
+      setLoading(false); // 不管登入登出，都結束載入狀態
     });
 
-    // 元件卸載時取消監聽
     return () => subscription.unsubscribe();
   }, []);
 
