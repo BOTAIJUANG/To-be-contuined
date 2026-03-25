@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import AddToCartButton from '@/components/AddToCartButton';
 import Footer from '@/components/Footer';
+import { getProductPromotions, ProductPromoInfo } from '@/lib/getProductPromotions';
 
 async function getProduct(slug: string) {
   const { data } = await supabase
@@ -48,6 +49,7 @@ async function getStoreSettings() {
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [product, storeSettings] = await Promise.all([getProduct(slug), getStoreSettings()]);
+  const promos = product ? await getProductPromotions(product.id) : [];
   if (!product) notFound();
 
   // 如果是預購商品，取得所有開放中的批次
@@ -116,9 +118,45 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </h1>
 
             {/* 價格 */}
-            <div style={{ fontFamily: '"Noto Serif TC", serif', fontWeight: 200, fontSize: '24px', color: '#b35252', letterSpacing: '0.1em', marginBottom: '24px' }}>
+            <div style={{ fontFamily: '"Noto Serif TC", serif', fontWeight: 200, fontSize: '24px', color: '#b35252', letterSpacing: '0.1em', marginBottom: promos.length > 0 ? '16px' : '24px' }}>
               NT$ {product.price.toLocaleString()}
             </div>
+
+            {/* 活動資訊 */}
+            {promos.length > 0 && (
+              <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {promos.map(promo => (
+                  <div key={promo.id} style={{ padding: '10px 14px', background: '#faf8f5', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', lineHeight: 1.8 }}>
+                    {promo.type === 'volume' && promo.volume_tiers && (
+                      <>
+                        <span style={{ fontWeight: 600, color: '#8e6a3a' }}>多件優惠</span>
+                        <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
+                        {promo.volume_tiers.map((t, i) => (
+                          <span key={i}>
+                            {i > 0 && '、'}
+                            {t.min_qty} 件 ${t.price}
+                          </span>
+                        ))}
+                      </>
+                    )}
+                    {promo.type === 'bundle' && (
+                      <>
+                        <span style={{ fontWeight: 600, color: '#3a6e8e' }}>組合優惠</span>
+                        <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
+                        {promo.name}，組合價 NT${promo.bundle_price}
+                      </>
+                    )}
+                    {promo.type === 'gift' && (
+                      <>
+                        <span style={{ fontWeight: 600, color: '#6e3a8e' }}>買就送</span>
+                        <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
+                        買 {promo.gift_condition_qty} 件送{promo.gift_qty && promo.gift_qty > 1 ? ` ${promo.gift_qty} 個` : ''}贈品
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* 預購批次選擇（已在 AddToCartButton 裡顯示，這裡只保留無批次提示）*/}
             {product.is_preorder && preorderStatus === 'no_batch' && (

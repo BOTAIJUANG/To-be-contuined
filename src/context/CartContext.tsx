@@ -25,6 +25,8 @@ export interface CartItem {
   isRedeemItem?:    boolean;
   redemptionId?:    number;
   productRealId?:   number;   // 兌換品對應的真實 product_id
+  isGift?:          boolean;  // 贈品（系統自動加入）
+  giftPromotionId?: number;   // 贈品所屬活動 ID
 }
 
 // 加入購物車的結果

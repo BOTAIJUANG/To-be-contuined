@@ -2,8 +2,9 @@
 
 import { supabase } from '@/lib/supabase';
 import ShopSidebar from '@/components/ShopSidebar';
-import ProductCard, { Product } from '@/components/ProductCard';
+import ProductCard, { Product, ProductPromoTag } from '@/components/ProductCard';
 import Footer from '@/components/Footer';
+import { getActivePromotionsMap } from '@/lib/getProductPromotions';
 
 async function getCategories() {
   const { data } = await supabase.from('categories').select('id, name, slug').order('sort_order');
@@ -45,9 +46,21 @@ async function getStoreSettings() {
   return data;
 }
 
+function buildPromoTags(promos: { type: string; name: string }[]): ProductPromoTag[] {
+  const tags: ProductPromoTag[] = [];
+  const seen = new Set<string>();
+  for (const p of promos) {
+    if (seen.has(p.type)) continue;
+    seen.add(p.type);
+    const label = p.type === 'volume' ? '多件優惠' : p.type === 'bundle' ? '組合優惠' : '買就送';
+    tags.push({ type: p.type as any, label });
+  }
+  return tags;
+}
+
 export default async function ShopPage() {
   const categories = await getCategories();
-  const [products, storeSettings] = await Promise.all([getAllProducts(categories), getStoreSettings()]);
+  const [products, storeSettings, promoMap] = await Promise.all([getAllProducts(categories), getStoreSettings(), getActivePromotionsMap()]);
 
   return (
     <>
@@ -62,7 +75,11 @@ export default async function ShopPage() {
             <p style={{ color: '#888580', fontSize: '13px', padding: '52px 0', textAlign: 'center' }}>目前沒有上架商品</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px 24px' }}>
-              {products.map(p => <ProductCard key={p.id} product={p} />)}
+              {products.map(p => {
+                const promos = promoMap.get(parseInt(p.id));
+                const promoTags = promos ? buildPromoTags(promos) : undefined;
+                return <ProductCard key={p.id} product={{ ...p, promoTags }} />;
+              })}
             </div>
           )}
         </div>

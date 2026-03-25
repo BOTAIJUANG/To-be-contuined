@@ -9,8 +9,9 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ShopSidebar from "@/components/ShopSidebar";
-import ProductCard, { Product } from "@/components/ProductCard";
+import ProductCard, { Product, ProductPromoTag } from "@/components/ProductCard";
 import Footer from "@/components/Footer";
+import { getActivePromotionsMap } from "@/lib/getProductPromotions";
 
 // ── 取得商店設定 ────────────────────────────────
 async function getStoreSettings() {
@@ -65,10 +66,11 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
   // 同時取分類資料和側欄分類
-  const [result, categories, storeSettings] = await Promise.all([
+  const [result, categories, storeSettings, promoMap] = await Promise.all([
     getCategoryWithProducts(slug),
     getCategories(),
     getStoreSettings(),
+    getActivePromotionsMap(),
   ]);
 
   // 找不到分類 → 404
@@ -77,16 +79,29 @@ export default async function CategoryPage({
   const { category, products } = result;
 
   // 把資料庫格式轉換成 ProductCard 需要的格式
-  const productList: Product[] = products.map((p: any) => ({
-    id:         String(p.id),
-    name:       p.name,
-    slug:       p.slug,
-    price:      p.price,
-    imageUrl:   p.image_url ?? undefined,
-    category:   p.categories?.name ?? '',
-    isSoldOut:  p.is_sold_out  ?? false,
-    isPreorder: p.is_preorder  ?? false,
-  }));
+  const productList: Product[] = products.map((p: any) => {
+    const promos = promoMap.get(p.id);
+    const promoTags: ProductPromoTag[] = [];
+    if (promos) {
+      const seen = new Set<string>();
+      for (const pr of promos) {
+        if (seen.has(pr.type)) continue;
+        seen.add(pr.type);
+        promoTags.push({ type: pr.type, label: pr.type === 'volume' ? '多件優惠' : pr.type === 'bundle' ? '組合優惠' : '買就送' });
+      }
+    }
+    return {
+      id:         String(p.id),
+      name:       p.name,
+      slug:       p.slug,
+      price:      p.price,
+      imageUrl:   p.image_url ?? undefined,
+      category:   p.categories?.name ?? '',
+      isSoldOut:  p.is_sold_out  ?? false,
+      isPreorder: p.is_preorder  ?? false,
+      promoTags:  promoTags.length > 0 ? promoTags : undefined,
+    };
+  });
 
   return (
     <>

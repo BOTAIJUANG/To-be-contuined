@@ -3,6 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+export interface ProductPromoTag {
+  type: 'volume' | 'bundle' | 'gift';
+  label: string;
+}
+
 export interface Product {
   id:          string;
   name:        string;
@@ -12,7 +17,14 @@ export interface Product {
   slug:        string;
   isSoldOut?:  boolean;
   isPreorder?: boolean;
+  promoTags?:  ProductPromoTag[];
 }
+
+const promoTagColors: Record<string, string> = {
+  volume: '#8e6a3a',
+  bundle: '#3a6e8e',
+  gift:   '#6e3a8e',
+};
 
 export default function ProductCard({ product }: { product: Product }) {
   const [hovered, setHovered] = useState(false);
@@ -65,6 +77,16 @@ export default function ProductCard({ product }: { product: Product }) {
           <div style={{ fontFamily: '"Noto Serif TC", serif', fontWeight: 300, fontSize: '13px', letterSpacing: '0.1em', color: '#b35252' }}>
             {product.isPreorder ? '預購商品' : `NT$ ${product.price.toLocaleString()}`}
           </div>
+          {/* 活動標籤（最多顯示 2 個）*/}
+          {product.promoTags && product.promoTags.length > 0 && (
+            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
+              {product.promoTags.slice(0, 2).map((tag, i) => (
+                <span key={i} style={{ fontSize: '10px', color: promoTagColors[tag.type] ?? '#888', border: `1px solid ${promoTagColors[tag.type] ?? '#ccc'}`, padding: '2px 8px', fontFamily: '"Noto Sans TC", sans-serif', letterSpacing: '0.08em' }}>
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Link>

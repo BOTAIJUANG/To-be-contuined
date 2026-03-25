@@ -478,6 +478,32 @@ export default function CheckoutPage() {
                 <span style={{ color: '#888580' }}>小計</span>
                 <span style={{ color: '#1E1C1A' }}>NT$ {totalPrice.toLocaleString()}</span>
               </div>
+              {/* 活動折扣 */}
+              {promoResult.discounts.length > 0 && (
+                <div style={{ padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
+                  {promoResult.discounts.map(d => (
+                    <div key={d.promotion_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#2ab85a', padding: '3px 0' }}>
+                      <span>{d.promotion_name}</span>
+                      <span>− NT$ {d.discount_amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* 贈品提示 */}
+              {promoResult.gifts.length > 0 && (
+                <div style={{ margin: '12px 0', padding: '10px 16px', background: '#f9f5ff', border: '1px solid #e8dff5', fontSize: '12px', color: '#6e3a8e', lineHeight: 2 }}>
+                  {promoResult.gifts.map(g => (
+                    <div key={`gift-${g.promotion_id}`}>🎁 {g.promotion_name}：贈品 × {g.qty}</div>
+                  ))}
+                </div>
+              )}
+              {/* 折扣後小計 */}
+              {promoDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC', fontSize: '13px' }}>
+                  <span style={{ color: '#888580' }}>折扣後小計</span>
+                  <span style={{ color: '#b35252', fontFamily: '"Noto Serif TC", serif' }}>NT$ {(totalPrice - promoDiscount).toLocaleString()}</span>
+                </div>
+              )}
               {/* 混購提示條 */}
               {hasMixed && mixedShipDate && (
                 <div style={{ margin: '16px 0', padding: '14px 20px', background: '#fff8e1', border: '1px solid #f0c040', fontSize: '13px', color: '#7a5c00', lineHeight: 2 }}>

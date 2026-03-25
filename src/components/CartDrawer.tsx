@@ -2,15 +2,30 @@
 
 // components/CartDrawer.tsx  ──  購物車側邊欄
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { fetchApi } from '@/lib/api';
+import { usePromotions } from '@/hooks/usePromotions';
+import { CartItemForCalc } from '@/lib/promotions';
 
 export default function CartDrawer() {
   const router = useRouter();
   const { items, totalPrice, totalCount, removeItem, updateQty, clearCart, isOpen, closeCart, cartType, mixedShipDate } = useCart();
 
   const hasMixed = items.some(i => i.isPreorder) && items.some(i => !i.isPreorder);
+
+  // 優惠活動計算
+  const cartItemsForCalc: CartItemForCalc[] = useMemo(() =>
+    items.filter(i => !i.isRedeemItem && !i.isGift).map(i => ({
+      product_id: i.productRealId ?? parseInt(i.id),
+      qty: i.qty,
+      price: i.price,
+      name: i.name,
+    })),
+    [items]
+  );
+  const { promoResult } = usePromotions(cartItemsForCalc);
 
   const handleCancelRedeem = async (item: any) => {
     if (!confirm(`確定要取消「${item.name}」的兌換嗎？章數將立即歸還。`)) return;
@@ -119,9 +134,30 @@ export default function CartDrawer() {
         {/* 底部 */}
         {items.length > 0 && (
           <div style={{ padding: '20px 24px', borderTop: '1px solid #E8E4DC', background: '#fff' }}>
+            {/* 已套用的優惠提示 */}
+            {promoResult.discounts.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                {promoResult.discounts.map(d => (
+                  <div key={d.promotion_id} style={{ fontSize: '11px', color: '#2ab85a', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{d.promotion_name}</span>
+                    <span>− NT$ {d.discount_amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* 贈品提示 */}
+            {promoResult.gifts.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                {promoResult.gifts.map(g => (
+                  <div key={`gift-${g.promotion_id}`} style={{ fontSize: '11px', color: '#6e3a8e', marginBottom: '4px' }}>
+                    🎁 {g.promotion_name}：已贈送 × {g.qty}
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <span style={{ fontSize: '13px', color: '#888580' }}>小計</span>
-              <span style={{ fontFamily: '"Noto Serif TC", serif', fontSize: '18px', fontWeight: 200, color: '#1E1C1A' }}>NT$ {totalPrice.toLocaleString()}</span>
+              <span style={{ fontFamily: '"Noto Serif TC", serif', fontSize: '18px', fontWeight: 200, color: '#1E1C1A' }}>NT$ {(totalPrice - promoResult.total_discount).toLocaleString()}</span>
             </div>
             <button
               onClick={() => { closeCart(); router.push('/checkout'); }}
