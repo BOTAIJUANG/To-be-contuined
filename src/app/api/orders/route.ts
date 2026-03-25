@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
       name:        product.name,
       price:       unitPrice,
       qty:         item.qty,
+      is_gift:     false,
     });
   }
 
