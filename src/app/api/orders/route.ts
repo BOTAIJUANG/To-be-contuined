@@ -14,18 +14,18 @@
 //
 // 【API 規格】
 // POST /api/orders
-// Header: Authorization: Bearer <token>
+// Header: Authorization: Bearer <token>（可選，有 = 會員單，無 = 訪客單）
 // Body: {
 //   items: [{ product_id, variant_id, qty }],
 //   ship_method, name, phone, email,
 //   city, district, address,
 //   ship_date, note, coupon_code, pay_method,
-//   redemption_id   // 可選，兌換品用
+//   redemption_id   // 可選，兌換品用（僅會員）
 // }
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { optionalAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { Promotion, CartItemForCalc, calculatePromotions } from '@/lib/promotions';
 
@@ -79,12 +79,8 @@ interface OrderInput {
 }
 
 export async function POST(req: NextRequest) {
-  // ── 1. 驗證身份 ──────────────────────────────────
-  // 確認這個請求是從已登入的使用者發出的
-  const auth = await requireAuth(req);
-  if (auth.error) return auth.error;  // 沒登入 → 回傳 401
-
-  const memberId = auth.userId;
+  // ── 1. 驗證身份（有 token = 會員，沒 token = 訪客）──
+  const { userId: memberId } = await optionalAuth(req);
   const body: OrderInput = await req.json();
 
   // ── 2. 基本欄位檢查 ──────────────────────────────
@@ -93,6 +89,14 @@ export async function POST(req: NextRequest) {
   }
   if (!body.name || !body.phone || !body.email) {
     return NextResponse.json({ error: '請填寫收件人資訊' }, { status: 400 });
+  }
+
+  // 訪客不能使用兌換品（需要會員帳號和集章）
+  if (!memberId && body.items.some(i => i.is_redeem)) {
+    return NextResponse.json({ error: '兌換品僅限會員使用，請先登入' }, { status: 400 });
+  }
+  if (!memberId && body.redemption_id) {
+    return NextResponse.json({ error: '兌換品僅限會員使用，請先登入' }, { status: 400 });
   }
   if (!body.ship_method) {
     return NextResponse.json({ error: '請選擇配送方式' }, { status: 400 });
@@ -349,11 +353,14 @@ export async function POST(req: NextRequest) {
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
     .insert({
-      order_no:    orderNo,
-      member_id:   memberId,
-      buyer_name:  body.name,
-      buyer_phone: body.phone,
-      buyer_email: body.email,
+      order_no:       orderNo,
+      member_id:      memberId ?? null,
+      buyer_name:     body.name,
+      buyer_phone:    body.phone,
+      buyer_email:    body.email,
+      customer_name:  body.name,
+      customer_email: body.email,
+      customer_phone: body.phone,
       ship_method: body.ship_method,
       city:        body.city ?? null,
       district:    body.district ?? null,
@@ -465,8 +472,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── 12. 處理兌換品 ──────────────────────────────
-  if (body.redemption_id) {
+  // ── 12. 處理兌換品（僅會員）─────────────────────
+  if (memberId && body.redemption_id) {
     await supabaseAdmin
       .from('redemptions')
       .update({

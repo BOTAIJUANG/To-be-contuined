@@ -282,7 +282,7 @@ export default function CheckoutPage() {
   };
 
   // ── 取得目前登入的 token（給 API 用）────────────
-  // 每次呼叫後端 API 都要帶這個 token，後端才知道「你是誰」
+  // 有登入就帶 token（會員單），沒登入也能下單（訪客單）
   const getAuthToken = async (): Promise<string | null> => {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token ?? null;
@@ -297,10 +297,12 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      // 1. 取得登入 token
+      // 1. 取得登入 token（可為 null = 訪客下單）
       const token = await getAuthToken();
-      if (!token) {
-        alert('請先登入後再結帳');
+
+      // 訪客不能使用兌換品
+      if (!token && redeemItem) {
+        alert('兌換品僅限會員使用，請先登入');
         setSubmitting(false);
         return;
       }
@@ -329,12 +331,12 @@ export default function CheckoutPage() {
         })),
       ];
 
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
           items: orderItems,
           ship_method:   shipMethod,
@@ -372,12 +374,12 @@ export default function CheckoutPage() {
       if (payMethod === 'credit' || payMethod === 'atm') {
         // 信用卡或 ATM → 導向綠界付款頁面
         // 呼叫 /api/payment/ecpay 取得付款表單
+        const payHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) payHeaders['Authorization'] = `Bearer ${token}`;
+
         const payRes = await fetch('/api/payment/ecpay', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: payHeaders,
           body: JSON.stringify({ order_id: result.order_id }),
         });
 
@@ -512,7 +514,7 @@ export default function CheckoutPage() {
               )}
               {!memberId && (
                 <div style={{ margin: '24px 0', padding: '16px 20px', background: '#EDE9E2', fontSize: '12px', color: '#555250', lineHeight: 2 }}>
-                  <Link href="/member" style={{ color: '#1E1C1A', textDecoration: 'underline' }}>登入</Link> 後結帳可累積集章、自動帶入收件地址。
+                  目前為訪客購買。<Link href="/member" style={{ color: '#1E1C1A', textDecoration: 'underline' }}>登入會員</Link> 可累積集章、自動帶入地址，查單也更方便。
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>

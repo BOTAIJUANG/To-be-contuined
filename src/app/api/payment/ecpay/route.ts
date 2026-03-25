@@ -19,14 +19,13 @@
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { optionalAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { buildEcpayParams } from '@/lib/ecpay';
 
 export async function POST(req: NextRequest) {
-  // ── 1. 驗證身份 ──────────────────────────────────
-  const auth = await requireAuth(req);
-  if (auth.error) return auth.error;
+  // ── 1. 驗證身份（會員或訪客）──────────────────────
+  const { userId } = await optionalAuth(req);
 
   const { order_id } = await req.json();
   if (!order_id) {
@@ -44,9 +43,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '訂單不存在' }, { status: 404 });
   }
 
-  // 確認是自己的訂單
-  if (order.member_id !== auth.userId) {
-    return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
+  // 確認權限：會員只能付自己的單，訪客只能付 member_id=null 的單
+  if (order.member_id) {
+    if (order.member_id !== userId) {
+      return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
+    }
   }
 
   // 已付款的不能重複付

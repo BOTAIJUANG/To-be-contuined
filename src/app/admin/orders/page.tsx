@@ -262,7 +262,12 @@ export default function AdminOrdersPage() {
                       <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>{o.order_no}</td>
                       <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontSize: '13px', color: '#1E1C1A' }}>{o.buyer_name}</div>
+                        <div style={{ fontSize: '13px', color: '#1E1C1A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {o.buyer_name}
+                          <span style={{ fontSize: '9px', padding: '1px 6px', border: '1px solid', borderColor: o.member_id ? '#2ab85a' : '#b87a2a', color: o.member_id ? '#2ab85a' : '#b87a2a', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap' }}>
+                            {o.member_id ? '會員' : '訪客'}
+                          </span>
+                        </div>
                         <div style={{ fontSize: '11px', color: '#888580' }}>{o.buyer_phone}</div>
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250', maxWidth: '160px' }}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</td>

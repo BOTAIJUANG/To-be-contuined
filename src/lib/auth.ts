@@ -65,6 +65,18 @@ export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   return { userId: user.id };
 }
 
+// ── optionalAuth：有 token 就驗，沒 token 不報錯 ──
+// 用於支援訪客下單：有登入就當會員單，沒登入就當訪客單
+export async function optionalAuth(req: NextRequest): Promise<{ userId: string | null }> {
+  const token = req.headers.get('authorization')?.replace('Bearer ', '');
+  if (!token) return { userId: null };
+
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return { userId: null };
+
+  return { userId: user.id };
+}
+
 // ── requireAdmin：要求使用者必須是管理員 ─────────
 // 先檢查有沒有登入，再去 members 表查這個人是不是 admin。
 export async function requireAdmin(req: NextRequest): Promise<AuthResult> {
