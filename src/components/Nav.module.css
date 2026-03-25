@@ -37,17 +37,17 @@
     max-width: 200px;
   }
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .brand { max-width: none; }
 }
 
-/* ── 桌機導覽連結（手機隱藏）── */
+/* ── 桌機導覽連結（≥ 1280px 才展開）── */
 .desktopLinks {
   display: none;
   align-items: center;
   gap: 24px;
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .desktopLinks { display: flex; }
 }
 .desktopLinks a {
@@ -81,6 +81,26 @@
   .actions { gap: 10px; }
 }
 
+/* ── Admin 按鈕佔位容器 ── */
+.adminSlot {
+  display: flex;
+  align-items: center;
+  /* 固定最小寬度：避免 auth 完成後 layout shift */
+  min-width: 32px;
+  height: 32px;
+}
+@media (min-width: 768px) {
+  .adminSlot { min-width: 32px; }
+}
+
+/* Admin loading placeholder — 空白佔位，大小同按鈕 */
+.adminPlaceholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 2px;
+  background: transparent;
+}
+
 /* 後台按鈕 — 手機只顯示 icon */
 .adminBtn {
   padding: 8px;
@@ -95,6 +115,7 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  cursor: pointer;
 }
 .adminBtnText { display: none; }
 @media (min-width: 768px) {
@@ -115,6 +136,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100px;
+  cursor: pointer;
 }
 @media (min-width: 768px) {
   .authBtn {
@@ -137,6 +159,7 @@
   font-family: "Montserrat", sans-serif;
   font-size: 11px;
   letter-spacing: 0.15em;
+  cursor: pointer;
 }
 .cartLabel { display: none; }
 @media (min-width: 768px) {
@@ -162,7 +185,7 @@
   line-height: 1;
 }
 
-/* ── Hamburger 按鈕（桌機隱藏）── */
+/* ── Hamburger 按鈕（≥ 1280px 隱藏）── */
 .hamburger {
   display: flex;
   flex-direction: column;
@@ -176,8 +199,9 @@
   gap: 5px;
   order: -1;
   margin-right: 8px;
+  cursor: pointer;
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .hamburger { display: none; }
 }
 .hamburger span {
@@ -232,7 +256,7 @@
 .mobileMenu.open {
   transform: translateX(0);
 }
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .mobileOverlay,
   .mobileMenu {
     display: none !important;

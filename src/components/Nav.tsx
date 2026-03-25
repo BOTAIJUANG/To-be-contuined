@@ -18,6 +18,12 @@ const CartIcon = () => (
   </svg>
 );
 
+const AdminIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+  </svg>
+);
+
 const NAV_LINKS = [
   { label: '首頁',     href: '/'              },
   { label: '品牌故事', href: '/about'         },
@@ -73,25 +79,15 @@ export default function Nav() {
     return null;
   };
 
-  // 監聽登入狀態
+  // 監聽登入狀態 — 不用 localStorage 預填，避免閃爍
   useEffect(() => {
     const checkSession = async () => {
-      const cachedName = localStorage.getItem('cached_user_name');
-      const cachedId   = localStorage.getItem('cached_user_id');
-      if (cachedName) setUserName(cachedName);
-      if (cachedId && localStorage.getItem(`role_${cachedId}`) === 'admin') setIsAdmin(true);
-
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const name = session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null;
         setUserName(name);
-        if (name) localStorage.setItem('cached_user_name', name);
-        localStorage.setItem('cached_user_id', session.user.id);
         const me = await verifyRole();
-        if (me) {
-          localStorage.setItem(`role_${session.user.id}`, me.role);
-          setIsAdmin(me.role === 'admin');
-        }
+        if (me) setIsAdmin(me.role === 'admin');
       } else {
         setUserName(null);
         setIsAdmin(false);
@@ -104,17 +100,9 @@ export default function Nav() {
       if (session?.user) {
         const name = session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null;
         setUserName(name);
-        if (name) localStorage.setItem('cached_user_name', name);
-        localStorage.setItem('cached_user_id', session.user.id);
         const me = await verifyRole();
-        if (me) {
-          localStorage.setItem(`role_${session.user.id}`, me.role);
-          setIsAdmin(me.role === 'admin');
-        }
+        if (me) setIsAdmin(me.role === 'admin');
       } else {
-        Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
-        localStorage.removeItem('cached_user_name');
-        localStorage.removeItem('cached_user_id');
         setUserName(null);
         setIsAdmin(false);
       }
@@ -126,7 +114,7 @@ export default function Nav() {
   return (
     <>
       <nav className={s.nav}>
-        {/* Hamburger（手機/平板）*/}
+        {/* Hamburger（< 1280px）*/}
         <button
           className={`${s.hamburger} ${menuOpen ? s.open : ''}`}
           onClick={() => setMenuOpen(v => !v)}
@@ -138,7 +126,7 @@ export default function Nav() {
         {/* 品牌名稱 */}
         <Link href="/" className={s.brand}>{storeName}</Link>
 
-        {/* 桌機導覽連結 */}
+        {/* 桌機導覽連結（≥ 1280px） — 不受 auth 影響 */}
         <div className={s.desktopLinks}>
           {NAV_LINKS.map(({ label, href }) => (
             <Link key={href} href={href} className={isActive(href) ? s.active : ''}>
@@ -147,16 +135,19 @@ export default function Nav() {
           ))}
         </div>
 
-        {/* 右側：後台 + 登入 + 購物車 */}
+        {/* 右側：後台（固定位置）+ 登入 + 購物車 */}
         <div className={s.actions}>
-          {authReady && isAdmin && (
-            <button className={s.adminBtn} onClick={() => router.push('/admin')}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-              </svg>
-              <span className={s.adminBtnText}>後台</span>
-            </button>
-          )}
+          {/* Admin 按鈕：固定佔位，避免 layout shift */}
+          <div className={s.adminSlot}>
+            {!authReady ? (
+              <div className={s.adminPlaceholder} />
+            ) : isAdmin ? (
+              <button className={s.adminBtn} onClick={() => router.push('/admin')}>
+                <AdminIcon />
+                <span className={s.adminBtnText}>後台</span>
+              </button>
+            ) : null}
+          </div>
 
           <button className={s.authBtn} onClick={() => router.push('/member')}>
             {userName ? userName : '登入'}

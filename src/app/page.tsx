@@ -1,5 +1,7 @@
 // app/page.tsx  ──  首頁（responsive）
 
+export const revalidate = 0;
+
 import { supabase } from '@/lib/supabase';
 import HeroCarousel from '@/components/HeroCarousel';
 import ProductCard, { Product } from '@/components/ProductCard';

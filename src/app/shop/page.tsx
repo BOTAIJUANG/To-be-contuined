@@ -1,5 +1,7 @@
 // app/shop/page.tsx  ──  線上選購頁（responsive）
 
+export const revalidate = 0;
+
 import { supabase } from '@/lib/supabase';
 import ShopSidebar from '@/components/ShopSidebar';
 import ProductCard, { Product } from '@/components/ProductCard';
