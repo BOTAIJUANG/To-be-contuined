@@ -155,3 +155,12 @@
 @media (min-width: 768px) {
   .price { font-size: 13px; letter-spacing: 0.1em; }
 }
+.preorderLabel {
+  display: block;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-light);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}

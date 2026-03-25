@@ -284,6 +284,48 @@ export default function AdminInventoryPage() {
     loadInventory();
   };
 
+  // ── 同步：替缺庫存記錄的商品自動補建 ──────────────
+  const [syncing, setSyncing] = useState(false);
+  const syncInventory = async () => {
+    setSyncing(true);
+    // 抓所有上架商品 + 規格
+    const { data: allProducts } = await supabase
+      .from('products').select('id, is_preorder, product_variants(id, is_available)').eq('is_available', true);
+    // 抓所有現有庫存
+    const { data: allInv } = await supabase.from('inventory').select('product_id, variant_id');
+    const invSet = new Set((allInv ?? []).map(i => `${i.product_id}_${i.variant_id ?? 'null'}`));
+
+    let created = 0;
+    for (const prod of (allProducts ?? [])) {
+      const mode = prod.is_preorder ? 'preorder' : 'stock';
+      const variants = ((prod.product_variants ?? []) as any[]).filter(v => v.is_available);
+      if (variants.length > 0) {
+        for (const v of variants) {
+          if (!invSet.has(`${prod.id}_${v.id}`)) {
+            await supabase.from('inventory').insert({
+              product_id: prod.id, variant_id: v.id,
+              inventory_mode: mode, stock: 0, reserved: 0,
+              safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
+            });
+            created++;
+          }
+        }
+      } else {
+        if (!invSet.has(`${prod.id}_null`)) {
+          await supabase.from('inventory').insert({
+            product_id: prod.id, variant_id: null,
+            inventory_mode: mode, stock: 0, reserved: 0,
+            safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
+          });
+          created++;
+        }
+      }
+    }
+    setSyncing(false);
+    loadInventory();
+    alert(created > 0 ? `已補建 ${created} 筆庫存記錄` : '所有商品都已有庫存記錄，無需同步');
+  };
+
   // ── 原料 CRUD ─────────────────────────────────────
   const openAddIng  = () => { setIngForm({ name: '', category: '原料', unit: 'kg', stock: 0, safety_stock: 0, expiry_date: '', restocked_at: '', location: '', note: '' }); setEditingIngId(null); setShowIngModal(true); };
   const openEditIng = (ing: any) => {
@@ -421,7 +463,10 @@ export default function AdminInventoryPage() {
 
           <div className={`${s.flex} ${p.sectionHeader}`}>
             <div className={s.sectionTitle}>庫存總覽</div>
-            <button onClick={openAddInv} className={s.btnPrimary}>＋ 新增庫存</button>
+            <div className={`${s.flex} ${s.gap8}`}>
+              <button onClick={syncInventory} disabled={syncing} className={s.btnOutline}>{syncing ? '同步中...' : '同步商品庫存'}</button>
+              <button onClick={openAddInv} className={s.btnPrimary}>＋ 新增庫存</button>
+            </div>
           </div>
 
           {invLoading ? <p className={s.loadingText}>載入中...</p> : (

@@ -58,7 +58,8 @@ export default function ProductCard({ product }: { product: Product }) {
           <div className={s.category}>{product.category}</div>
           <h3 className={s.name}>{product.name}</h3>
           <div className={s.price}>
-            {product.isPreorder ? '預購商品' : `NT$ ${product.price.toLocaleString()}`}
+            {`NT$ ${product.price.toLocaleString()}`}
+            {product.isPreorder && <span className={s.preorderLabel}>預購商品</span>}
           </div>
         </div>
       </div>

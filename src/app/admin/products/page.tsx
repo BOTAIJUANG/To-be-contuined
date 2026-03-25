@@ -184,6 +184,64 @@ export default function AdminProductsPage() {
           }
         }
       }
+
+      // ── 自動建立 inventory row（新增商品 or 有新規格時）──
+      if (!editingId) {
+        // 新商品：依規格建庫存
+        const mode = form.is_preorder ? 'preorder' : 'stock';
+        if (hasVariants && variants.length > 0) {
+          const { data: savedVariants } = await supabase
+            .from('product_variants').select('id').eq('product_id', productId).order('sort_order');
+          for (const sv of (savedVariants ?? [])) {
+            const { data: exists } = await supabase.from('inventory')
+              .select('id').eq('product_id', productId).eq('variant_id', sv.id).maybeSingle();
+            if (!exists) {
+              await supabase.from('inventory').insert({
+                product_id: productId, variant_id: sv.id,
+                inventory_mode: mode, stock: 0, reserved: 0,
+                safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
+              });
+            }
+          }
+        } else {
+          const { data: exists } = await supabase.from('inventory')
+            .select('id').eq('product_id', productId).is('variant_id', null).maybeSingle();
+          if (!exists) {
+            await supabase.from('inventory').insert({
+              product_id: productId, variant_id: null,
+              inventory_mode: mode, stock: 0, reserved: 0,
+              safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
+            });
+          }
+        }
+      } else {
+        // 編輯商品：確保每個規格都有 inventory row
+        if (hasVariants && variants.length > 0) {
+          const { data: savedVariants } = await supabase
+            .from('product_variants').select('id').eq('product_id', productId).order('sort_order');
+          const mode = form.is_preorder ? 'preorder' : 'stock';
+          for (const sv of (savedVariants ?? [])) {
+            const { data: exists } = await supabase.from('inventory')
+              .select('id').eq('product_id', productId).eq('variant_id', sv.id).maybeSingle();
+            if (!exists) {
+              await supabase.from('inventory').insert({
+                product_id: productId, variant_id: sv.id,
+                inventory_mode: mode, stock: 0, reserved: 0,
+                safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
+              });
+            }
+          }
+          // 清除不再存在的規格的庫存記錄
+          const validVariantIds = (savedVariants ?? []).map(v => v.id);
+          const { data: allInv } = await supabase.from('inventory')
+            .select('id, variant_id').eq('product_id', productId).not('variant_id', 'is', null);
+          for (const inv of (allInv ?? [])) {
+            if (!validVariantIds.includes(inv.variant_id)) {
+              await supabase.from('inventory').delete().eq('id', inv.id);
+            }
+          }
+        }
+      }
     }
     setSaving(false);
     setShowForm(false);
