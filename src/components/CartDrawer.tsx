@@ -2,12 +2,21 @@
 
 // components/CartDrawer.tsx  ──  購物車側邊欄
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { fetchApi } from '@/lib/api';
 import { usePromotions } from '@/hooks/usePromotions';
 import { CartItemForCalc } from '@/lib/promotions';
+import { supabase } from '@/lib/supabase';
+
+interface GiftDisplay {
+  product_id: number;
+  name: string;
+  image_url: string | null;
+  qty: number;
+  promotion_name: string;
+}
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -26,6 +35,21 @@ export default function CartDrawer() {
     [items]
   );
   const { promoResult } = usePromotions(cartItemsForCalc);
+
+  // 載入贈品商品資訊（圖片、名稱）
+  const [giftDisplays, setGiftDisplays] = useState<GiftDisplay[]>([]);
+  useEffect(() => {
+    if (promoResult.gifts.length === 0) { setGiftDisplays([]); return; }
+    const ids = [...new Set(promoResult.gifts.map(g => g.product_id))];
+    supabase.from('products').select('id, name, image_url').in('id', ids)
+      .then(({ data }) => {
+        const map = new Map((data ?? []).map(p => [p.id, p]));
+        setGiftDisplays(promoResult.gifts.map(g => {
+          const p = map.get(g.product_id);
+          return { product_id: g.product_id, name: p?.name ?? `贈品 #${g.product_id}`, image_url: p?.image_url ?? null, qty: g.qty, promotion_name: g.promotion_name };
+        }));
+      }, () => {});
+  }, [promoResult.gifts]);
 
   const handleCancelRedeem = async (item: any) => {
     if (!confirm(`確定要取消「${item.name}」的兌換嗎？章數將立即歸還。`)) return;
@@ -129,28 +153,43 @@ export default function CartDrawer() {
               </div>
             );
           })}
+
+          {/* 贈品列 */}
+          {giftDisplays.map(g => (
+            <div key={`gift-${g.product_id}`} style={{ display: 'flex', gap: '14px', padding: '12px 20px', borderBottom: '1px solid #E8E4DC', background: '#faf8f5' }}>
+              <div style={{ width: '60px', height: '60px', background: '#EDE9E2', flexShrink: 0, overflow: 'hidden' }}>
+                {g.image_url && <img src={g.image_url} alt={g.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: '#1E1C1A', marginBottom: '2px', letterSpacing: '0.05em' }}>
+                  {g.name}
+                  <span style={{ fontSize: '10px', color: '#6e3a8e', border: '1px solid #6e3a8e', padding: '1px 6px', marginLeft: '6px', fontFamily: '"Montserrat", sans-serif' }}>贈送</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#888580' }}>× {g.qty}</span>
+                  <span style={{ fontFamily: '"Noto Serif TC", serif', fontSize: '14px', fontWeight: 200, color: '#6e3a8e' }}>NT$ 0</span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* 底部 */}
         {items.length > 0 && (
           <div style={{ padding: '20px 24px', borderTop: '1px solid #E8E4DC', background: '#fff' }}>
-            {/* 已套用的優惠提示 */}
-            {promoResult.discounts.length > 0 && (
-              <div style={{ marginBottom: '12px' }}>
+            {/* 已套用優惠摘要 */}
+            {(promoResult.discounts.length > 0 || promoResult.gifts.length > 0) && (
+              <div style={{ marginBottom: '12px', padding: '10px 14px', background: '#faf8f5', border: '1px solid #E8E4DC' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#1E1C1A', marginBottom: '6px', letterSpacing: '0.08em' }}>已套用優惠</div>
                 {promoResult.discounts.map(d => (
-                  <div key={d.promotion_id} style={{ fontSize: '11px', color: '#2ab85a', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                  <div key={d.promotion_id} style={{ fontSize: '11px', color: '#555250', marginBottom: '3px', display: 'flex', justifyContent: 'space-between' }}>
                     <span>{d.promotion_name}</span>
-                    <span>− NT$ {d.discount_amount.toLocaleString()}</span>
+                    <span style={{ color: '#2ab85a' }}>− NT$ {d.discount_amount.toLocaleString()}</span>
                   </div>
                 ))}
-              </div>
-            )}
-            {/* 贈品提示 */}
-            {promoResult.gifts.length > 0 && (
-              <div style={{ marginBottom: '12px' }}>
-                {promoResult.gifts.map(g => (
-                  <div key={`gift-${g.promotion_id}`} style={{ fontSize: '11px', color: '#6e3a8e', marginBottom: '4px' }}>
-                    🎁 {g.promotion_name}：已贈送 × {g.qty}
+                {giftDisplays.map(g => (
+                  <div key={`gift-summary-${g.product_id}`} style={{ fontSize: '11px', color: '#555250', marginBottom: '3px' }}>
+                    贈送：{g.name} × {g.qty}
                   </div>
                 ))}
               </div>

@@ -122,37 +122,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               NT$ {product.price.toLocaleString()}
             </div>
 
-            {/* 活動資訊 */}
+            {/* 優惠資訊 */}
             {promos.length > 0 && (
-              <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ marginBottom: '24px', padding: '12px 16px', background: '#faf8f5', border: '1px solid #E8E4DC' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E1C1A', marginBottom: '6px', letterSpacing: '0.1em' }}>優惠</div>
                 {promos.map(promo => (
-                  <div key={promo.id} style={{ padding: '10px 14px', background: '#faf8f5', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', lineHeight: 1.8 }}>
-                    {promo.type === 'volume' && promo.volume_tiers && (
-                      <>
-                        <span style={{ fontWeight: 600, color: '#8e6a3a' }}>多件優惠</span>
-                        <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
-                        {promo.volume_tiers.map((t, i) => (
-                          <span key={i}>
-                            {i > 0 && '、'}
-                            {t.min_qty} 件 ${t.price}
-                          </span>
-                        ))}
-                      </>
-                    )}
-                    {promo.type === 'bundle' && (
-                      <>
-                        <span style={{ fontWeight: 600, color: '#3a6e8e' }}>組合優惠</span>
-                        <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
-                        {promo.name}，組合價 NT${promo.bundle_price}
-                      </>
-                    )}
-                    {promo.type === 'gift' && (
-                      <>
-                        <span style={{ fontWeight: 600, color: '#6e3a8e' }}>買就送</span>
-                        <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
-                        買 {promo.gift_condition_qty} 件送{promo.gift_qty && promo.gift_qty > 1 ? ` ${promo.gift_qty} 個` : ''}贈品
-                      </>
-                    )}
+                  <div key={promo.id} style={{ fontSize: '12px', color: '#555250', lineHeight: 2 }}>
+                    · {promo.name}
                   </div>
                 ))}
               </div>
