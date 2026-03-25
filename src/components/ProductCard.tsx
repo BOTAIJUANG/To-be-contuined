@@ -55,7 +55,6 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {/* 文字區塊 */}
         <div className={s.info}>
-          <div className={s.category}>{product.category}</div>
           <h3 className={s.name}>{product.name}</h3>
           <div className={s.price}>
             {`NT$ ${product.price.toLocaleString()}`}
