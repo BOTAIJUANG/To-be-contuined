@@ -166,6 +166,14 @@ export default function CheckoutPage() {
     load();
   }, []);
 
+  // 購物車為空時，重設回 step 1（防止沿用上次的結帳進度）
+  useEffect(() => {
+    if (items.length === 0 && step !== 'done') {
+      _setStep(1);
+      sessionStorage.removeItem('checkout_step');
+    }
+  }, [items.length, step]);
+
   // 如果目前選的配送方式被後台關閉了，自動切到第一個可用的
   useEffect(() => {
     if (!storeSettings) return;
@@ -365,10 +373,11 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 4. 訂單建立成功！清空購物車
+      // 4. 訂單建立成功！清空購物車、清掉結帳進度
       clearCart();
       setOrderNo(result.order_no);
       sessionStorage.setItem('checkout_orderNo', result.order_no);
+      sessionStorage.removeItem('checkout_step');
 
       // 5. 根據付款方式決定下一步
       if (payMethod === 'credit' || payMethod === 'atm') {
