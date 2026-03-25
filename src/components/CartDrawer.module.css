@@ -1,0 +1,361 @@
+/* ── CartDrawer (mobile-first) ── */
+
+/* 遮罩 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 抽屜本體 — 手機全螢幕，桌機 400px */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background: var(--bg);
+  z-index: 301;
+  transform: translateX(100%);
+  transition: transform 0.35s var(--ease);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+}
+.drawer.open {
+  transform: translateX(0);
+}
+@media (min-width: 640px) {
+  .drawer {
+    width: 400px;
+    max-width: 90vw;
+  }
+}
+
+/* 標題列 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px var(--gutter, 16px);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .header { padding: 20px 24px; }
+}
+.headerLabel {
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+.headerTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+.headerCount {
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 400;
+}
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-light);
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+/* 混購提示 */
+.mixedBanner {
+  padding: 10px var(--gutter, 16px);
+  background: #fff8e1;
+  border-bottom: 1px solid #f0c040;
+  font-size: 12px;
+  color: #7a5c00;
+  line-height: 1.8;
+}
+
+/* 商品列表捲動區 */
+.itemList {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 0;
+}
+
+/* 空購物車 */
+.empty {
+  padding: 48px var(--gutter, 16px);
+  text-align: center;
+}
+.emptyIcon {
+  margin-bottom: 12px;
+}
+.emptyText {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+/* 單一商品列 */
+.item {
+  display: flex;
+  gap: 12px;
+  padding: 12px var(--gutter, 16px);
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 640px) {
+  .item { gap: 14px; padding: 12px 20px; }
+}
+
+/* 商品圖 */
+.itemImg {
+  width: 56px;
+  height: 56px;
+  background: var(--surface);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .itemImg { width: 60px; height: 60px; }
+}
+.itemImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 商品資訊 */
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+.itemName {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+  letter-spacing: 0.05em;
+  word-break: break-word;
+}
+.redeemBadge {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 6px;
+  margin-left: 6px;
+  font-family: "Montserrat", sans-serif;
+  vertical-align: middle;
+}
+.variantName {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+.preorderNote {
+  font-size: 10px;
+  color: #2a5a8c;
+  margin-bottom: 4px;
+  font-family: "Montserrat", sans-serif;
+}
+.itemRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.redeemQty {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 數量控制 — 加大觸控區 */
+.qtyControl {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+}
+.qtyBtn {
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .qtyBtn { width: 28px; height: 28px; font-size: 14px; }
+}
+.qtyValue {
+  width: 36px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dark);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .qtyValue { width: 32px; height: 28px; }
+}
+
+.itemPrice {
+  font-family: "Noto Serif TC", serif;
+  font-size: 14px;
+  font-weight: 200;
+  color: var(--text-dark);
+}
+.itemPriceFree {
+  composes: itemPrice;
+  color: var(--accent);
+}
+
+/* 刪除 / 取消按鈕 */
+.removeBtn {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  font-size: 18px;
+  align-self: flex-start;
+  padding: 4px;
+  line-height: 1;
+}
+.cancelRedeemBtn {
+  background: none;
+  border: none;
+  color: #c0392b;
+  font-size: 11px;
+  align-self: flex-start;
+  padding: 4px;
+  font-family: "Noto Sans TC", sans-serif;
+  white-space: nowrap;
+}
+
+/* 贈品列 */
+.giftItem {
+  composes: item;
+  background: #faf8f5;
+}
+.giftBadge {
+  display: inline-block;
+  font-size: 10px;
+  color: #6e3a8e;
+  border: 1px solid #6e3a8e;
+  padding: 1px 6px;
+  margin-left: 6px;
+  font-family: "Montserrat", sans-serif;
+  vertical-align: middle;
+}
+.giftPrice {
+  font-family: "Noto Serif TC", serif;
+  font-size: 14px;
+  font-weight: 200;
+  color: #6e3a8e;
+}
+.giftQty {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* ── 底部結帳區 ── */
+.footer {
+  padding: 16px var(--gutter, 16px);
+  border-top: 1px solid var(--line);
+  background: #fff;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .footer { padding: 20px 24px; }
+}
+
+/* 優惠摘要 */
+.promoSummary {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #faf8f5;
+  border: 1px solid var(--line);
+}
+.promoTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+.promoLine {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+}
+.promoDiscount {
+  color: var(--accent);
+}
+.giftSummaryLine {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-bottom: 3px;
+}
+
+/* 小計 */
+.subtotalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.subtotalLabel {
+  font-size: 13px;
+  color: var(--text-light);
+}
+.subtotalPrice {
+  font-family: "Noto Serif TC", serif;
+  font-size: 18px;
+  font-weight: 200;
+  color: var(--text-dark);
+}
+
+/* 結帳按鈕 */
+.checkoutBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.clearBtn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  color: var(--text-light);
+  border: 1px solid var(--line);
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+}

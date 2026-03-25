@@ -1,22 +1,56 @@
 /* ═══════════════════════════════
-   未半甜點 — 設計系統
+   未半甜點 — 設計系統 (mobile-first)
    ═══════════════════════════════ */
+
+/* ── 斷點參考 ──────────────────
+   sm:  ≥ 640px   (大手機 / 小平板)
+   md:  ≥ 768px   (平板直向)
+   lg:  ≥ 1024px  (平板橫向 / 小桌機)
+   xl:  ≥ 1280px  (桌機)
+   ──────────────────────────── */
 
 /* 顏色 & 變數 */
 :root {
-  --bg: #f7f4ef; /* 頁面背景 */
-  --surface: #ede9e2; /* 卡片底色 */
-  --line: #e8e4dc; /* 分隔線 */
-  --text-dark: #1e1c1a; /* 深色文字（標題） */
-  --text-mid: #555250; /* 內文 */
-  --text-light: #888580; /* 輔助文字 */
-  --price: #b35252; /* 價格紅 */
-  --max: 1100px; /* 最大寬度 */
+  --bg: #f7f4ef;
+  --surface: #ede9e2;
+  --line: #e8e4dc;
+  --text-dark: #1e1c1a;
+  --text-mid: #555250;
+  --text-light: #888580;
+  --price: #b35252;
+  --accent: #2ab85a;
+  --max: 1100px;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-slow: cubic-bezier(0.6, 0, 0.2, 1);
+
+  /* 間距 token */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* 容器 side padding */
+  --gutter: 16px;
+
+  /* Nav 高度 */
+  --nav-h: 56px;
+}
+@media (min-width: 768px) {
+  :root {
+    --gutter: 24px;
+    --nav-h: 64px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 40px;
+    --nav-h: 72px;
+  }
 }
 
-/* Reset */
+/* ── Reset ────────────────────── */
 *,
 *::before,
 *::after {
@@ -26,6 +60,8 @@
 }
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 body {
   font-family: "Noto Sans TC", sans-serif;
@@ -33,6 +69,8 @@ body {
   color: var(--text-mid);
   -webkit-font-smoothing: antialiased;
   letter-spacing: 0.04em;
+  overflow-x: hidden;
+  min-height: 100dvh;
 }
 a {
   text-decoration: none;
@@ -46,26 +84,55 @@ a:hover {
 img {
   display: block;
   max-width: 100%;
+  height: auto;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+input, select, textarea {
+  font: inherit;
+  -webkit-appearance: none;
 }
 
-/* ── 字體系統 ─────────────────── */
+/* ── 容器 ─────────────────────── */
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+/* ── 字體系統 (mobile-first) ──── */
 h1 {
   font-family: "Noto Serif TC", serif;
   font-weight: 200;
-  font-size: 44px;
-  line-height: 1.2;
-  letter-spacing: 0.15em;
+  font-size: 28px;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
   color: var(--text-dark);
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 }
+@media (min-width: 768px) {
+  h1 { font-size: 36px; }
+}
+@media (min-width: 1024px) {
+  h1 { font-size: 44px; margin-bottom: 20px; }
+}
+
 h2 {
   font-family: "Noto Sans TC", sans-serif;
   font-weight: 700;
-  font-size: 19px;
-  letter-spacing: 0.28em;
+  font-size: 16px;
+  letter-spacing: 0.2em;
   color: var(--text-dark);
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 }
+@media (min-width: 768px) {
+  h2 { font-size: 19px; letter-spacing: 0.28em; margin-bottom: 20px; }
+}
+
 h3 {
   font-family: "Noto Sans TC", sans-serif;
   font-weight: 400;
@@ -84,10 +151,31 @@ h4 {
 }
 p {
   font-size: 13px;
-  line-height: 2.4;
+  line-height: 2;
   font-weight: 300;
   color: var(--text-mid);
   margin: 0;
+}
+@media (min-width: 768px) {
+  p { line-height: 2.4; }
+}
+
+/* ── 通用工具 ─────────────────── */
+
+/* 隱藏 scrollbar 但保持可滾動 */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* body scroll lock (cart/menu open) */
+body.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 /* ── 導覽列 ──────────────────── */
@@ -95,11 +183,13 @@ p {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 22px 50px;
+  padding: 0 var(--gutter);
+  height: var(--nav-h);
   position: sticky;
   top: 0;
   background: rgba(247, 244, 239, 0.95);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
   z-index: 100;
@@ -111,6 +201,7 @@ p {
   letter-spacing: 0.3em;
   color: var(--text-dark);
   cursor: pointer;
+  flex-shrink: 0;
 }
 .nav-links {
   display: flex;
@@ -124,9 +215,7 @@ p {
   letter-spacing: 0.28em;
   color: var(--text-mid);
   text-transform: uppercase;
-  transition:
-    color 0.4s,
-    letter-spacing 0.4s;
+  transition: color 0.4s, letter-spacing 0.4s;
 }
 .nav-links a:hover {
   color: var(--text-dark);
@@ -164,4 +253,13 @@ p {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0;
+}
+
+/* ── Touch 友善 ───────────────── */
+@media (hover: none) {
+  a:hover { opacity: 1; }
+  .nav-links a:hover {
+    letter-spacing: 0.28em;
+    color: var(--text-mid);
+  }
 }

@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import s from '../_shared/admin-shared.module.css';
+import p from './payment.module.css';
 
 export default function AdminPaymentPage() {
   const [orders,  setOrders]  = useState<any[]>([]);
@@ -27,12 +29,12 @@ export default function AdminPaymentPage() {
       .order('created_at', { ascending: false });
     const list = data ?? [];
     const today = new Date().toISOString().split('T')[0];
-    const todayPaid = list.filter(o => o.pay_status === 'paid' && o.created_at?.startsWith(today)).reduce((s, o) => s + o.total, 0);
+    const todayPaid = list.filter(o => o.pay_status === 'paid' && o.created_at?.startsWith(today)).reduce((sum, o) => sum + o.total, 0);
     setStats({
       pending:   list.filter(o => o.pay_status === 'pending').length,
       paid:      list.filter(o => o.pay_status === 'paid').length,
       failed:    list.filter(o => o.pay_status === 'failed').length,
-      totalPaid: list.filter(o => o.pay_status === 'paid').reduce((s, o) => s + o.total, 0),
+      totalPaid: list.filter(o => o.pay_status === 'paid').reduce((sum, o) => sum + o.total, 0),
       todayPaid,
       refunding: list.filter(o => o.refund_status === 'pending').length,
     });
@@ -90,126 +92,166 @@ export default function AdminPaymentPage() {
     return matchSearch && matchFilter;
   });
 
-  const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none' };
-  const thStyle: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' };
-
-  if (loading) return <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p>;
+  if (loading) return <p className={s.loadingText}>載入中...</p>;
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 24px' }}>金流狀態</h1>
+      <h1 className={`${s.pageTitle} ${p.pageTitleMb}`}>金流狀態</h1>
 
-      <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '24px', fontSize: '13px', color: '#555250' }}>
+      <div className={s.infoBar}>
         串接綠界 ECPay 後，付款狀態將自動更新。目前可手動調整。
       </div>
 
       {/* 統計卡片 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+      <div className={s.statGrid}>
         {[
           { label: '今日收款',   value: `NT$ ${stats.todayPaid.toLocaleString()}`, color: '#2ab85a' },
           { label: '待入帳（待付款）', value: stats.pending,   color: '#b87a2a' },
           { label: '已付款',     value: stats.paid,     color: '#2ab85a' },
           { label: '付款失敗',   value: stats.failed,   color: '#c0392b' },
           { label: '退款處理中', value: stats.refunding, color: '#b87a2a' },
-          { label: '已收款總額', value: `NT$ ${stats.totalPaid.toLocaleString()}`, color: '#1E1C1A' },
+          { label: '已收款總額', value: `NT$ ${stats.totalPaid.toLocaleString()}`, color: 'var(--text-dark)' },
         ].map(({ label, value, color }) => (
-          <div key={label} style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '20px 24px' }}>
-            <div style={{ fontSize: '10px', color: '#888580', letterSpacing: '0.2em', marginBottom: '10px', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase' }}>{label}</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color }}>{value}</div>
+          <div key={label} className={s.statCard}>
+            <div className={s.statLabel}>{label}</div>
+            <div className={s.statValue} style={{ color }}>{value}</div>
           </div>
         ))}
       </div>
 
       {/* 搜尋篩選 */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋訂單編號或姓名..." style={{ ...inputStyle, minWidth: '240px' }} />
-        <select value={filter} onChange={e => setFilter(e.target.value)} style={{ ...inputStyle }}>
+      <div className={s.filterRow}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋訂單編號或姓名..." className={s.searchInput} />
+        <select value={filter} onChange={e => setFilter(e.target.value)} className={s.filterSelect}>
           <option value="">全部狀態</option>
-          {PAY_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          {PAY_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
           <option value="pending_refund" disabled>── 退款 ──</option>
-          {REFUND_STATUS.map(s => <option key={`r_${s.value}`} value={s.value}>{s.label}</option>)}
+          {REFUND_STATUS.map(st => <option key={`r_${st.value}`} value={st.value}>{st.label}</option>)}
         </select>
       </div>
 
       {/* 訂單列表 */}
-      <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className={s.tableWrap}>
+        {/* Desktop table */}
+        <table className={s.table}>
           <thead>
-            <tr>{['訂單編號', '買家', '金額', '付款方式', '綠界交易號', '付款狀態', '退款', '下單時間'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+            <tr>{['訂單編號', '買家', '金額', '付款方式', '綠界交易號', '付款狀態', '退款', '下單時間'].map(h => <th key={h} className={s.th}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>沒有符合條件的訂單</td></tr>
+              <tr><td colSpan={8} className={s.emptyRow}>沒有符合條件的訂單</td></tr>
             ) : filtered.map(order => (
-              <tr key={order.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>{order.order_no}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <div style={{ fontSize: '13px', color: '#1E1C1A' }}>{order.buyer_name}</div>
-                  <div style={{ fontSize: '11px', color: '#888580' }}>{order.buyer_email}</div>
+              <tr key={order.id} className={s.tr}>
+                <td className={`${s.td} ${p.tdOrderNo}`}>{order.order_no}</td>
+                <td className={s.td}>
+                  <div className={p.buyerName}>{order.buyer_name}</div>
+                  <div className={p.buyerEmail}>{order.buyer_email}</div>
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>NT$ {order.total.toLocaleString()}</td>
-                <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250' }}>{PAY_METHOD[order.pay_method] ?? order.pay_method ?? '—'}</td>
-                <td style={{ padding: '12px 16px', fontSize: '11px', color: '#888580', fontFamily: '"Montserrat", sans-serif' }}>{order.ecpay_trade_no ?? '—'}</td>
+                <td className={`${s.td} ${p.tdNoWrap}`}>NT$ {order.total.toLocaleString()}</td>
+                <td className={`${s.td} ${p.tdPayMethod}`}>{PAY_METHOD[order.pay_method] ?? order.pay_method ?? '—'}</td>
+                <td className={`${s.td} ${p.tdEcpay}`}>{order.ecpay_trade_no ?? '—'}</td>
 
                 {/* 付款狀態 */}
-                <td style={{ padding: '12px 16px' }}>
-                  <select value={order.pay_status} onChange={e => updatePayStatus(order.id, e.target.value)} style={{ padding: '4px 8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '11px', color: PAY_STATUS.find(s => s.value === order.pay_status)?.color ?? '#888580', outline: 'none', cursor: 'pointer' }}>
-                    {PAY_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                <td className={s.td}>
+                  <select value={order.pay_status} onChange={e => updatePayStatus(order.id, e.target.value)} className={p.inlineSelect} style={{ color: PAY_STATUS.find(st => st.value === order.pay_status)?.color ?? 'var(--text-light)' }}>
+                    {PAY_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
                   </select>
                 </td>
 
                 {/* 退款狀態 */}
-                <td style={{ padding: '12px 16px' }}>
+                <td className={s.td}>
                   {order.refund_status ? (
                     <div>
-                      <select value={order.refund_status} onChange={e => updateRefundStatus(order.id, e.target.value)} style={{ padding: '4px 8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '11px', color: REFUND_STATUS.find(s => s.value === order.refund_status)?.color ?? '#888580', outline: 'none', cursor: 'pointer', marginBottom: '4px', display: 'block' }}>
-                        {REFUND_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      <select value={order.refund_status} onChange={e => updateRefundStatus(order.id, e.target.value)} className={`${p.inlineSelect} ${p.refundSelectBlock}`} style={{ color: REFUND_STATUS.find(st => st.value === order.refund_status)?.color ?? 'var(--text-light)' }}>
+                        {REFUND_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
                       </select>
-                      {order.refund_amount > 0 && <div style={{ fontSize: '10px', color: '#888580' }}>NT$ {order.refund_amount.toLocaleString()}</div>}
+                      {order.refund_amount > 0 && <div className={p.refundAmount}>NT$ {order.refund_amount.toLocaleString()}</div>}
                     </div>
                   ) : (
                     order.pay_status === 'paid' && (
-                      <button onClick={() => openRefund(order)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>申請退款</button>
+                      <button onClick={() => openRefund(order)} className={p.refundBtn}>申請退款</button>
                     )
                   )}
                 </td>
 
-                <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                <td className={`${s.td} ${p.tdDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        {/* Mobile card list */}
+        <div className={s.cardList}>
+          {filtered.length === 0 ? (
+            <div className={s.emptyRow}>沒有符合條件的訂單</div>
+          ) : filtered.map(order => (
+            <div key={order.id} className={s.card}>
+              <div className={s.cardRow}>
+                <span className={s.cardLabel}>訂單</span>
+                <span className={`${s.cardValue} ${p.cardOrderNo}`}>{order.order_no}</span>
+              </div>
+              <div className={s.cardRow}>
+                <span className={s.cardLabel}>買家</span>
+                <span className={s.cardValue}>{order.buyer_name}</span>
+              </div>
+              <div className={s.cardRow}>
+                <span className={s.cardLabel}>金額</span>
+                <span className={s.cardValue}>NT$ {order.total.toLocaleString()}</span>
+              </div>
+              <div className={s.cardRow}>
+                <span className={s.cardLabel}>付款</span>
+                <select value={order.pay_status} onChange={e => updatePayStatus(order.id, e.target.value)} className={p.inlineSelect} style={{ color: PAY_STATUS.find(st => st.value === order.pay_status)?.color }}>
+                  {PAY_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                </select>
+              </div>
+              <div className={s.cardRow}>
+                <span className={s.cardLabel}>退款</span>
+                {order.refund_status ? (
+                  <select value={order.refund_status} onChange={e => updateRefundStatus(order.id, e.target.value)} className={p.inlineSelect} style={{ color: REFUND_STATUS.find(st => st.value === order.refund_status)?.color }}>
+                    {REFUND_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                  </select>
+                ) : order.pay_status === 'paid' ? (
+                  <button onClick={() => openRefund(order)} className={p.refundBtn}>申請退款</button>
+                ) : <span className={p.cardDash}>—</span>}
+              </div>
+              <div className={s.cardRow}>
+                <span className={s.cardLabel}>日期</span>
+                <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 退款 Modal */}
       {showRefund && refundOrder && (
         <>
-          <div onClick={() => setShowRefund(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '480px', maxWidth: '90vw', zIndex: 201 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>申請退款</span>
-              <button onClick={() => setShowRefund(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+          <div onClick={() => setShowRefund(false)} className={s.modalOverlay} />
+          <div className={`${s.modal} ${p.modalWidth}`}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>申請退款</span>
+              <button onClick={() => setShowRefund(false)} className={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: '16px' }}>
-              <div style={{ background: '#EDE9E2', padding: '12px 16px', fontSize: '13px', color: '#555250' }}>
+            <div className={s.modalBody}>
+              <div className={p.orderInfo}>
                 訂單 {refundOrder.order_no}｜{refundOrder.buyer_name}｜NT$ {refundOrder.total.toLocaleString()}
               </div>
               <div>
-                <label style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>退款金額（NT$）</label>
-                <input type="number" value={refundAmount} onChange={e => setRefundAmount(Number(e.target.value))} max={refundOrder.total} style={{ ...inputStyle, width: '100%' }} />
+                <label className={s.label}>退款金額（NT$）</label>
+                <input type="number" value={refundAmount} onChange={e => setRefundAmount(Number(e.target.value))} max={refundOrder.total} className={s.input} />
               </div>
               <div>
-                <label style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>退款原因</label>
-                <textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} rows={3} placeholder="例：商品破損、顧客取消訂單" style={{ ...inputStyle, width: '100%', resize: 'vertical' }} />
+                <label className={s.label}>退款原因</label>
+                <textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} rows={3} placeholder="例：商品破損、顧客取消訂單" className={s.textarea} />
               </div>
-              <div style={{ background: '#fef0f0', border: '1px solid #f5c6c6', padding: '12px 16px', fontSize: '12px', color: '#c0392b' }}>
+              <div className={p.refundWarning}>
                 實際退款需透過綠界後台操作，此處僅記錄退款申請狀態。
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={saveRefund} disabled={savingRefund} style={{ padding: '10px 32px', background: '#c0392b', color: '#fff', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingRefund ? 0.6 : 1 }}>
+              <div className={s.btnActions}>
+                <button onClick={saveRefund} disabled={savingRefund} className={p.btnRefundConfirm}>
                   {savingRefund ? '處理中...' : '確認退款申請'}
                 </button>
-                <button onClick={() => setShowRefund(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+                <button onClick={() => setShowRefund(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>

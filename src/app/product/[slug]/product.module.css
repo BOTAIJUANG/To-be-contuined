@@ -1,0 +1,198 @@
+/* ── 商品詳情頁 (mobile-first) ── */
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 48px;
+}
+@media (min-width: 768px) {
+  .container { padding: 36px var(--gutter) 60px; }
+}
+@media (min-width: 1024px) {
+  .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+    padding: 52px var(--gutter) 72px;
+  }
+}
+
+/* 圖片區 */
+.imageSection {
+  position: relative;
+  margin-bottom: 24px;
+}
+@media (min-width: 1024px) {
+  .imageSection { margin-bottom: 0; }
+}
+.imageRatio {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--surface);
+}
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.imagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: #fff;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 6px 14px;
+}
+@media (min-width: 768px) {
+  .badge { top: 16px; left: 16px; font-size: 14px; letter-spacing: 0.2em; padding: 8px 16px; }
+}
+.badgeSoldOut { background: #c0392b; }
+.badgePreorder { background: #b87a2a; }
+
+/* 商品資訊區 */
+.infoSection {}
+
+.category {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.35em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+@media (min-width: 768px) {
+  .category { font-size: 11px; letter-spacing: 0.45em; margin-bottom: 12px; }
+}
+
+.nameEn {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+@media (min-width: 768px) {
+  .nameEn { font-size: 13px; letter-spacing: 0.2em; margin-bottom: 8px; }
+}
+
+.name {
+  font-family: "Noto Serif TC", serif;
+  font-weight: 200;
+  font-size: 26px;
+  letter-spacing: 0.12em;
+  color: var(--text-dark);
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+@media (min-width: 768px) {
+  .name { font-size: 32px; letter-spacing: 0.15em; margin-bottom: 16px; }
+}
+
+.price {
+  font-family: "Noto Serif TC", serif;
+  font-weight: 200;
+  font-size: 22px;
+  color: var(--price);
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+@media (min-width: 768px) {
+  .price { font-size: 24px; }
+}
+
+/* 優惠資訊 */
+.promoBox {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: #faf8f5;
+  border: 1px solid var(--line);
+}
+@media (min-width: 768px) {
+  .promoBox { padding: 12px 16px; margin-bottom: 24px; }
+}
+.promoTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  letter-spacing: 0.1em;
+}
+.promoItem {
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 2;
+}
+
+/* 預購無批次提示 */
+.noBatchBox {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: #fef0f0;
+  border: 1px solid #f5c6c6;
+}
+@media (min-width: 768px) {
+  .noBatchBox { margin-bottom: 24px; padding: 16px 20px; }
+}
+.noBatchText {
+  font-size: 14px;
+  color: #c0392b;
+  font-weight: 600;
+}
+
+/* 描述 */
+.description {
+  font-size: 13px;
+  line-height: 2;
+  font-weight: 300;
+  color: var(--text-mid);
+  margin-bottom: 24px;
+  white-space: pre-line;
+}
+@media (min-width: 768px) {
+  .description { line-height: 2.4; margin-bottom: 28px; }
+}
+
+/* 規格表 */
+.specs {
+  margin-bottom: 24px;
+}
+@media (min-width: 768px) {
+  .specs { margin-bottom: 28px; }
+}
+.specRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+@media (min-width: 640px) {
+  .specRow { flex-direction: row; gap: 24px; }
+}
+.specLabel {
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.15em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+.specValue {
+  color: var(--text-mid);
+  word-break: break-word;
+}

@@ -1,0 +1,33 @@
+/* ── AnnouncementBar (mobile-first) ── */
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.bar {
+  color: #fff;
+  padding: 10px 0;
+  overflow: hidden;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-family: "Noto Sans TC", sans-serif;
+}
+
+@media (min-width: 640px) {
+  .bar {
+    padding: 8px 0;
+    font-size: 12px;
+  }
+}
+
+.marquee {
+  display: inline-block;
+  animation: marquee var(--ann-duration, 18s) linear infinite;
+  white-space: nowrap;
+  padding-left: 100%;
+}

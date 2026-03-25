@@ -7,9 +7,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/api';
-
-const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none' };
-const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' };
+import s from '../_shared/admin-shared.module.css';
+import p from './redeem.module.css';
 
 export default function AdminRedeemPage() {
   const [code,       setCode]       = useState('');
@@ -106,98 +105,94 @@ export default function AdminRedeemPage() {
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 32px' }}>兌換碼核銷</h1>
+      <h1 className={`${s.pageTitle} ${p.pageTitleMb}`}>兌換碼核銷</h1>
 
       {/* 輸入區 */}
-      <div style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '28px', marginBottom: '24px', maxWidth: '500px' }}>
-        <label style={labelStyle}>輸入兌換碼</label>
-        <div style={{ display: 'flex', gap: '10px' }}>
+      <div className={`${s.formPanel} ${p.codePanel}`}>
+        <label className={s.label}>輸入兌換碼</label>
+        <div className={`${s.flex} ${s.gap12}`}>
           <input
             ref={inputRef}
             value={code}
             onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); setResult(null); setSuccess(''); }}
             onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
             placeholder="例：WB-K7X2M9QP"
-            style={{ ...inputStyle, flex: 1, fontFamily: '"Montserrat", sans-serif', fontSize: '16px', letterSpacing: '0.2em' }}
+            className={`${s.input} ${p.codeInput}`}
           />
-          <button onClick={handleSearch} disabled={loading || !code.trim()} style={{ padding: '10px 24px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer', opacity: loading || !code.trim() ? 0.5 : 1 }}>
+          <button onClick={handleSearch} disabled={loading || !code.trim()} className={s.btnPrimary}>
             {loading ? '查詢中...' : '查詢'}
           </button>
         </div>
-        <div style={{ fontSize: '11px', color: '#888580', marginTop: '8px' }}>按 Enter 或點查詢按鈕搜尋</div>
+        <div className={p.hint}>按 Enter 或點查詢按鈕搜尋</div>
       </div>
 
       {/* 錯誤訊息 */}
       {error && (
-        <div style={{ padding: '14px 20px', background: '#fef0f0', border: '1px solid #f5c6c6', marginBottom: '24px', fontSize: '13px', color: '#c0392b', maxWidth: '500px' }}>
-          {error}
-        </div>
+        <div className={`${s.errorBar} ${p.resultPanel}`}>{error}</div>
       )}
 
       {/* 成功訊息 */}
       {success && (
-        <div style={{ padding: '14px 20px', background: '#f0faf4', border: '1px solid #b2dfdb', marginBottom: '24px', fontSize: '13px', color: '#2ab85a', maxWidth: '500px' }}>
-          {success}
-        </div>
+        <div className={`${s.successBar} ${p.resultPanel}`}>{success}</div>
       )}
 
       {/* 查詢結果 */}
       {result && (
-        <div style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '28px', marginBottom: '24px', maxWidth: '500px' }}>
-          <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#888580', marginBottom: '20px' }}>兌換碼資訊</div>
+        <div className={`${s.formPanel} ${p.resultPanel}`}>
+          <div className={p.resultSectionLabel}>兌換碼資訊</div>
 
           {/* 狀態 */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '12px 16px', background: '#F7F4EF' }}>
-            <span style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '18px', fontWeight: 700, letterSpacing: '0.2em', color: '#1E1C1A' }}>{result.redeem_code}</span>
-            <span style={{ fontSize: '12px', color: getStatusInfo(result.status).color, border: `1px solid ${getStatusInfo(result.status).color}`, padding: '3px 10px', fontFamily: '"Montserrat", sans-serif' }}>
+          <div className={p.codeDisplay}>
+            <span className={p.codeText}>{result.redeem_code}</span>
+            <span className={s.badge} style={{ color: getStatusInfo(result.status).color, border: `1px solid ${getStatusInfo(result.status).color}` }}>
               {getStatusInfo(result.status).label}
             </span>
           </div>
 
           {/* 會員資訊 */}
-          <div style={{ display: 'grid', gap: '10px', marginBottom: '20px', fontSize: '13px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#888580' }}>會員姓名</span>
-              <span style={{ color: '#1E1C1A', fontWeight: 500 }}>{result.members?.name ?? '—'}</span>
+          <div className={p.infoGrid}>
+            <div className={p.infoRow}>
+              <span className={p.infoLabel}>會員姓名</span>
+              <span className={`${p.infoValue} ${p.infoValueBold}`}>{result.members?.name ?? '—'}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#888580' }}>手機</span>
-              <span style={{ color: '#1E1C1A' }}>{result.members?.phone ?? '—'}</span>
+            <div className={p.infoRow}>
+              <span className={p.infoLabel}>手機</span>
+              <span className={p.infoValue}>{result.members?.phone ?? '—'}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#888580' }}>目前章數</span>
-              <span style={{ color: '#1E1C1A' }}>
+            <div className={p.infoRow}>
+              <span className={p.infoLabel}>目前章數</span>
+              <span className={p.infoValue}>
                 {result.members?.stamps ?? 0} 章
-                {(result.members?.stamps_frozen ?? 0) > 0 && <span style={{ color: '#b87a2a', fontSize: '11px', marginLeft: '6px' }}>（凍結 {result.members?.stamps_frozen} 章）</span>}
+                {(result.members?.stamps_frozen ?? 0) > 0 && <span className={p.stampsFrozenNote}>（凍結 {result.members?.stamps_frozen} 章）</span>}
               </span>
             </div>
           </div>
 
           {/* 兌換獎勵 */}
-          <div style={{ padding: '14px 16px', background: '#EDE9E2', marginBottom: '20px' }}>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E1C1A', marginBottom: '4px' }}>{result.redeem_items?.name}</div>
-            {result.redeem_items?.description && <div style={{ fontSize: '12px', color: '#888580' }}>{result.redeem_items.description}</div>}
-            <div style={{ fontSize: '12px', color: '#555250', marginTop: '6px' }}>需要 {result.stamps_cost} 章</div>
+          <div className={p.rewardBox}>
+            <div className={p.rewardName}>{result.redeem_items?.name}</div>
+            {result.redeem_items?.description && <div className={p.rewardDesc}>{result.redeem_items.description}</div>}
+            <div className={p.rewardCost}>需要 {result.stamps_cost} 章</div>
           </div>
 
           {/* 有效期限 */}
-          <div style={{ fontSize: '12px', color: new Date(result.expires_at) < new Date() ? '#c0392b' : '#888580', marginBottom: '20px' }}>
+          <div className={p.expiryText} style={{ color: new Date(result.expires_at) < new Date() ? '#c0392b' : 'var(--text-light)' }}>
             有效期限：{new Date(result.expires_at).toLocaleString('zh-TW')}
             {new Date(result.expires_at) < new Date() && ' （已過期）'}
           </div>
 
           {/* 核銷按鈕 */}
           {result.status === 'pending_cart' && new Date(result.expires_at) >= new Date() ? (
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={handleVerify} disabled={loading} style={{ flex: 1, padding: '12px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
+            <div className={p.verifyActions}>
+              <button onClick={handleVerify} disabled={loading} className={`${s.btnPrimary} ${p.verifyBtnFlex}`}>
                 {loading ? '核銷中...' : '確認核銷'}
               </button>
-              <button onClick={() => { setResult(null); setCode(''); inputRef.current?.focus(); }} style={{ padding: '12px 20px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', cursor: 'pointer' }}>
+              <button onClick={() => { setResult(null); setCode(''); inputRef.current?.focus(); }} className={`${s.btnCancel} ${p.cancelBtnPad}`}>
                 取消
               </button>
             </div>
           ) : (
-            <div style={{ padding: '12px 16px', background: '#fef0f0', border: '1px solid #f5c6c6', fontSize: '13px', color: '#c0392b', textAlign: 'center' }}>
+            <div className={p.statusError}>
               {result.status === 'used'    && '此兌換碼已核銷，無法重複使用'}
               {result.status === 'expired' && '此兌換碼已過期'}
               {result.status === 'released'&& '此兌換碼已取消'}
@@ -208,31 +203,60 @@ export default function AdminRedeemPage() {
 
       {/* 最近核銷記錄 */}
       <div>
-        <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#888580', marginBottom: '12px' }}>最近核銷記錄</div>
+        <div className={p.recentTitle}>最近核銷記錄</div>
         {recentLogs.length === 0 ? (
-          <p style={{ fontSize: '13px', color: '#888580' }}>尚無核銷記錄</p>
+          <p className={s.loadingText}>尚無核銷記錄</p>
         ) : (
-          <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className={s.tableWrap}>
+            {/* Desktop table */}
+            <table className={s.table}>
               <thead>
                 <tr>
                   {['核銷時間', '兌換碼', '會員', '兌換獎勵', '扣章'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h} className={s.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {recentLogs.map(log => (
-                  <tr key={log.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{new Date(log.used_at).toLocaleString('zh-TW')}</td>
-                    <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A', letterSpacing: '0.1em' }}>{log.redeem_code}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{log.members?.name ?? '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{log.redeem_items?.name ?? '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#c0392b', fontWeight: 600 }}>−{log.stamps_cost}</td>
+                  <tr key={log.id} className={s.tr}>
+                    <td className={`${s.td} ${p.tdDateLight}`}>{new Date(log.used_at).toLocaleString('zh-TW')}</td>
+                    <td className={`${s.td} ${p.tdCodeMono}`}>{log.redeem_code}</td>
+                    <td className={s.td}>{log.members?.name ?? '—'}</td>
+                    <td className={s.td}>{log.redeem_items?.name ?? '—'}</td>
+                    <td className={`${s.td} ${p.stampsCostTd}`}>−{log.stamps_cost}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Mobile card list */}
+            <div className={s.cardList}>
+              {recentLogs.map(log => (
+                <div key={log.id} className={s.card}>
+                  <div className={s.cardRow}>
+                    <span className={s.cardLabel}>兌換碼</span>
+                    <span className={`${s.cardValue} ${p.cardCodeMono}`}>{log.redeem_code}</span>
+                  </div>
+                  <div className={s.cardRow}>
+                    <span className={s.cardLabel}>會員</span>
+                    <span className={s.cardValue}>{log.members?.name ?? '—'}</span>
+                  </div>
+                  <div className={s.cardRow}>
+                    <span className={s.cardLabel}>獎勵</span>
+                    <span className={s.cardValue}>{log.redeem_items?.name ?? '—'}</span>
+                  </div>
+                  <div className={s.cardRow}>
+                    <span className={s.cardLabel}>扣章</span>
+                    <span className={`${s.cardValue} ${p.cardStampsCost}`}>−{log.stamps_cost}</span>
+                  </div>
+                  <div className={s.cardRow}>
+                    <span className={s.cardLabel}>時間</span>
+                    <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(log.used_at).toLocaleString('zh-TW')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

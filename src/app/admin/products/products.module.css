@@ -1,0 +1,702 @@
+/* products page-specific styles */
+
+/* Product image thumbnail in table */
+.productThumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+}
+
+.productThumbPlaceholder {
+  width: 44px;
+  height: 44px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image upload preview */
+.imgPreview {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.imgUploadWrap {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+
+/* Stock mode radio card */
+.stockModeOption {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  flex: 1;
+  background: #fff;
+}
+
+.stockModeOptionActive {
+  composes: stockModeOption;
+  border-color: var(--text-dark);
+  background: var(--bg);
+}
+
+.stockModeTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.stockModeDesc {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Variant grid header */
+.variantGridHeader {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1fr 80px 40px;
+  gap: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.variantGridHeaderCell {
+  padding: 8px 12px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+
+.variantGridRow {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1fr 80px 40px;
+  gap: 0;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.variantGridRow:last-child {
+  border-bottom: none;
+}
+
+.variantInput {
+  padding: 10px 12px;
+  border: none;
+  border-right: 1px solid var(--line);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-dark);
+  outline: none;
+  margin: 0;
+}
+
+.variantCheckboxCell {
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--line);
+}
+
+.variantIdx {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.variantDeleteBtn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: #c0392b;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Spec row grid */
+.specRow {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+/* Ship dates range panel */
+.dateRangePanel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+}
+
+.dateRangePanelTitle {
+  font-size: 11px;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+/* Category card row */
+.catRow {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 8px;
+}
+
+.catExpandBtn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.catName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.catSlug {
+  font-size: 11px;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Sort arrow buttons */
+.sortBtn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-mid);
+}
+
+.sortBtn:disabled {
+  cursor: not-allowed;
+  color: var(--line);
+}
+
+.sortBtnSm {
+  composes: sortBtn;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+/* Cat expanded product row */
+.catProductRow {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px 10px 52px;
+  border-bottom: 1px solid var(--line);
+  gap: 12px;
+}
+
+.catProductRow:last-child {
+  border-bottom: none;
+}
+
+.catProductThumb {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.catProductThumbInner {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catProductPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quick update price input */
+.quickPriceInput {
+  composes: variantInput;
+  border: 1px solid var(--line);
+  width: 100px;
+  text-align: right;
+}
+
+/* Blocked dates editor */
+.blockedTagWrap {
+  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.blockedTag {
+  padding: 3px 10px;
+  background: #fef0f0;
+  border: 1px solid #f5c6c6;
+  font-size: 11px;
+  color: #c0392b;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.blockedTagRemove {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.dateGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dateCell {
+  padding: 7px 10px;
+  min-width: 66px;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dateCellWeekend {
+  composes: dateCell;
+  background: var(--bg);
+  color: var(--text-light);
+}
+
+.dateCellBlocked {
+  composes: dateCell;
+  border-color: #c0392b;
+  background: #fef0f0;
+  color: #c0392b;
+  text-decoration: line-through;
+}
+
+.dateCellDayLabel {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-bottom: 2px;
+}
+
+.dateCellDayLabelBlocked {
+  composes: dateCellDayLabel;
+  color: #c0392b;
+}
+
+/* Full-width input / select */
+.inputFull {
+  width: 100%;
+}
+
+/* Hidden file input */
+.hidden {
+  display: none;
+}
+
+/* Flex: 1 wrapper */
+.flex1 {
+  flex: 1;
+}
+
+/* Upload actions row */
+.uploadActions {
+  margin-top: 8px;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Upload hint */
+.uploadHint {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Section divider (border-top with padding) */
+.sectionDivider {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-bottom: 20px;
+}
+
+/* Section divider variant with more margin-bottom */
+.sectionDivider24 {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-bottom: 24px;
+}
+
+/* Stock mode label */
+.stockModeLabel {
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
+/* Stock mode options row */
+.stockModeOptionsRow {
+  gap: 20px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* Radio checkbox style override (small margin-top) */
+.radioCheckbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Date range margin-bottom */
+.dateRangeMb {
+  margin-bottom: 16px;
+}
+
+/* Section row: space-between + center-aligned header with margin */
+.sectionHeader {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Section header with 16px bottom margin */
+.sectionHeader16 {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Spec label style */
+.specLabel {
+  font-size: 11px;
+}
+
+/* Spec label with no bottom margin */
+.specLabelNoMargin {
+  font-size: 11px;
+  margin-bottom: 0;
+}
+
+/* Small button variant */
+.btnSmallCompact {
+  padding: 5px 12px;
+  font-size: 11px;
+}
+
+/* Toggle button variant */
+.btnToggle {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+/* Empty state dashed box */
+.emptyDashed {
+  padding: 24px;
+  border: 1px dashed var(--line);
+}
+
+/* Ship date table font */
+.monoFont {
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Past date hint */
+.pastHint {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-left: 6px;
+}
+
+/* Text align right */
+.textRight {
+  text-align: right;
+}
+
+/* Font weight 600 */
+.fw600 {
+  font-weight: 600;
+}
+
+/* Gap-6 flex */
+.gap6 {
+  gap: 6px;
+}
+
+/* Gap-4 flex */
+.gap4 {
+  gap: 4px;
+}
+
+/* Gap-8 flex */
+.gap8 {
+  gap: 8px;
+}
+
+/* Variant table border wrapper */
+.variantTableWrap {
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+/* Variant label input width */
+.variantLabelInput {
+  width: 200px;
+}
+
+/* Spec delete button padding */
+.specDeletePad {
+  padding: 10px;
+}
+
+/* Info bar margin-bottom */
+.infoBarMb {
+  margin-bottom: 20px;
+}
+
+/* Form panel margin-bottom */
+.formPanelMb {
+  margin-bottom: 20px;
+}
+
+/* Form grid margin-bottom */
+.formGridMb {
+  margin-bottom: 20px;
+}
+
+/* Category card */
+.catCard {
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+/* Category grid */
+.catGrid {
+  display: grid;
+  gap: 8px;
+}
+
+/* Category expand rotated */
+.catExpandBtnOpen {
+  composes: catExpandBtn;
+  transform: rotate(90deg);
+}
+
+/* Category expanded panel */
+.catExpandedPanel {
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+/* Category empty product message */
+.catEmptyMsg {
+  padding: 16px 24px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Product name in table */
+.prodName {
+  color: var(--text-dark);
+}
+
+/* Product slug */
+.prodSlug {
+  font-size: 11px;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Category column text */
+.catColText {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* Price no-wrap */
+.priceCol {
+  white-space: nowrap;
+}
+
+/* Card value font-size small */
+.cardValueSm {
+  font-size: 12px;
+}
+
+/* Cat product info flex-1 */
+.catProductInfo {
+  flex: 1;
+}
+
+/* Cat product name */
+.catProductName {
+  font-size: 13px;
+}
+
+/* Cat product sub text */
+.catProductSub {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Quick update text align right */
+.quickUpdateApplyRow {
+  text-align: right;
+  margin-top: 14px;
+}
+
+/* Quick update current price */
+.quickCurrentPrice {
+  color: var(--text-light);
+  text-align: right;
+}
+
+/* Modal width 480 */
+.modal480 {
+  width: 480px;
+}
+
+/* Modal body grid */
+.modalBodyGrid {
+  display: grid;
+  gap: 16px;
+}
+
+/* Batch exclude hint */
+.hintText {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+/* Small input width */
+.inputW100 {
+  width: 100px;
+}
+
+/* Date input width */
+.inputW180 {
+  width: 180px;
+}
+
+/* Unit label */
+.unitLabel {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Align items center + gap */
+.flexCenterGap8 {
+  align-items: center;
+  gap: 8px;
+}
+
+/* Blocked dates empty hint */
+.blockedEmptyHint {
+  padding: 10px 0;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Blocked excluded label */
+.blockedExcludedLabel {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Blocked clear button */
+.blockedClearBtn {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+/* Blocked usage hint */
+.blockedUsageHint {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 8px;
+}
+
+/* Font size 12px */
+.fontSize12 {
+  font-size: 12px;
+}
+
+/* responsive adjustments */
+@media (max-width: 767px) {
+  .variantGridHeader,
+  .variantGridRow {
+    grid-template-columns: 1fr;
+  }
+
+  .variantGridHeader {
+    display: none;
+  }
+
+  .variantGridRow {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .variantInput {
+    border: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+
+  .variantCheckboxCell {
+    border-right: none;
+  }
+
+  .specRow {
+    grid-template-columns: 1fr;
+  }
+
+  .catProductRow {
+    padding-left: 24px;
+  }
+
+  .stockModeOption,
+  .stockModeOptionActive {
+    flex: unset;
+    width: 100%;
+  }
+}

@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase';
 import AuthPanel from '@/components/AuthPanel';
 import MemberDashboard from '@/components/MemberDashboard';
 import Footer from '@/components/Footer';
+import s from './member.module.css';
 
 export default function MemberPage() {
   // 登入的使用者資料（null = 未登入）
@@ -87,7 +88,7 @@ export default function MemberPage() {
   // auth 尚未確認完成 → 顯示載入狀態（不顯示 AuthPanel）
   if (!authChecked) {
     return (
-      <div style={{ padding: '120px 0', textAlign: 'center', color: '#888580', fontSize: '13px', letterSpacing: '0.15em' }}>
+      <div className={s.loading}>
         {authSlow ? '正在確認登入狀態，請稍候...' : '載入中...'}
       </div>
     );
@@ -95,10 +96,7 @@ export default function MemberPage() {
 
   return (
     <>
-      <div style={{
-        width: 'min(calc(100% - 60px), 1100px)',
-        margin: 'auto', padding: '72px 0 40px',
-      }}>
+      <div className={s.container}>
         {/* 未登入：顯示登入/註冊表單 */}
         {!user && (
           <AuthPanel onLoginSuccess={handleLoginSuccess} />

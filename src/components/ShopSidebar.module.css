@@ -1,0 +1,139 @@
+/* ── ShopSidebar (mobile-first) ── */
+
+/* 手機：上方水平篩選按鈕列 */
+.sidebar {
+  margin-bottom: 20px;
+}
+@media (min-width: 1024px) {
+  .sidebar { margin-bottom: 0; }
+}
+
+/* 手機篩選開關按鈕 */
+.filterToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-dark);
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .filterToggle { display: none; }
+}
+.filterIcon {
+  font-size: 14px;
+}
+.filterArrow {
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform 0.3s;
+}
+.filterArrow.open {
+  transform: rotate(180deg);
+}
+
+/* 分類列表 — 手機可收合 */
+.catList {
+  display: none;
+}
+.catList.open {
+  display: block;
+}
+@media (min-width: 1024px) {
+  .catList {
+    display: block !important;
+  }
+}
+
+/* 單一分類 */
+.catItem {
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+}
+@media (min-width: 1024px) {
+  .catItem { padding: 18px 0; }
+}
+
+.catHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-mid);
+  cursor: pointer;
+  user-select: none;
+  padding: 0;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.catHeader.active {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.catChevron {
+  display: inline-block;
+  transition: transform 0.3s;
+  font-size: 11px;
+}
+.catChevron.open {
+  transform: rotate(180deg);
+}
+
+/* 子項目 */
+.catBody {
+  padding-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.prodLink {
+  display: block;
+  font-size: 12px;
+  color: var(--text-mid);
+  font-weight: 300;
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+  padding-left: 8px;
+  border-left: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+@media (hover: hover) {
+  .prodLink:hover {
+    color: var(--text-dark);
+    border-left-color: var(--text-dark);
+    opacity: 1;
+  }
+}
+
+.viewAll {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  font-weight: 300;
+  text-decoration: none;
+  letter-spacing: 0.1em;
+  font-family: "Montserrat", sans-serif;
+  padding-left: 8px;
+  margin-top: 4px;
+}
+.viewAll.active {
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.backAll {
+  composes: viewAll;
+  margin-top: 0;
+}

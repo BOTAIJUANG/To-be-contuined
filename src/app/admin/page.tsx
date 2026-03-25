@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import s from './dashboard.module.css';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
@@ -13,7 +14,8 @@ const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '
 const ClickableNum = ({ value, onClick, color }: { value: number; onClick: () => void; color?: string }) => (
   <span
     onClick={onClick}
-    style={{ color: color ?? '#1E1C1A', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit' }}
+    className={s.clickNum}
+    style={{ color: color ?? 'var(--text-dark)' }}
   >
     {value}
   </span>
@@ -21,11 +23,14 @@ const ClickableNum = ({ value, onClick, color }: { value: number; onClick: () =>
 
 // 統計卡片
 const StatCard = ({ label, value, alert = false, onClick }: { label: string; value: number | string; alert?: boolean; onClick?: () => void }) => (
-  <div onClick={onClick} style={{ background: '#fff', border: `1px solid ${alert ? '#f0c040' : '#E8E4DC'}`, padding: '20px 24px', cursor: onClick ? 'pointer' : 'default', transition: 'border-color 0.2s' }}>
-    <div style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.15em', marginBottom: '10px', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase' }}>
-      {label} {onClick && <span style={{ fontSize: '10px' }}>→</span>}
+  <div
+    onClick={onClick}
+    className={`${onClick ? s.statCardClickable : s.statCard} ${alert ? s.statCardAlert : ''}`}
+  >
+    <div className={s.statLabel}>
+      {label} {onClick && <span className={s.statLabelArrow}>→</span>}
     </div>
-    <div style={{ fontSize: '28px', fontWeight: 700, color: alert ? '#c0392b' : '#1E1C1A' }}>{value}</div>
+    <div className={`${s.statValue} ${alert ? s.statValueAlert : ''}`}>{value}</div>
   </div>
 );
 
@@ -96,15 +101,15 @@ export default function AdminDashboardPage() {
     load();
   }, []);
 
-  if (loading) return <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p>;
+  if (loading) return <p className={s.loading}>載入中...</p>;
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 32px' }}>儀表板</h1>
+      <h1 className={s.title}>儀表板</h1>
 
       {/* ── 訂單待處理提醒 ── */}
       {(stats.pendingPayment > 0 || stats.paidNotShipped > 0) && (
-        <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a5c00', lineHeight: 2 }}>
+        <div className={s.alertOrder}>
           您有{' '}
           <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders')} color="#c0392b" />{' '}
           筆待核款訂單，{' '}
@@ -115,16 +120,16 @@ export default function AdminDashboardPage() {
 
       {/* ── 低庫存商品警示 ── */}
       {lowStockItems.length > 0 && (
-        <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a3c00' }}>
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>商品庫存警示</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className={s.alertStock}>
+          <div className={s.alertTitle}>商品庫存警示</div>
+          <div className={s.alertList}>
             {lowStockItems.map((item: any) => {
               const available = item.inventory_mode === 'stock' ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
               return (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div key={item.id} className={s.alertItem}>
                   <span
                     onClick={() => router.push('/admin/inventory')}
-                    style={{ color: '#c0392b', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}
+                    className={s.alertLink}
                   >
                     {item.products?.name}{item.variant_name ? ` · ${item.variant_name}` : ''}
                   </span>
@@ -138,14 +143,14 @@ export default function AdminDashboardPage() {
 
       {/* ── 低庫存原料警示 ── */}
       {lowIngredients.length > 0 && (
-        <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 20px', marginBottom: '16px', fontSize: '13px', color: '#7a3c00' }}>
-          <div style={{ fontWeight: 600, marginBottom: '8px' }}>原料庫存警示</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className={s.alertStock}>
+          <div className={s.alertTitle}>原料庫存警示</div>
+          <div className={s.alertList}>
             {lowIngredients.map((ing: any) => (
-              <div key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div key={ing.id} className={s.alertItem}>
                 <span
                   onClick={() => router.push('/admin/inventory?tab=ingredient')}
-                  style={{ color: '#c0392b', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}
+                  className={s.alertLink}
                 >
                   {ing.name}
                 </span>
@@ -157,8 +162,8 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ── 訂單統計卡片 ── */}
-      <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>訂單資訊</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '32px' }}>
+      <div className={s.sectionLabel}>訂單資訊</div>
+      <div className={s.statGrid3}>
         <StatCard label="今日新增訂單"   value={stats.todayOrders}    onClick={() => router.push('/admin/orders')} />
         <StatCard label="待核款"         value={stats.pendingPayment} alert={stats.pendingPayment > 0} onClick={() => router.push('/admin/orders')} />
         <StatCard label="完成付款未出貨" value={stats.paidNotShipped} alert={stats.paidNotShipped > 0} onClick={() => router.push('/admin/orders')} />
@@ -170,8 +175,8 @@ export default function AdminDashboardPage() {
       {/* ── 庫存警示卡片 ── */}
       {(lowStockItems.length > 0 || lowIngredients.length > 0) && (
         <>
-          <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>庫存警示</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '32px' }}>
+          <div className={s.sectionLabel}>庫存警示</div>
+          <div className={s.statGrid2}>
             <StatCard label="低庫存商品" value={lowStockItems.length}  alert={lowStockItems.length > 0}  onClick={() => router.push('/admin/inventory')} />
             <StatCard label="低庫存原料" value={lowIngredients.length} alert={lowIngredients.length > 0} onClick={() => router.push('/admin/inventory')} />
           </div>
@@ -179,46 +184,73 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ── 累積數據 ── */}
-      <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>累積數據</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '32px' }}>
+      <div className={s.sectionLabel}>累積數據</div>
+      <div className={s.statGrid2}>
         <StatCard label="總訂單數"       value={stats.totalOrders} />
         <StatCard label="總營收（已付款）" value={`NT$ ${stats.totalRevenue.toLocaleString()}`} />
       </div>
 
       {/* ── 最近訂單 ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>最近訂單</div>
-        <span onClick={() => router.push('/admin/orders')} style={{ fontSize: '12px', color: '#1E1C1A', cursor: 'pointer', textDecoration: 'underline' }}>查看全部 →</span>
+      <div className={s.recentHeader}>
+        <div className={s.sectionLabel}>最近訂單</div>
+        <span onClick={() => router.push('/admin/orders')} className={s.viewAll}>查看全部 →</span>
       </div>
-      <div style={{ background: '#fff', border: '1px solid #E8E4DC' }}>
+      <div className={s.recentTable}>
         {recentOrders.length === 0 ? (
-          <p style={{ padding: '24px', color: '#888580', fontSize: '13px' }}>尚無訂單</p>
+          <p className={s.emptyMsg}>尚無訂單</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>{['訂單編號','買家','金額','付款','狀態','時間'].map(h => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC' }}>{h}</th>
-              ))}</tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop table */}
+            <table className={s.table}>
+              <thead>
+                <tr>{['訂單編號','買家','金額','付款','狀態','時間'].map(h => (
+                  <th key={h} className={s.th}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {recentOrders.map(order => (
+                  <tr key={order.order_no} className={s.tr} onClick={() => router.push('/admin/orders')}>
+                    <td className={s.tdOrderNo}>{order.order_no}</td>
+                    <td className={s.tdName}>{order.buyer_name}</td>
+                    <td className={s.tdAmount}>NT$ {order.total.toLocaleString()}</td>
+                    <td className={s.tdPay} style={{ color: order.pay_status === 'paid' ? '#2ab85a' : '#b87a2a' }}>
+                      {order.pay_status === 'paid' ? '已付款' : order.pay_status === 'failed' ? '失敗' : '待付款'}
+                    </td>
+                    <td className={s.tdStatus}>
+                      <span className={s.statusBadge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
+                        {STATUS_LABEL[order.status]}
+                      </span>
+                    </td>
+                    <td className={s.tdDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile card list */}
+            <div className={s.cardList}>
               {recentOrders.map(order => (
-                <tr key={order.order_no} style={{ borderBottom: '1px solid #E8E4DC', cursor: 'pointer' }} onClick={() => router.push('/admin/orders')}>
-                  <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A' }}>{order.order_no}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{order.buyer_name}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>NT$ {order.total.toLocaleString()}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: order.pay_status === 'paid' ? '#2ab85a' : '#b87a2a' }}>
-                    {order.pay_status === 'paid' ? '已付款' : order.pay_status === 'failed' ? '失敗' : '待付款'}
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{ fontSize: '11px', color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>
+                <div key={order.order_no} className={s.card} onClick={() => router.push('/admin/orders')}>
+                  <div className={s.cardTop}>
+                    <span className={s.cardOrderNo}>{order.order_no}</span>
+                    <span className={s.cardDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+                  </div>
+                  <div className={s.cardMid}>
+                    <span className={s.cardName}>{order.buyer_name}</span>
+                    <span className={s.cardAmount}>NT$ {order.total.toLocaleString()}</span>
+                  </div>
+                  <div className={s.cardBottom}>
+                    <span className={s.cardPay} style={{ color: order.pay_status === 'paid' ? '#2ab85a' : '#b87a2a' }}>
+                      {order.pay_status === 'paid' ? '已付款' : order.pay_status === 'failed' ? '失敗' : '待付款'}
+                    </span>
+                    <span className={s.statusBadge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
                       {STATUS_LABEL[order.status]}
                     </span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

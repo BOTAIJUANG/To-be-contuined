@@ -1,0 +1,147 @@
+/* notifications – page-specific (mobile-first) */
+
+.alertItem {
+  padding: 14px 20px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  border-radius: 2px;
+}
+
+.codeTag {
+  background: #fff;
+  padding: 1px 6px;
+}
+
+.templateCard {
+  background: #fff;
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.templateHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+}
+@media (min-width: 640px) {
+  .templateHeader {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.templateTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.templateSubject {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.templateBody {
+  padding: 20px;
+}
+
+.batchOrderList {
+  background: #fff;
+  border: 1px solid var(--line);
+  margin-bottom: 24px;
+  max-height: 300px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.batchControls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Hint text under alerts ── */
+.alertHint {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 16px;
+}
+
+/* ── marginLeft for consecutive code tags ── */
+.codeTagGap {
+  margin-left: 6px;
+}
+
+/* ── Batch filter select overrides ── */
+.batchFilterSelect {
+  width: auto;
+  min-width: unset;
+}
+
+/* ── Selection count label ── */
+.selectionCount {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* ── Inline table (no responsive hide) ── */
+.inlineTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* ── Checkbox column ── */
+.tdCheckbox {
+  width: 40px;
+}
+
+/* ── Order number cell ── */
+.tdOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+}
+
+/* ── Subtle text cell ── */
+.tdSubtle {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* ── Batch template select overrides ── */
+.batchTemplateSelect {
+  margin-bottom: 16px;
+  min-width: 240px;
+  width: auto;
+}
+
+/* ── Log table (always visible) ── */
+.logTable {
+  display: table;
+}
+
+/* ── Log meta cell ── */
+.tdMeta {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* ── Log type cell ── */
+.tdSmall {
+  font-size: 12px;
+}
+
+/* ── Success badge ── */
+.badgeSuccess {
+  color: #2ab85a;
+  border: 1px solid #2ab85a;
+}
+
+/* ── Card value small ── */
+.cardValueSmall {
+  font-size: 12px;
+}

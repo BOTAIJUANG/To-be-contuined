@@ -1,0 +1,240 @@
+/* ── AddToCartButton (mobile-first) ── */
+
+/* 完售 */
+.soldOut {
+  padding: 14px 24px;
+  background: var(--surface);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+}
+
+/* 無批次 */
+.noBatch {
+  padding: 14px 16px;
+  background: #fef0f0;
+  border: 1px solid #f5c6c6;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #c0392b;
+}
+.disabledBtn {
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--line);
+  color: var(--text-light);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  cursor: not-allowed;
+}
+
+/* 區塊標題 */
+.sectionLabel {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* 規格按鈕群 */
+.variantWrap {
+  margin-bottom: 20px;
+}
+.variantList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.variantBtn {
+  padding: 10px 16px;
+  border: 1.5px solid var(--line);
+  background: transparent;
+  color: var(--text-mid);
+  font-size: 13px;
+  font-family: "Noto Sans TC", sans-serif;
+  transition: all 0.2s;
+}
+@media (min-width: 768px) {
+  .variantBtn { padding: 8px 20px; }
+}
+.variantBtn.selected {
+  border-color: var(--text-dark);
+  background: var(--text-dark);
+  color: var(--bg);
+}
+.variantPrice {
+  font-size: 11px;
+  margin-left: 6px;
+  opacity: 0.7;
+}
+
+/* 預購批次 */
+.batchWrap {
+  margin-bottom: 20px;
+}
+.batchList {
+  display: grid;
+  gap: 8px;
+}
+.batchItem {
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+.batchItem.selected {
+  border-color: var(--text-dark);
+  background: var(--bg);
+}
+.batchRadio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.batchRadio.selected {
+  border-color: var(--text-dark);
+  background: var(--text-dark);
+}
+.batchDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+.batchDate {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.batchMeta {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.batchInfo {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #e8f0fb;
+  font-size: 11px;
+  color: #2a5a8c;
+}
+
+/* 數量選擇器 */
+.qtyWrap {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  width: fit-content;
+}
+.qtyBtn {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qtyValue {
+  width: 52px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-family: "Montserrat", sans-serif;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 即時金額 */
+.priceRow {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.priceLabel {
+  font-size: 11px;
+  color: var(--text-light);
+  letter-spacing: 0.2em;
+  font-family: "Montserrat", sans-serif;
+  text-transform: uppercase;
+}
+.priceTotal {
+  font-family: "Noto Serif TC", serif;
+  font-size: 20px;
+  font-weight: 200;
+  color: var(--price);
+  letter-spacing: 0.05em;
+}
+@media (min-width: 768px) {
+  .priceTotal { font-size: 22px; }
+}
+.priceUnit {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* 加入購物車按鈕 — 手機 sticky */
+.addBtn {
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  transition: background 0.3s;
+}
+.addBtn.added {
+  background: var(--accent);
+}
+.addBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 手機 sticky bottom 容器 */
+.stickyBottom {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding: 12px 0;
+  z-index: 10;
+}
+@media (min-width: 1024px) {
+  .stickyBottom {
+    position: static;
+    padding: 0;
+  }
+}

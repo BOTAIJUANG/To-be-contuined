@@ -13,19 +13,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 0',
-  border: 'none', borderBottom: '1px solid #E8E4DC',
-  marginTop: '8px', fontFamily: 'inherit',
-  fontSize: '13px', background: 'transparent',
-  color: '#1E1C1A', letterSpacing: '0.05em', outline: 'none',
-};
-const labelStyle: React.CSSProperties = {
-  fontFamily: '"Montserrat", sans-serif',
-  fontSize: '10px', letterSpacing: '0.25em',
-  color: '#888580', textTransform: 'uppercase',
-};
+import s from './reset-password.module.css';
 
 type PageState = 'loading' | 'ready' | 'invalid' | 'done';
 
@@ -94,31 +82,21 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div style={{
-      width: 'min(calc(100% - 60px), 420px)',
-      margin: 'auto', padding: '80px 0',
-    }}>
+    <div className={s.container}>
 
       {/* ── 載入中 ── */}
       {pageState === 'loading' && (
-        <div style={{ color: '#888580', fontSize: '13px', letterSpacing: '0.1em' }}>
-          驗證連結中...
-        </div>
+        <div className={s.loadingText}>驗證連結中...</div>
       )}
 
       {/* ── 連結無效 ── */}
       {pageState === 'invalid' && (
         <div>
-          <div style={{ fontSize: '20px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A', marginBottom: '16px' }}>
-            連結已失效
-          </div>
-          <p style={{ fontSize: '13px', color: '#888580', lineHeight: 2, marginBottom: '28px' }}>
+          <div className={s.headingLarge}>連結已失效</div>
+          <p className={s.description}>
             此重設連結已過期或無效，請重新申請。
           </p>
-          <button
-            onClick={() => router.push('/member')}
-            style={{ padding: '12px 32px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', color: '#1E1C1A', cursor: 'pointer' }}
-          >
+          <button onClick={() => router.push('/member')} className={s.backBtn}>
             返回會員頁
           </button>
         </div>
@@ -127,33 +105,41 @@ export default function ResetPasswordPage() {
       {/* ── 輸入新密碼 ── */}
       {pageState === 'ready' && (
         <div>
-          <div style={{ fontSize: '20px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A', marginBottom: '8px' }}>
-            重設密碼
-          </div>
-          <p style={{ fontSize: '13px', color: '#888580', lineHeight: 2, marginBottom: '32px' }}>
+          <div className={s.heading}>重設密碼</div>
+          <p className={s.descriptionReady}>
             請輸入您的新密碼。
           </p>
 
           {errorMsg && (
-            <div style={{ fontSize: '12px', color: '#c0392b', marginBottom: '16px', padding: '10px', background: '#fef0f0', border: '1px solid #f5c6c6' }}>
-              {errorMsg}
-            </div>
+            <div className={s.error}>{errorMsg}</div>
           )}
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={labelStyle}>新密碼</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 8 個字元" style={inputStyle} />
+          <div className={s.field}>
+            <label className={s.label}>新密碼</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="至少 8 個字元"
+              className={s.input}
+            />
           </div>
-          <div style={{ marginBottom: '32px' }}>
-            <label style={labelStyle}>確認新密碼</label>
-            <input type="password" value={password2} onChange={e => setPassword2(e.target.value)} placeholder="再輸入一次" style={inputStyle}
-              onKeyDown={e => e.key === 'Enter' && handleReset()} />
+          <div className={s.fieldLast}>
+            <label className={s.label}>確認新密碼</label>
+            <input
+              type="password"
+              value={password2}
+              onChange={e => setPassword2(e.target.value)}
+              placeholder="再輸入一次"
+              className={s.input}
+              onKeyDown={e => e.key === 'Enter' && handleReset()}
+            />
           </div>
 
           <button
             onClick={handleReset}
             disabled={loading}
-            style={{ width: '100%', padding: '14px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.3em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}
+            className={s.submitBtn}
           >
             {loading ? '更新中...' : '確認重設密碼'}
           </button>
@@ -162,18 +148,14 @@ export default function ResetPasswordPage() {
 
       {/* ── 完成 ── */}
       {pageState === 'done' && (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ marginBottom: '16px' }}>
+        <div className={s.doneWrap}>
+          <div className={s.doneIcon}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1E1C1A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><polyline points="9 12 11.5 14.5 16 9.5" />
             </svg>
           </div>
-          <div style={{ fontSize: '18px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A', marginBottom: '8px' }}>
-            密碼已重設
-          </div>
-          <p style={{ fontSize: '13px', color: '#888580', lineHeight: 2 }}>
-            正在跳轉至登入頁...
-          </p>
+          <div className={s.doneHeading}>密碼已重設</div>
+          <p className={s.doneText}>正在跳轉至登入頁...</p>
         </div>
       )}
     </div>

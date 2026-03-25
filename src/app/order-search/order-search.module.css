@@ -1,0 +1,260 @@
+/* ── Order Search Page (mobile-first) ── */
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 40px var(--gutter);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 56px var(--gutter);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 72px var(--gutter);
+  }
+}
+
+.inner {
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.title {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.28em;
+  color: var(--text-dark);
+  margin: 0 0 20px;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 19px;
+  }
+}
+
+.subtitle {
+  font-size: 13px;
+  line-height: 2.4;
+  font-weight: 300;
+  color: var(--text-mid);
+  margin-bottom: 36px;
+}
+
+/* Form inputs */
+.input {
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 22px;
+  font-family: inherit;
+  font-size: 13px;
+  background: transparent;
+  color: var(--text-dark);
+  letter-spacing: 0.05em;
+  outline: none;
+  text-align: left;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: var(--text-light);
+}
+
+.inputUpper {
+  composes: input;
+  text-transform: uppercase;
+}
+
+/* Search button */
+.searchBtn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 44px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: transparent;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  cursor: pointer;
+  min-height: 44px;
+  transition: opacity 0.2s var(--ease);
+}
+
+.searchBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Result area */
+.resultArea {
+  margin-top: 40px;
+  text-align: left;
+}
+
+.notFound {
+  padding: 32px 0;
+  color: var(--text-light);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Order card */
+.orderCard {
+  border: 1px solid var(--line);
+  padding: 24px 16px;
+}
+
+@media (min-width: 640px) {
+  .orderCard {
+    padding: 32px;
+  }
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.orderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-dark);
+}
+
+.statusBadge {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  padding: 3px 10px;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Order items */
+.orderItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-mid);
+  gap: 12px;
+}
+
+/* Info rows */
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.infoLabel {
+  color: var(--text-light);
+}
+
+.infoValue {
+  color: var(--text-dark);
+}
+
+/* Tracking box */
+.trackingBox {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+@media (min-width: 640px) {
+  .trackingBox {
+    padding: 16px 20px;
+  }
+}
+
+.trackingLabel {
+  font-size: 10px;
+  color: var(--text-light);
+  letter-spacing: 0.25em;
+  font-family: "Montserrat", sans-serif;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.trackingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .trackingContent {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.carrier {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.trackingNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  letter-spacing: 0.1em;
+}
+
+.shippedAt {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.copyBtn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--text-mid);
+  cursor: pointer;
+  font-family: "Montserrat", sans-serif;
+  min-height: 44px;
+  align-self: flex-start;
+  transition: opacity 0.2s var(--ease);
+}
+
+.copyBtn:hover {
+  opacity: 0.6;
+}
+
+/* Shipped notice */
+.shippedNotice {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: #fff8e1;
+  border: 1px solid #f0c040;
+  font-size: 12px;
+  color: #7a5c00;
+}

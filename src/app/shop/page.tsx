@@ -1,24 +1,23 @@
-// app/shop/page.tsx  ──  線上選購頁
+// app/shop/page.tsx  ──  線上選購頁（responsive）
 
 import { supabase } from '@/lib/supabase';
 import ShopSidebar from '@/components/ShopSidebar';
-import ProductCard, { Product, ProductPromoTag } from '@/components/ProductCard';
+import ProductCard, { Product } from '@/components/ProductCard';
 import Footer from '@/components/Footer';
-import { getActivePromotionsMap } from '@/lib/getProductPromotions';
+import s from './shop.module.css';
 
 async function getCategories() {
   const { data } = await supabase.from('categories').select('id, name, slug').order('sort_order');
   return data ?? [];
 }
 
-async function getAllProducts(categories: { id: number; sort_order?: number }[]): Promise<Product[]> {
+async function getAllProducts(categories: { id: number }[]): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
     .select('id, name, slug, price, image_url, is_sold_out, is_preorder, category_id, categories(name, sort_order)')
     .eq('is_available', true)
     .order('sort_order');
 
-  // 先按分類 sort_order，再按商品 sort_order
   const catOrderMap: Record<number, number> = {};
   categories.forEach((c, i) => { catOrderMap[c.id] = i; });
 
@@ -46,40 +45,24 @@ async function getStoreSettings() {
   return data;
 }
 
-function buildPromoTags(promos: { type: string; name: string }[]): ProductPromoTag[] {
-  const tags: ProductPromoTag[] = [];
-  const seen = new Set<string>();
-  for (const p of promos) {
-    if (seen.has(p.type)) continue;
-    seen.add(p.type);
-    const label = p.type === 'volume' ? '多件優惠' : p.type === 'bundle' ? '組合優惠' : '買就送';
-    tags.push({ type: p.type as any, label });
-  }
-  return tags;
-}
-
 export default async function ShopPage() {
   const categories = await getCategories();
-  const [products, storeSettings, promoMap] = await Promise.all([getAllProducts(categories), getStoreSettings(), getActivePromotionsMap()]);
+  const [products, storeSettings] = await Promise.all([getAllProducts(categories), getStoreSettings()]);
 
   return (
     <>
-      <div style={{ width: 'min(calc(100% - 60px), 1100px)', margin: 'auto', padding: '52px 0 72px', display: 'grid', gridTemplateColumns: '200px 1fr', gap: '52px', alignItems: 'start' }}>
+      <div className={s.layout}>
         <ShopSidebar categories={categories} />
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '30px', marginBottom: '40px' }}>
-            <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: 0 }}>SHOP ALL</h2>
-            <p style={{ fontSize: '13px', color: '#888580', fontWeight: 300, margin: 0 }}>精選手工甜點，每日限量製作。</p>
+        <div className={s.main}>
+          <div className={s.head}>
+            <h2 className={s.title}>SHOP ALL</h2>
+            <p className={s.subtitle}>精選手工甜點，每日限量製作。</p>
           </div>
           {products.length === 0 ? (
-            <p style={{ color: '#888580', fontSize: '13px', padding: '52px 0', textAlign: 'center' }}>目前沒有上架商品</p>
+            <p className={s.empty}>目前沒有上架商品</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px 24px' }}>
-              {products.map(p => {
-                const promos = promoMap.get(parseInt(p.id));
-                const promoTags = promos ? buildPromoTags(promos) : undefined;
-                return <ProductCard key={p.id} product={{ ...p, promoTags }} />;
-              })}
+            <div className={s.grid}>
+              {products.map(p => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
         </div>

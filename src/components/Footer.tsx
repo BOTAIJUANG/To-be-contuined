@@ -1,6 +1,8 @@
 'use client';
 
-// components/Footer.tsx  ──  頁尾（支援商店設定）
+// components/Footer.tsx  ──  頁尾（responsive）
+
+import s from './Footer.module.css';
 
 interface FooterProps {
   tel?:             string;
@@ -23,30 +25,17 @@ export default function Footer({
   showCopyright = false,
   copyright     = '© 未半甜點 版權所有',
 }: FooterProps) {
-
   return (
-    <footer style={{
-      padding: '40px 48px',
-      fontFamily: '"Montserrat", sans-serif',
-      fontSize: '12px',
-      letterSpacing: '0.25em',
-      borderTop: '1px solid #E8E4DC',
-      marginTop: '20px',
-    }}>
-      <div style={{ width: 'min(calc(100% - 60px), 1100px)', margin: '0 auto', display: 'flex', justifyContent: 'flex-end' }}>
-      <div style={{ textAlign: 'right', lineHeight: 2.6, color: '#1E1C1A', textTransform: 'uppercase' }}>
-        {showTel && tel && <div>TEL &nbsp; {tel}</div>}
-        {showEmail && email && (
-          <div>
-            <a href={`mailto:${email}`} style={{ color: '#1E1C1A', textDecoration: 'none' }}
-              onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '0.6')}
-              onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}
-            >{email}</a>
-          </div>
-        )}
-        {showAddress && address && <div style={{ textTransform: 'none', letterSpacing: '0.08em' }}>{address}</div>}
-        {showCopyright && copyright && <div style={{ fontSize: '11px', color: '#888580', marginTop: '8px', textTransform: 'none' }}>{copyright}</div>}
-      </div>
+    <footer className={s.footer}>
+      <div className={s.inner}>
+        <div className={s.content}>
+          {showTel && tel && <div>TEL &nbsp; {tel}</div>}
+          {showEmail && email && (
+            <div><a href={`mailto:${email}`}>{email}</a></div>
+          )}
+          {showAddress && address && <div className={s.address}>{address}</div>}
+          {showCopyright && copyright && <div className={s.copyright}>{copyright}</div>}
+        </div>
       </div>
     </footer>
   );

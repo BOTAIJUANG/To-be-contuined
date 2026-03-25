@@ -12,13 +12,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCart } from '@/context/CartContext';
 import { fetchApi } from '@/lib/api';
+import s from './MemberDashboard.module.css';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
 const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
-
-const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 0', border: 'none', borderBottom: '1px solid #E8E4DC', marginTop: '8px', fontFamily: 'inherit', fontSize: '13px', background: 'transparent', color: '#1E1C1A', letterSpacing: '0.05em', outline: 'none' };
-const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase' };
 
 interface MemberDashboardProps {
   userId:   string;
@@ -277,53 +275,45 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
     loadAddresses();
   };
 
-  const navItemStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'block', padding: '12px 0', paddingLeft: isActive ? '6px' : '0',
-    fontSize: '13px', letterSpacing: '0.1em',
-    color: isActive ? '#1E1C1A' : '#888580',
-    borderBottom: '1px solid #E8E4DC', cursor: 'pointer',
-    transition: 'all 0.3s', fontFamily: '"Noto Sans TC", sans-serif', textDecoration: 'none',
-  });
-
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '64px', alignItems: 'start' }}>
+    <div className={s.layout}>
 
       {/* 左側 */}
-      <div>
-        <div style={{ textAlign: 'center', paddingBottom: '28px', borderBottom: '1px solid #E8E4DC' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#EDE9E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 500, color: '#1E1C1A', margin: '0 auto 12px', fontFamily: '"Noto Sans TC", sans-serif' }}>
+      <div className={s.sidebar}>
+        <div className={s.avatar}>
+          <div className={s.avatarCircle}>
             {name.charAt(0).toUpperCase()}
           </div>
-          <div style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.1em', color: '#1E1C1A', marginBottom: '4px' }}>{name}</div>
-          <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.28em', color: '#888580', textTransform: 'uppercase' }}>集章會員</div>
+          <div className={s.avatarName}>{name}</div>
+          <div className={s.avatarRole}>集章會員</div>
         </div>
-        <nav style={{ display: 'grid', marginTop: '20px' }}>
+        <nav className={s.nav}>
           {(['profile', 'stamps', 'orders', 'address'] as const).map(tab => {
             const labels = { profile: '個人資料', stamps: '集章紀錄', orders: '訂單記錄', address: '收件地址' };
-            return <span key={tab} style={navItemStyle(activeTab === tab)} onClick={() => setActiveTab(tab)}>{labels[tab]}</span>;
+            return <span key={tab} className={activeTab === tab ? s.navItemActive : s.navItem} onClick={() => setActiveTab(tab)}>{labels[tab]}</span>;
           })}
-          <span onClick={onLogout} style={{ ...navItemStyle(false), borderBottom: 'none', marginTop: '8px' }}>登出</span>
+          <span onClick={onLogout} className={s.navLogout}>登出</span>
         </nav>
       </div>
 
       {/* 右側 */}
-      <div>
+      <div className={s.content}>
         {/* 個人資料 */}
         {activeTab === 'profile' && (
           <div>
-            <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 32px' }}>個人資料</h2>
-            <div style={{ maxWidth: '520px' }}>
+            <h2 className={s.sectionHeading}>個人資料</h2>
+            <div className={s.profileForm}>
               {[
                 { label: '姓名', type: 'text', val: name, set: setName, ph: '請輸入姓名' },
                 { label: '手機號碼', type: 'tel', val: phone, set: setPhone, ph: '09XXXXXXXX' },
                 { label: '生日', type: 'date', val: birthday, set: setBirthday, ph: '' },
               ].map(({ label, type, val, set, ph }) => (
-                <div key={label} style={{ marginBottom: '24px' }}>
-                  <label style={labelStyle}>{label}</label>
-                  <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} style={inputStyle} />
+                <div key={label} className={s.fieldGroup}>
+                  <label className={s.label}>{label}</label>
+                  <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
                 </div>
               ))}
-              <button onClick={handleSaveProfile} style={{ marginTop: '24px', padding: '12px 44px', border: '1px solid rgba(0,0,0,0.18)', background: 'transparent', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.35em', textTransform: 'uppercase', color: '#1E1C1A', cursor: 'pointer' }}>
+              <button onClick={handleSaveProfile} className={s.saveBtn}>
                 儲存變更
               </button>
             </div>
@@ -333,31 +323,31 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         {/* 集章紀錄 */}
         {activeTab === 'stamps' && (
           <div>
-            <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 32px' }}>集章紀錄</h2>
+            <h2 className={s.sectionHeading}>集章紀錄</h2>
 
             {/* 集章卡 */}
-            <div style={{ background: '#EDE9E2', padding: '32px', marginBottom: '24px' }}>
-              <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#888580', marginBottom: '20px' }}>{stampCardName}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(stampTotalSlots, 5)}, 1fr)`, gap: '10px', marginBottom: '16px' }}>
+            <div className={s.stampCard}>
+              <div className={s.stampCardName}>{stampCardName}</div>
+              <div className={s.stampGrid} style={{ gridTemplateColumns: `repeat(${Math.min(stampTotalSlots, 5)}, 1fr)` }}>
                 {Array.from({ length: stampTotalSlots }).map((_, i) => {
                   const filled = i < stamps;
                   const frozen = i >= availableStamps && i < stamps;
                   const reward = redeemItems.find(r => r.stamps === i + 1);
                   return (
-                    <div key={i} style={{ position: 'relative', paddingBottom: '100%' }}>
-                      <div style={{ position: 'absolute', inset: 0, border: `1.5px ${filled ? 'solid' : 'dashed'} ${filled ? 'rgba(30,28,26,0.3)' : 'rgba(0,0,0,0.15)'}`, borderRadius: '6px', background: frozen ? 'rgba(184,122,42,0.1)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}>
+                    <div key={i} className={s.stampSlot}>
+                      <div className={s.stampSlotInner} style={{ border: `1.5px ${filled ? 'solid' : 'dashed'} ${filled ? 'rgba(30,28,26,0.3)' : 'rgba(0,0,0,0.15)'}`, background: frozen ? 'rgba(184,122,42,0.1)' : 'transparent' }}>
                         {filled ? (
                           frozen
-                            ? <span style={{ fontSize: '16px' }}>🔒</span>
+                            ? <span className={s.stampFrozenEmoji}>🔒</span>
                             : stampIconUrl
-                              ? <img src={stampIconUrl} alt="章" style={{ width: '60%', height: '60%', objectFit: 'contain' }} />
-                              : <span style={{ fontSize: '20px' }}>🌸</span>
+                              ? <img src={stampIconUrl} alt="章" className={s.stampIcon} />
+                              : <span className={s.stampEmoji}>🌸</span>
                         ) : (
-                          <span style={{ fontSize: '11px', color: 'rgba(0,0,0,0.2)', fontFamily: '"Montserrat", sans-serif' }}>{i + 1}</span>
+                          <span className={s.stampNumber}>{i + 1}</span>
                         )}
                       </div>
                       {reward && (
-                        <div style={{ position: 'absolute', bottom: '-22px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', color: availableStamps >= reward.stamps ? '#2ab85a' : '#b87a2a', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                        <div className={s.stampRewardTag} style={{ color: availableStamps >= reward.stamps ? '#2ab85a' : '#b87a2a' }}>
                           {availableStamps >= reward.stamps ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : '↑'}
                         </div>
                       )}
@@ -365,35 +355,35 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                   );
                 })}
               </div>
-              <div style={{ fontSize: '13px', color: '#555250', letterSpacing: '0.05em', marginTop: '24px' }}>
+              <div className={s.stampSummary}>
                 已集 <strong style={{ color: '#1E1C1A' }}>{stamps}</strong> 章
-                {stampsFrozen > 0 && <span style={{ color: '#b87a2a', marginLeft: '8px' }}>（凍結中 {stampsFrozen} 章）</span>}
-                <span style={{ color: '#888580', marginLeft: '8px' }}>可用 <strong style={{ color: '#1E1C1A' }}>{availableStamps}</strong> 章</span>
+                {stampsFrozen > 0 && <span className={s.stampFrozenNote}>（凍結中 {stampsFrozen} 章）</span>}
+                <span className={s.stampAvailable}>可用 <strong style={{ color: '#1E1C1A' }}>{availableStamps}</strong> 章</span>
               </div>
             </div>
 
             {/* 進行中的兌換 */}
             {activeRedemptions.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#b87a2a', marginBottom: '12px' }}>進行中的兌換</div>
+              <div className={s.redeemActiveSection}>
+                <div className={s.subSectionTitleWarn}>進行中的兌換</div>
                 {activeRedemptions.map(r => {
                   const isExpired = new Date(r.expires_at) < new Date();
                   const timeLeft  = Math.max(0, Math.floor((new Date(r.expires_at).getTime() - Date.now()) / 1000 / 60));
                   return (
-                    <div key={r.id} style={{ padding: '14px 20px', background: '#fff8e1', border: '1px solid #f0c040', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={r.id} className={s.activeRedemption}>
                       <div>
-                        <div style={{ fontSize: '13px', color: '#1E1C1A', fontWeight: 500, marginBottom: '4px' }}>
+                        <div className={s.activeRedemptionName}>
                           {r.redeem_items?.name}
-                          <span style={{ fontSize: '11px', color: '#888580', marginLeft: '8px' }}>（{r.stamps_cost} 章）</span>
+                          <span className={s.activeRedemptionCost}>（{r.stamps_cost} 章）</span>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#888580' }}>
+                        <div className={s.activeRedemptionDetail}>
                           {r.type === 'code'
                             ? `兌換碼：${r.redeem_code} · 有效至 ${new Date(r.expires_at).toLocaleString('zh-TW')}`
                             : `線上兌換 · 有效至 ${new Date(r.expires_at).toLocaleDateString('zh-TW')}`
                           }
                         </div>
                       </div>
-                      <button onClick={() => handleCancelRedemption(r.id, r.stamps_cost)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer', flexShrink: 0 }}>取消兌換</button>
+                      <button onClick={() => handleCancelRedemption(r.id, r.stamps_cost)} className={s.cancelRedeemBtn}>取消兌換</button>
                     </div>
                   );
                 })}
@@ -402,32 +392,32 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
 
             {/* 兌換獎勵列表 */}
             {redeemItems.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#888580', marginBottom: '12px' }}>兌換獎勵</div>
-                <div style={{ display: 'grid', gap: '8px' }}>
+              <div className={s.rewardListSection}>
+                <div className={s.subSectionTitle}>兌換獎勵</div>
+                <div className={s.rewardGrid}>
                   {redeemItems.map((item: any) => {
                     const canRedeem  = availableStamps >= item.stamps;
                     const activeCount = activeRedemptions.filter(r => r.reward_id === item.id).length;
                     return (
-                      <div key={item.id} style={{ padding: '16px 20px', background: canRedeem ? '#f0faf4' : '#fff', border: `1px solid ${canRedeem ? '#2ab85a' : '#E8E4DC'}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: canRedeem ? '12px' : '0' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: canRedeem ? '#2ab85a' : '#E8E4DC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <span style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 700, color: canRedeem ? '#fff' : '#888580' }}>{item.stamps}</span>
+                      <div key={item.id} className={canRedeem ? s.rewardCardCanRedeem : s.rewardCard}>
+                        <div className={s.rewardHeader} style={{ marginBottom: canRedeem ? '12px' : '0' }}>
+                          <div className={s.rewardStampCircle} style={{ background: canRedeem ? '#2ab85a' : '#E8E4DC' }}>
+                            <span className={s.rewardStampNumber} style={{ color: canRedeem ? '#fff' : '#888580' }}>{item.stamps}</span>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', color: '#1E1C1A', fontWeight: 500, marginBottom: '2px' }}>{item.name}</div>
-                            {item.description && <div style={{ fontSize: '11px', color: '#888580' }}>{item.description}</div>}
+                          <div className={s.rewardInfo}>
+                            <div className={s.rewardName}>{item.name}</div>
+                            {item.description && <div className={s.rewardDesc}>{item.description}</div>}
                           </div>
-                          {!canRedeem && <span style={{ fontSize: '11px', color: '#888580' }}>還差 {item.stamps - availableStamps} 章</span>}
-                          {activeCount > 0 && <span style={{ fontSize: '11px', color: '#b87a2a', border: '1px solid #b87a2a', padding: '3px 10px', fontFamily: '"Montserrat", sans-serif' }}>兌換中 ×{activeCount}</span>}
+                          {!canRedeem && <span className={s.rewardNeedMore}>還差 {item.stamps - availableStamps} 章</span>}
+                          {activeCount > 0 && <span className={s.rewardActiveBadge}>兌換中 ×{activeCount}</span>}
                         </div>
                         {/* 章數夠就能兌換，不管有沒有進行中 */}
                         {canRedeem && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => openRedeemModal(item, 'online')} style={{ flex: 1, padding: '9px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', cursor: 'pointer' }}>
+                          <div className={s.rewardActions}>
+                            <button onClick={() => openRedeemModal(item, 'online')} className={s.redeemOnlineBtn}>
                               線上兌換
                             </button>
-                            <button onClick={() => openRedeemModal(item, 'code')} style={{ flex: 1, padding: '9px', background: 'transparent', color: '#1E1C1A', border: '1px solid #1E1C1A', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', cursor: 'pointer' }}>
+                            <button onClick={() => openRedeemModal(item, 'code')} className={s.redeemCodeBtn}>
                               現場兌換碼
                             </button>
                           </div>
@@ -440,33 +430,33 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
             )}
 
             {/* 集章說明 */}
-            <div style={{ fontSize: '12px', color: '#888580', lineHeight: 2, padding: '16px 20px', background: '#F7F4EF', border: '1px solid #E8E4DC' }}>
+            <div className={s.stampInfo}>
               <div>每消費 NT${stampThreshold.toLocaleString()} 累積 1 章</div>
               <div>章的有效期限：最後一次消費後 {stampExpiry} 天</div>
             </div>
 
             {/* 最近異動記錄 */}
             {stampLogsData.length > 0 && (
-              <div style={{ marginTop: '28px' }}>
-                <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#888580', marginBottom: '12px' }}>最近異動記錄</div>
+              <div className={s.logsSection}>
+                <div className={s.subSectionTitle}>最近異動記錄</div>
                 <div>
                   {(showAllLogs ? stampLogsData : stampLogsData.slice(0, 10)).map(log => (
-                    <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
+                    <div key={log.id} className={s.logRow}>
                       <div>
-                        <div style={{ fontSize: '13px', color: '#1E1C1A', marginBottom: '2px' }}>{log.reason ?? '—'}</div>
-                        <div style={{ fontSize: '11px', color: '#888580' }}>{new Date(log.created_at).toLocaleDateString('zh-TW')}</div>
+                        <div className={s.logReason}>{log.reason ?? '—'}</div>
+                        <div className={s.logDate}>{new Date(log.created_at).toLocaleDateString('zh-TW')}</div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: log.change > 0 ? '#2ab85a' : '#c0392b' }}>
+                      <div>
+                        <div className={log.change > 0 ? s.logChangePositive : s.logChangeNegative}>
                           {log.change > 0 ? '+' : ''}{log.change}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#888580' }}>餘 {log.stamps_after} 章</div>
+                        <div className={s.logAfter}>餘 {log.stamps_after} 章</div>
                       </div>
                     </div>
                   ))}
                 </div>
                 {stampLogsData.length > 10 && (
-                  <button onClick={() => setShowAllLogs(!showAllLogs)} style={{ marginTop: '12px', padding: '8px 0', background: 'transparent', border: 'none', fontSize: '12px', color: '#888580', cursor: 'pointer', textDecoration: 'underline' }}>
+                  <button onClick={() => setShowAllLogs(!showAllLogs)} className={s.showMoreBtn}>
                     {showAllLogs ? '收起' : `查看更多（共 ${stampLogsData.length} 筆）`}
                   </button>
                 )}
@@ -478,23 +468,23 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         {/* 兌換確認 Modal */}
         {showRedeemModal && selectedReward && (
           <>
-            <div onClick={() => setShowRedeemModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 400 }} />
-            <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '480px', maxWidth: '90vw', zIndex: 401, padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
-              <h3 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '16px', color: '#1E1C1A', marginBottom: '20px' }}>
+            <div onClick={() => setShowRedeemModal(false)} className={s.modalOverlay} />
+            <div className={s.modal}>
+              <h3 className={s.modalTitle}>
                 確認{redeemType === 'online' ? '線上' : '現場'}兌換
               </h3>
 
               {/* 獎勵資訊 */}
-              <div style={{ background: '#EDE9E2', padding: '14px 20px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '13px', color: '#1E1C1A', fontWeight: 600, marginBottom: '4px' }}>{selectedReward.name}</div>
-                {selectedReward.description && <div style={{ fontSize: '12px', color: '#888580' }}>{selectedReward.description}</div>}
-                <div style={{ fontSize: '12px', color: '#555250', marginTop: '8px' }}>使用 <strong>{selectedReward.stamps}</strong> 章兌換</div>
+              <div className={s.rewardInfoBox}>
+                <div className={s.rewardInfoName}>{selectedReward.name}</div>
+                {selectedReward.description && <div className={s.rewardInfoDesc}>{selectedReward.description}</div>}
+                <div className={s.rewardInfoCost}>使用 <strong>{selectedReward.stamps}</strong> 章兌換</div>
               </div>
 
               {/* 注意事項 */}
-              <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '14px 16px', marginBottom: '20px', fontSize: '12px', color: '#7a3c00', lineHeight: 2 }}>
+              <div className={s.warningBox}>
                 {redeemNotice
-                  ? redeemNotice.split('\n').map((line, i) => <div key={i}>{line}</div>)
+                  ? redeemNotice.split('\n').map((line: string, i: number) => <div key={i}>{line}</div>)
                   : (
                     <>
                       <div>・確認兌換後，您的 {selectedReward.stamps} 章將立即凍結</div>
@@ -510,16 +500,16 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               </div>
 
               {/* 確認勾選 */}
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px', lineHeight: 1.8 }}>
-                <input type="checkbox" checked={redeemConfirmed} onChange={e => setRedeemConfirmed(e.target.checked)} style={{ accentColor: '#1E1C1A', marginTop: '3px', flexShrink: 0 }} />
+              <label className={s.confirmLabel}>
+                <input type="checkbox" checked={redeemConfirmed} onChange={e => setRedeemConfirmed(e.target.checked)} className={s.confirmCheckbox} />
                 我已了解以上規則，確認使用 <strong>{selectedReward.stamps}</strong> 章兌換「{selectedReward.name}」
               </label>
 
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={handleRedeem} disabled={!redeemConfirmed || redeeming} style={{ flex: 1, padding: '12px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: redeemConfirmed && !redeeming ? 'pointer' : 'not-allowed', opacity: redeemConfirmed && !redeeming ? 1 : 0.4 }}>
+              <div className={s.modalActions}>
+                <button onClick={handleRedeem} disabled={!redeemConfirmed || redeeming} className={redeemConfirmed && !redeeming ? s.modalPrimaryBtn : s.modalPrimaryBtnDisabled}>
                   {redeeming ? '處理中...' : '確認兌換'}
                 </button>
-                <button onClick={() => setShowRedeemModal(false)} style={{ flex: 1, padding: '12px', background: 'transparent', color: '#555250', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+                <button onClick={() => setShowRedeemModal(false)} className={s.modalSecondaryBtn}>取消</button>
               </div>
             </div>
           </>
@@ -528,32 +518,32 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         {/* 現場兌換碼結果 Modal */}
         {showCodeResult && codeResult && (
           <>
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 400 }} />
-            <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '400px', maxWidth: '90vw', zIndex: 401, padding: '32px', textAlign: 'center' }}>
-              <div style={{ marginBottom: '16px' }}>
+            <div className={s.modalOverlay} />
+            <div className={s.modalSmall}>
+              <div className={s.codeResultIcon}>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1E1C1A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 5l-1 1" /><path d="M2 12h6l3-9 4 18 3-9h6" />
                 </svg>
               </div>
-              <h3 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '16px', color: '#1E1C1A', marginBottom: '8px' }}>兌換碼已產生</h3>
-              <div style={{ fontSize: '13px', color: '#888580', marginBottom: '24px' }}>{codeResult.rewardName}</div>
+              <h3 className={s.codeResultTitle}>兌換碼已產生</h3>
+              <div className={s.codeResultReward}>{codeResult.rewardName}</div>
 
               {/* 兌換碼 */}
-              <div style={{ background: '#EDE9E2', padding: '20px', marginBottom: '16px' }}>
-                <div style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '28px', fontWeight: 700, letterSpacing: '0.2em', color: '#1E1C1A' }}>
+              <div className={s.codeBox}>
+                <div className={s.codeText}>
                   {codeResult.code}
                 </div>
               </div>
 
-              <div style={{ fontSize: '12px', color: '#c0392b', marginBottom: '24px' }}>
+              <div className={s.codeExpiry}>
                 有效期限：{new Date(codeResult.expiresAt).toLocaleString('zh-TW')}
               </div>
-              <div style={{ fontSize: '11px', color: '#888580', marginBottom: '24px', lineHeight: 1.8 }}>
+              <div className={s.codeHint}>
                 請出示此畫面給門市人員核銷<br/>
                 兌換碼逾時將自動失效，章數歸還
               </div>
 
-              <button onClick={() => setShowCodeResult(false)} style={{ width: '100%', padding: '12px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>
+              <button onClick={() => setShowCodeResult(false)} className={s.codeCloseBtn}>
                 關閉
               </button>
             </div>
@@ -563,29 +553,29 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         {/* 訂單記錄 */}
         {activeTab === 'orders' && (
           <div>
-            <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 32px' }}>訂單記錄</h2>
-            {ordersLoading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> :
-              orders.length === 0 ? <p style={{ color: '#888580', fontSize: '13px' }}>目前沒有訂單記錄。</p> :
+            <h2 className={s.sectionHeading}>訂單記錄</h2>
+            {ordersLoading ? <p className={s.ordersEmpty}>載入中...</p> :
+              orders.length === 0 ? <p className={s.ordersEmpty}>目前沒有訂單記錄。</p> :
               orders.map(order => (
-                <div key={order.order_no} style={{ padding: '20px 0', borderBottom: '1px solid #E8E4DC' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', color: '#1E1C1A' }}>{order.order_no}</span>
-                    <span style={{ fontSize: '11px', letterSpacing: '0.15em', color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}`, padding: '2px 10px', fontFamily: '"Montserrat", sans-serif' }}>
+                <div key={order.order_no} className={s.orderCard}>
+                  <div className={s.orderHeader}>
+                    <span className={s.orderNo}>{order.order_no}</span>
+                    <span className={s.orderStatusBadge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
                       {STATUS_LABEL[order.status]}
                     </span>
                   </div>
-                  <div style={{ fontSize: '12px', color: '#555250', marginBottom: '6px' }}>
+                  <div className={s.orderItems}>
                     {order.order_items?.map((i: any) => `${i.name} ×${i.qty}`).join('、')}
                   </div>
                   {/* 追蹤號碼（有才顯示）*/}
                   {order.tracking_no && (
-                    <div style={{ fontSize: '12px', color: '#2ab85a', marginBottom: '6px' }}>
+                    <div className={s.orderTracking}>
                       {order.carrier && `${order.carrier} ／`} 追蹤號：{order.tracking_no}
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span style={{ color: '#888580' }}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
-                    <span style={{ color: '#1E1C1A', fontWeight: 500 }}>NT$ {order.total.toLocaleString()}</span>
+                  <div className={s.orderFooter}>
+                    <span className={s.orderDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+                    <span className={s.orderTotal}>NT$ {order.total.toLocaleString()}</span>
                   </div>
                 </div>
               ))
@@ -596,43 +586,43 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         {/* 收件地址 */}
         {activeTab === 'address' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: 0 }}>收件地址</h2>
+            <div className={s.addressHeader}>
+              <h2 className={s.sectionHeading} style={{ margin: 0 }}>收件地址</h2>
               {addresses.length < 5 && (
-                <button onClick={openAddAddr} style={{ padding: '8px 20px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                <button onClick={openAddAddr} className={s.addAddrBtn}>
                   ＋ 新增地址
                 </button>
               )}
             </div>
-            <p style={{ fontSize: '12px', color: '#888580', marginBottom: '24px' }}>最多可儲存 5 個收件地址（{addresses.length}/5）</p>
+            <p className={s.addressSubtitle}>最多可儲存 5 個收件地址（{addresses.length}/5）</p>
 
             {addresses.length === 0 ? (
-              <div style={{ padding: '32px', border: '1px dashed #E8E4DC', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#888580', marginBottom: '16px' }}>尚未儲存任何收件地址</p>
-                <button onClick={openAddAddr} style={{ padding: '10px 24px', background: 'transparent', border: '1px solid #E8E4DC', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '12px', color: '#888580', cursor: 'pointer', letterSpacing: '0.1em' }}>
+              <div className={s.addressEmpty}>
+                <p className={s.addressEmptyText}>尚未儲存任何收件地址</p>
+                <button onClick={openAddAddr} className={s.addressEmptyBtn}>
                   ＋ 新增收件地址
                 </button>
               </div>
             ) : (
               addresses.map(addr => (
-                <div key={addr.id} style={{ padding: '20px 24px', border: `1px solid ${addr.is_default ? '#1E1C1A' : '#E8E4DC'}`, marginBottom: '12px', position: 'relative' }}>
+                <div key={addr.id} className={addr.is_default ? s.addressCardDefault : s.addressCard}>
                   {addr.is_default && (
-                    <span style={{ position: 'absolute', top: '16px', right: '16px', fontSize: '10px', color: '#1E1C1A', border: '1px solid #1E1C1A', padding: '2px 8px', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.15em' }}>預設</span>
+                    <span className={s.addressDefaultBadge}>預設</span>
                   )}
-                  {addr.label && <div style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.15em', marginBottom: '6px', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase' }}>{addr.label}</div>}
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: '#1E1C1A', marginBottom: '4px' }}>{addr.name}</div>
-                  <div style={{ fontSize: '12px', color: '#555250', marginBottom: '4px' }}>{addr.phone}</div>
+                  {addr.label && <div className={s.addressLabel}>{addr.label}</div>}
+                  <div className={s.addressName}>{addr.name}</div>
+                  <div className={s.addressPhone}>{addr.phone}</div>
                   {addr.type === 'home' ? (
-                    <div style={{ fontSize: '12px', color: '#555250' }}>{addr.city}{addr.district}{addr.address}</div>
+                    <div className={s.addressDetail}>{addr.city}{addr.district}{addr.address}</div>
                   ) : (
-                    <div style={{ fontSize: '12px', color: '#555250' }}>{addr.cvs_brand === '711' ? '7-11' : '全家'} {addr.store_name} — {addr.store_address}</div>
+                    <div className={s.addressDetail}>{addr.cvs_brand === '711' ? '7-11' : '全家'} {addr.store_name} — {addr.store_address}</div>
                   )}
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '14px' }}>
+                  <div className={s.addressActions}>
                     {!addr.is_default && (
-                      <button onClick={() => setDefaultAddr(addr.id)} style={{ fontSize: '11px', color: '#888580', background: 'transparent', border: '1px solid #E8E4DC', padding: '5px 12px', cursor: 'pointer' }}>設為預設</button>
+                      <button onClick={() => setDefaultAddr(addr.id)} className={s.addrActionDefault}>設為預設</button>
                     )}
-                    <button onClick={() => openEditAddr(addr)} style={{ fontSize: '11px', color: '#555250', background: 'transparent', border: '1px solid #E8E4DC', padding: '5px 12px', cursor: 'pointer' }}>編輯</button>
-                    <button onClick={() => handleDeleteAddr(addr.id)} style={{ fontSize: '11px', color: '#c0392b', background: 'transparent', border: '1px solid #E8E4DC', padding: '5px 12px', cursor: 'pointer' }}>刪除</button>
+                    <button onClick={() => openEditAddr(addr)} className={s.addrActionEdit}>編輯</button>
+                    <button onClick={() => handleDeleteAddr(addr.id)} className={s.addrActionDelete}>刪除</button>
                   </div>
                 </div>
               ))
@@ -644,36 +634,36 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
       {/* 地址 Modal */}
       {showAddrModal && (
         <>
-          <div onClick={() => setShowAddrModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '480px', maxWidth: '90vw', zIndex: 201, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>{editingAddrId ? '編輯收件地址' : '新增收件地址'}</span>
-              <button onClick={() => setShowAddrModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+          <div onClick={() => setShowAddrModal(false)} className={s.modalOverlayLight} />
+          <div className={s.modalAddr}>
+            <div className={s.addrModalHeader}>
+              <span className={s.addrModalTitle}>{editingAddrId ? '編輯收件地址' : '新增收件地址'}</span>
+              <button onClick={() => setShowAddrModal(false)} className={s.addrModalClose}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: '16px' }}>
+            <div className={s.addrModalBody}>
               {/* 地址暱稱 */}
               <div>
-                <label style={labelStyle}>地址暱稱（選填）</label>
-                <input value={addrForm.label} onChange={e => setAddrForm({...addrForm, label: e.target.value})} placeholder="例：自己、媽媽、公司" style={inputStyle} />
+                <label className={s.label}>地址暱稱（選填）</label>
+                <input value={addrForm.label} onChange={e => setAddrForm({...addrForm, label: e.target.value})} placeholder="例：自己、媽媽、公司" className={s.input} />
               </div>
               {/* 收件人 + 手機 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className={s.addrTwoCol}>
                 <div>
-                  <label style={labelStyle}>收件人姓名 *</label>
-                  <input value={addrForm.name} onChange={e => setAddrForm({...addrForm, name: e.target.value})} placeholder="請輸入姓名" style={inputStyle} />
+                  <label className={s.label}>收件人姓名 *</label>
+                  <input value={addrForm.name} onChange={e => setAddrForm({...addrForm, name: e.target.value})} placeholder="請輸入姓名" className={s.input} />
                 </div>
                 <div>
-                  <label style={labelStyle}>手機號碼 *</label>
-                  <input value={addrForm.phone} onChange={e => setAddrForm({...addrForm, phone: e.target.value})} placeholder="09XXXXXXXX" style={inputStyle} />
+                  <label className={s.label}>手機號碼 *</label>
+                  <input value={addrForm.phone} onChange={e => setAddrForm({...addrForm, phone: e.target.value})} placeholder="09XXXXXXXX" className={s.input} />
                 </div>
               </div>
               {/* 配送類型 */}
               <div>
-                <label style={labelStyle}>配送類型</label>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                <label className={s.label}>配送類型</label>
+                <div className={s.radioGroup}>
                   {[{ val: 'home', label: '宅配地址' }, { val: 'cvs', label: '超商取貨' }].map(({ val, label }) => (
-                    <label key={val} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer' }}>
-                      <input type="radio" value={val} checked={addrForm.type === val} onChange={() => setAddrForm({...addrForm, type: val})} style={{ accentColor: '#1E1C1A' }} />
+                    <label key={val} className={s.radioLabel}>
+                      <input type="radio" value={val} checked={addrForm.type === val} onChange={() => setAddrForm({...addrForm, type: val})} className={s.radioInput} />
                       {label}
                     </label>
                   ))}
@@ -682,22 +672,22 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               {/* 宅配欄位 */}
               {addrForm.type === 'home' && (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className={s.addrTwoCol}>
                     <div>
-                      <label style={labelStyle}>縣市 *</label>
-                      <select value={addrForm.city} onChange={e => setAddrForm({...addrForm, city: e.target.value})} style={{ ...inputStyle, cursor: 'pointer' }}>
+                      <label className={s.label}>縣市 *</label>
+                      <select value={addrForm.city} onChange={e => setAddrForm({...addrForm, city: e.target.value})} className={s.input} style={{ cursor: 'pointer' }}>
                         <option value="">選擇縣市</option>
                         {CITIES.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={labelStyle}>鄉鎮市區</label>
-                      <input value={addrForm.district} onChange={e => setAddrForm({...addrForm, district: e.target.value})} placeholder="鄉鎮市區" style={inputStyle} />
+                      <label className={s.label}>鄉鎮市區</label>
+                      <input value={addrForm.district} onChange={e => setAddrForm({...addrForm, district: e.target.value})} placeholder="鄉鎮市區" className={s.input} />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>詳細地址 *</label>
-                    <input value={addrForm.address} onChange={e => setAddrForm({...addrForm, address: e.target.value})} placeholder="路名、門牌號碼" style={inputStyle} />
+                    <label className={s.label}>詳細地址 *</label>
+                    <input value={addrForm.address} onChange={e => setAddrForm({...addrForm, address: e.target.value})} placeholder="路名、門牌號碼" className={s.input} />
                   </div>
                 </>
               )}
@@ -705,36 +695,36 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               {addrForm.type === 'cvs' && (
                 <>
                   <div>
-                    <label style={labelStyle}>超商品牌</label>
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                    <label className={s.label}>超商品牌</label>
+                    <div className={s.radioGroup}>
                       {[{ val: '711', label: '7-11' }, { val: 'family', label: '全家' }].map(({ val, label }) => (
-                        <label key={val} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer' }}>
-                          <input type="radio" value={val} checked={addrForm.cvs_brand === val} onChange={() => setAddrForm({...addrForm, cvs_brand: val})} style={{ accentColor: '#1E1C1A' }} />
+                        <label key={val} className={s.radioLabel}>
+                          <input type="radio" value={val} checked={addrForm.cvs_brand === val} onChange={() => setAddrForm({...addrForm, cvs_brand: val})} className={s.radioInput} />
                           {label}
                         </label>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>門市名稱 *</label>
-                    <input value={addrForm.store_name} onChange={e => setAddrForm({...addrForm, store_name: e.target.value})} placeholder="例：翊豐門市" style={inputStyle} />
+                    <label className={s.label}>門市名稱 *</label>
+                    <input value={addrForm.store_name} onChange={e => setAddrForm({...addrForm, store_name: e.target.value})} placeholder="例：翊豐門市" className={s.input} />
                   </div>
                   <div>
-                    <label style={labelStyle}>門市地址</label>
-                    <input value={addrForm.store_address} onChange={e => setAddrForm({...addrForm, store_address: e.target.value})} placeholder="例：桃園市平鎮區中豐路一段36號" style={inputStyle} />
+                    <label className={s.label}>門市地址</label>
+                    <input value={addrForm.store_address} onChange={e => setAddrForm({...addrForm, store_address: e.target.value})} placeholder="例：桃園市平鎮區中豐路一段36號" className={s.input} />
                   </div>
                 </>
               )}
               {/* 設為預設 */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#555250', cursor: 'pointer' }}>
-                <input type="checkbox" checked={addrForm.is_default} onChange={e => setAddrForm({...addrForm, is_default: e.target.checked})} style={{ accentColor: '#1E1C1A' }} />
+              <label className={s.checkboxLabel}>
+                <input type="checkbox" checked={addrForm.is_default} onChange={e => setAddrForm({...addrForm, is_default: e.target.checked})} className={s.radioInput} />
                 設為預設收件地址
               </label>
-              <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <button onClick={handleSaveAddr} disabled={savingAddr} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingAddr ? 0.6 : 1 }}>
+              <div className={s.addrModalActions}>
+                <button onClick={handleSaveAddr} disabled={savingAddr} className={savingAddr ? s.addrSaveBtnDisabled : s.addrSaveBtn}>
                   {savingAddr ? '儲存中...' : '儲存'}
                 </button>
-                <button onClick={() => setShowAddrModal(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+                <button onClick={() => setShowAddrModal(false)} className={s.addrCancelBtn}>取消</button>
               </div>
             </div>
           </div>

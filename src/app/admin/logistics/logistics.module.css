@@ -1,0 +1,120 @@
+/* logistics – page-specific (mobile-first) */
+
+.inlineInput {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-dark);
+  outline: none;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+@media (min-width: 768px) {
+  .inlineInput { min-height: unset; }
+}
+
+.inlineSelect {
+  composes: inlineInput;
+  min-width: 100px;
+}
+
+.trackingInput {
+  composes: inlineInput;
+  width: 130px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.saveSmallBtn {
+  padding: 7px 10px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .saveSmallBtn { min-height: unset; }
+}
+
+.trackingSaved {
+  font-size: 10px;
+  color: #2ab85a;
+  margin-top: 4px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.addressTrunc {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shippedDate {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.pageTitleMb {
+  margin-bottom: 24px;
+}
+.filterCount {
+  font-size: 13px;
+  color: var(--text-light);
+  align-self: center;
+}
+.tdOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.buyerName {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.buyerPhone {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.tdShipMethod {
+  font-size: 12px;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+.tdItems {
+  font-size: 12px;
+  color: var(--text-mid);
+  max-width: 150px;
+}
+.tdShipDate {
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.cardOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+}
+.cardShipMethod {
+  font-size: 12px;
+}
+.cardShipDate {
+  font-size: 12px;
+}
+.cardLabelMb {
+  margin-bottom: 4px;
+}
+.selectFull {
+  width: 100%;
+}
+.trackingFlex {
+  flex: 1;
+}

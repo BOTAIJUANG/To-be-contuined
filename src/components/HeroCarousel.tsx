@@ -1,6 +1,9 @@
 'use client';
 
+// components/HeroCarousel.tsx  ──  首頁輪播（responsive）
+
 import { useState, useEffect, useCallback } from 'react';
+import s from './HeroCarousel.module.css';
 
 interface CarouselSlide {
   src: string;
@@ -18,7 +21,7 @@ export default function HeroCarousel({ slides, autoplayMs = 4000 }: HeroCarousel
   const [loaded,  setLoaded]  = useState(false);
 
   const move = useCallback((dir: number) => {
-    setCurrent((prev) => (prev + dir + slides.length) % slides.length);
+    setCurrent(prev => (prev + dir + slides.length) % slides.length);
   }, [slides.length]);
 
   useEffect(() => {
@@ -30,77 +33,59 @@ export default function HeroCarousel({ slides, autoplayMs = 4000 }: HeroCarousel
   if (!slides.length) return null;
 
   return (
-    <div
-      style={{ position: 'relative', width: '85%', height: '480px', marginLeft: 'auto', overflow: 'hidden', boxShadow: '16px 24px 64px rgba(0,0,0,0.09), 4px 6px 20px rgba(0,0,0,0.05)', background: '#F0EDE8' }}
-      className="carousel-wrap"
-    >
-      <style>{`
-        .carousel-wrap:hover .carousel-arrow { opacity: 1 !important; }
-        @keyframes dot-bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
-          40%            { transform: translateY(-6px); opacity: 1; }
-        }
-        @keyframes bar-slide {
-          0%   { width: 0%; }
-          60%  { width: 75%; }
-          100% { width: 92%; }
-        }
-      `}</style>
-
-      {/* Loading 畫面 */}
+    <div className={s.wrap}>
+      {/* Loading */}
       {!loaded && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: '#F0EDE8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-          <div style={{ fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', letterSpacing: '0.3em', color: '#888580', fontWeight: 300 }}>
-            正在為你載入一點甜
+        <div className={s.loading}>
+          <div className={s.loadingText}>正在為你載入一點甜</div>
+          <div className={s.loadingDots}>
+            <div className={s.loadingDot} />
+            <div className={s.loadingDot} />
+            <div className={s.loadingDot} />
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C8B89A', animation: `dot-bounce 1.4s ease-in-out ${i * 0.16}s infinite` }} />
-            ))}
-          </div>
-          <div style={{ width: '120px', height: '1px', background: '#E8E4DC', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: '#888580', animation: 'bar-slide 2s ease-in-out infinite' }} />
+          <div className={s.loadingBar}>
+            <div className={s.loadingBarInner} />
           </div>
         </div>
       )}
 
       {/* Slides */}
-      <div style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.6s ease', position: 'absolute', inset: 0 }}>
-        <div style={{ display: 'flex', width: '100%', height: '100%', transform: `translateX(-${current * 100}%)`, transition: 'transform 0.9s cubic-bezier(0.6,0,0.2,1)', willChange: 'transform' }}>
+      <div className={s.slidesLayer} style={{ opacity: loaded ? 1 : 0 }}>
+        <div className={s.slidesTrack} style={{ transform: `translateX(-${current * 100}%)` }}>
           {slides.map((slide, i) => (
-            <div key={i} style={{ minWidth: '100%', width: '100%', height: '100%', position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+            <div key={i} className={s.slide}>
               <img
                 src={slide.src}
                 alt={slide.alt}
+                className={s.slideImg}
                 onLoad={() => { if (i === 0) setLoaded(true); }}
                 onError={() => { if (i === 0) setLoaded(true); }}
                 ref={el => { if (el && i === 0 && el.complete) setLoaded(true); }}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'saturate(0.92)' }}
               />
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '120px', background: 'linear-gradient(to top, rgba(30,28,26,0.45), transparent)', pointerEvents: 'none' }} />
-              {slide.caption && (
-                <span style={{ position: 'absolute', bottom: '20px', left: '20px', zIndex: 2, color: '#fff', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, fontSize: '14px', letterSpacing: '0.25em' }}>
-                  {slide.caption}
-                </span>
-              )}
+              <div className={s.slideGradient} />
+              {slide.caption && <span className={s.slideCaption}>{slide.caption}</span>}
             </div>
           ))}
         </div>
       </div>
 
-      {/* 左右箭頭 */}
+      {/* 箭頭 */}
       {slides.length > 1 && (
         <>
-          <button className="carousel-arrow" onClick={() => move(-1)} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '12px', background: 'rgba(247,244,239,0.85)', border: 'none', width: '36px', height: '36px', fontSize: '20px', color: '#1E1C1A', cursor: 'pointer', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.3s', lineHeight: 1 }}>‹</button>
-          <button className="carousel-arrow" onClick={() => move(1)}  style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '12px', background: 'rgba(247,244,239,0.85)', border: 'none', width: '36px', height: '36px', fontSize: '20px', color: '#1E1C1A', cursor: 'pointer', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.3s', lineHeight: 1 }}>›</button>
+          <button className={`${s.arrow} ${s.arrowLeft}`} onClick={() => move(-1)}>‹</button>
+          <button className={`${s.arrow} ${s.arrowRight}`} onClick={() => move(1)}>›</button>
         </>
       )}
 
       {/* 小圓點 */}
       {slides.length > 1 && (
-        <div style={{ position: 'absolute', bottom: '14px', right: '16px', display: 'flex', gap: '6px', zIndex: 3 }}>
+        <div className={s.dots}>
           {slides.map((_, i) => (
-            <button key={i} onClick={() => setCurrent(i)} style={{ width: i === current ? '18px' : '6px', height: '6px', borderRadius: i === current ? '3px' : '50%', background: i === current ? '#fff' : 'rgba(255,255,255,0.45)', border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0 }} />
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`${s.dot} ${i === current ? s.dotActive : s.dotInactive}`}
+            />
           ))}
         </div>
       )}

@@ -1,0 +1,590 @@
+/* members – page-specific (mobile-first) */
+
+.stampControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stampBtn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .stampBtn {
+    min-width: 24px;
+    min-height: 24px;
+  }
+}
+
+.stampCount {
+  font-size: 13px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.stampFull {
+  font-size: 10px;
+  color: #2ab85a;
+  border: 1px solid #2ab85a;
+  padding: 1px 6px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.roleBadge {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  padding: 3px 10px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.settingRowInline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.maxWidthForm {
+  max-width: 560px;
+}
+
+.inlineField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fieldHint {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.iconPreview {
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  background: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconImg {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.redeemInfoBar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (min-width: 640px) {
+  .redeemInfoBar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* Side panel detail */
+.detailHeader {
+  padding: 24px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .detailHeader { padding: 24px 28px; }
+}
+
+.detailName {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-dark);
+}
+
+.detailPhone {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.detailTabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  padding: 0 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 640px) {
+  .detailTabs { padding: 0 28px; }
+}
+
+.detailTab {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  color: var(--text-light);
+  margin-bottom: -1px;
+  white-space: nowrap;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.detailTabActive {
+  composes: detailTab;
+  border-bottom-color: var(--text-dark);
+  color: var(--text-dark);
+}
+
+.detailContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 640px) {
+  .detailContent { padding: 24px 28px; }
+}
+
+.profileRow {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.profileLabel {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  width: 80px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.profileValue {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+.logItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  gap: 12px;
+}
+
+.logReason {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.logMeta {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.logChange {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.logRemain {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.redemptionItem {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.redemptionTop {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.redemptionName {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.redemptionMeta {
+  font-size: 11px;
+  color: var(--text-light);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Stamp adjust modal */
+.stampModalInfo {
+  background: var(--bg);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-mid);
+}
+
+.reasonBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.reasonBtn {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mid);
+  font-size: 12px;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .reasonBtn { min-height: unset; }
+}
+
+.reasonBtnActive {
+  composes: reasonBtn;
+  border-color: var(--text-dark);
+  background: var(--text-dark);
+  color: var(--bg);
+}
+
+/* ── Converted from inline styles ── */
+
+.memberCountHint {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.nameLink {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.cellSmallMuted {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+.cellSmallLight {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.cellTinyLight {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.settingRowLabel {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+.settingRowLabelFlex {
+  font-size: 13px;
+  color: var(--text-dark);
+  flex: 1;
+}
+
+.inputNarrow {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 80px;
+}
+
+.inputNarrowSm {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 60px;
+}
+
+.inputMedium {
+  composes: input from '../_shared/admin-shared.module.css';
+  max-width: 300px;
+}
+
+.iconUploadWrap {
+  margin-top: 8px;
+}
+
+.emojiDefault {
+  font-size: 18px;
+}
+
+.hintMt4 {
+  composes: fieldHint;
+  margin-top: 4px;
+}
+
+.infoBarNoMb {
+  composes: infoBar from '../_shared/admin-shared.module.css';
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.redeemLabelHint {
+  composes: fieldHint;
+  margin-top: 4px;
+}
+
+.descriptionHint {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.cellSmallMid {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+.cellTinyMid {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.stampStatMb {
+  margin-bottom: 28px;
+}
+
+.tableAlwaysVisible {
+  display: table;
+}
+@media (min-width: 768px) {
+  .tableAlwaysVisible { display: table; }
+}
+
+.rankCell {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.rankTop {
+  composes: rankCell;
+  color: var(--price);
+}
+
+.rankOther {
+  composes: rankCell;
+  color: var(--text-light);
+}
+
+.tdRight {
+  text-align: right;
+  color: var(--text-mid);
+}
+
+.tdRightGreen {
+  text-align: right;
+  color: #3d7a55;
+}
+
+.rankMobileTop {
+  font-weight: 700;
+  color: var(--price);
+}
+
+.rankMobileOther {
+  font-weight: 700;
+  color: var(--text-light);
+}
+
+.spenderTotal {
+  color: #3d7a55;
+}
+
+/* Detail panel log */
+.logContentFlex {
+  flex: 1;
+}
+
+.logChangeRight {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.adminNameTag {
+  margin-left: 8px;
+  color: #b87a2a;
+}
+
+.stampCostRed {
+  color: #c0392b;
+}
+
+.usedAtGreen {
+  font-size: 11px;
+  color: #2ab85a;
+  margin-top: 4px;
+}
+
+/* Stamp modal */
+.stampModalNarrow {
+  width: 400px;
+  padding: 28px;
+}
+
+.stampModalTitleMb {
+  margin-bottom: 20px;
+}
+
+.stampModalMemberName {
+  color: var(--text-dark);
+}
+
+.stampModalCurrentLabel {
+  margin-left: 12px;
+}
+
+.stampModalResultLabel {
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.stampModalInputMt {
+  margin-top: 8px;
+}
+
+.btnActionsMt24 {
+  margin-top: 24px;
+}
+
+.btnFlex1 {
+  flex: 1;
+}
+
+.settingRowMb20 {
+  composes: settingRow;
+  margin-bottom: 20px;
+}
+
+.settingRowMb24 {
+  composes: settingRow;
+  margin-bottom: 24px;
+}
+
+.labelMb12 {
+  margin-bottom: 12px;
+}
+
+.infoHint {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-bottom: 12px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ── Converted from conditional inline styles ── */
+
+.stampBtnDisabled {
+  opacity: 0.4;
+}
+
+.stampCountFull {
+  color: #2ab85a;
+  font-weight: 700;
+}
+
+.stampCountNormal {
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+.roleBadgeAdmin {
+  composes: roleBadge;
+  background: var(--text-dark);
+  color: var(--bg);
+}
+
+.roleBadgeMember {
+  composes: roleBadge;
+  background: var(--surface);
+  color: var(--text-mid);
+}
+
+.redeemRowInactive {
+  opacity: 0.5;
+}
+
+.logChangePositive {
+  color: #2ab85a;
+}
+
+.logChangeNegative {
+  color: #c0392b;
+}
+
+.stampModalResultPositive {
+  color: #2ab85a;
+}
+
+.stampModalResultNegative {
+  color: #c0392b;
+}
+
+.statValueGreen {
+  color: #2ab85a;
+}
+
+.statValueAmber {
+  color: #b87a2a;
+}
+
+.toggleOn {
+  background: var(--text-dark);
+}
+
+.toggleOff {
+  background: var(--line);
+}
+
+.toggleDotOn {
+  left: 21px;
+}
+
+.toggleDotOff {
+  left: 3px;
+}

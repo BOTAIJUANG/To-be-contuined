@@ -1,0 +1,74 @@
+/* ── Shopping Info Page (mobile-first) ── */
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 40px var(--gutter);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 56px var(--gutter);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 72px var(--gutter);
+  }
+}
+
+.title {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.28em;
+  color: var(--text-dark);
+  margin: 0 0 32px;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 19px;
+    margin: 0 0 48px;
+  }
+}
+
+.loading {
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.faqItem {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+  .faqItem {
+    padding: 28px 0;
+  }
+}
+
+.question {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--text-dark);
+  margin: 0 0 12px;
+}
+
+.answer {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 2.2;
+  font-weight: 300;
+  white-space: pre-line;
+}
+
+.empty {
+  color: var(--text-light);
+  font-size: 13px;
+}

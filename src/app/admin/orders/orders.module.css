@@ -1,0 +1,849 @@
+/* ── Admin Orders (mobile-first) ── */
+
+/* Page title */
+.title {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  color: var(--text-dark);
+  margin: 0 0 20px;
+}
+@media (min-width: 768px) {
+  .title { font-size: 22px; margin-bottom: 24px; }
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tab {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  color: var(--text-light);
+  font-family: "Noto Sans TC", sans-serif;
+  white-space: nowrap;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .tab { padding: 10px 20px; }
+}
+.tabActive {
+  composes: tab;
+  border-bottom-color: var(--text-dark);
+  color: var(--text-dark);
+}
+
+/* ── Filter panel ── */
+.filterPanel {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+@media (min-width: 640px) {
+  .filterPanel { padding: 20px; }
+}
+
+.filterRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (min-width: 640px) {
+  .filterRow {
+    flex-direction: row;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.filterRowBottom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .filterRowBottom {
+    flex-direction: row;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.dateSep {
+  align-self: center;
+  color: var(--text-light);
+  display: none;
+}
+@media (min-width: 640px) {
+  .dateSep { display: inline; }
+}
+
+.filterActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .filterActions {
+    margin-left: auto;
+    margin-top: 0;
+    width: auto;
+  }
+}
+
+.orderCount {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+.orderCountNum {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+/* ── Shared form controls ── */
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: var(--surface, #fff);
+  font-size: 13px;
+  color: var(--text-dark);
+  outline: none;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .input {
+    width: auto;
+    min-width: 240px;
+    min-height: auto;
+  }
+}
+
+.select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface, #fff);
+  font-size: 12px;
+  color: var(--text-mid);
+  outline: none;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .select {
+    width: auto;
+    min-height: auto;
+  }
+}
+
+.dateInput {
+  composes: select;
+}
+
+.amountInput {
+  composes: select;
+}
+@media (min-width: 640px) {
+  .amountInput { width: 100px; }
+}
+
+/* ── Buttons ── */
+.btnClear {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-mid);
+  cursor: pointer;
+  min-height: 44px;
+  flex: 1;
+}
+@media (min-width: 640px) {
+  .btnClear { flex: none; min-height: auto; }
+}
+
+.btnSearch {
+  padding: 8px 20px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+  min-height: 44px;
+  flex: 1;
+}
+@media (min-width: 640px) {
+  .btnSearch { flex: none; min-height: auto; }
+}
+
+/* ── Loading state ── */
+.loading {
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+/* ── Table container ── */
+.tableWrap {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  display: none;
+}
+@media (min-width: 768px) {
+  .table { display: table; }
+}
+
+.th {
+  padding: 12px 16px;
+  text-align: left;
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.thRight {
+  composes: th;
+  text-align: right;
+}
+
+.tr {
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.tdEmpty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.tdOrderNo {
+  padding: 12px 16px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+.tdDate {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.tdBuyer {
+  padding: 12px 16px;
+}
+.buyerName {
+  font-size: 13px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.buyerBadge {
+  font-size: 9px;
+  padding: 1px 6px;
+  border: 1px solid;
+  font-family: "Montserrat", sans-serif;
+  white-space: nowrap;
+}
+.buyerPhone {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.tdItems {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-mid);
+  max-width: 160px;
+}
+.tdAmount {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+.tdPayStatus {
+  padding: 12px 16px;
+}
+.payBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+}
+.tdShipMethod {
+  padding: 12px 16px;
+  font-size: 11px;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+.tdShipStatus {
+  padding: 12px 16px;
+}
+.statusSelect {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface, #fff);
+  font-size: 11px;
+  outline: none;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .statusSelect { min-height: auto; }
+}
+.cancelledBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-light);
+  border: 1px solid var(--line);
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+}
+.tdActions {
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+.btnDetail {
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--text-mid);
+  cursor: pointer;
+  margin-right: 6px;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .btnDetail { min-height: auto; }
+}
+.btnCancel {
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid #c0392b;
+  font-size: 11px;
+  color: #c0392b;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .btnCancel { min-height: auto; }
+}
+
+/* ── Mobile card list ── */
+.cardList {
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 768px) {
+  .cardList { display: none; }
+}
+
+.card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+.cardOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+.cardDate {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.cardMid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.cardBuyer {
+  font-size: 13px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cardAmount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.cardBottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.cardShip {
+  font-size: 11px;
+  color: var(--text-mid);
+}
+.cardItems {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+.cardActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Shiplist tab ── */
+.shipNotice {
+  background: #EDE9E2;
+  border: 1px solid var(--line);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-mid);
+}
+
+/* Shiplist table */
+.shipTable {
+  composes: table;
+}
+
+/* Shiplist mobile cards */
+.shipCard {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.shipCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+.shipCardOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+.shipCardRecipient {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+.shipCardPhone {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+.shipCardAddress {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+.shipCardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.shipCardMethod {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+.shipCardDate {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Ship table cells */
+.tdAddress {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-mid);
+  max-width: 180px;
+}
+.tdShipDate {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+.tdShipMethodCell {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* ── Report tab ── */
+.reportFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.btnPeriod {
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mid);
+  font-size: 12px;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 640px) {
+  .btnPeriod { min-height: auto; }
+}
+.btnPeriodActive {
+  composes: btnPeriod;
+  background: var(--text-dark);
+  color: var(--bg);
+}
+.btnApply {
+  padding: 7px 16px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 640px) {
+  .btnApply { min-height: auto; }
+}
+
+.reportStatGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (min-width: 768px) {
+  .reportStatGrid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.reportStatCard {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  padding: 14px 16px;
+}
+@media (min-width: 640px) {
+  .reportStatCard { padding: 18px 20px; }
+}
+.reportStatLabel {
+  font-size: 10px;
+  color: var(--text-light);
+  letter-spacing: 0.2em;
+  margin-bottom: 8px;
+  font-family: "Montserrat", sans-serif;
+  text-transform: uppercase;
+}
+.reportStatValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+@media (min-width: 640px) {
+  .reportStatValue { font-size: 22px; }
+}
+
+.sectionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text-mid);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Report table cells */
+.tdRank {
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: "Montserrat", sans-serif;
+}
+.tdProductName {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.tdQty {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-mid);
+  text-align: right;
+}
+.tdSalesAmount {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dark);
+  text-align: right;
+}
+.tdPercent {
+  padding: 12px 16px;
+  text-align: right;
+}
+.percentBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.barTrack {
+  width: 60px;
+  height: 5px;
+  background: #EDE9E2;
+  border-radius: 3px;
+  display: none;
+}
+@media (min-width: 640px) {
+  .barTrack { display: block; }
+}
+.barFill {
+  height: 100%;
+  background: var(--text-dark);
+  border-radius: 3px;
+}
+.percentText {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* Daily trend cells */
+.tdTrendDate {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dark);
+  font-family: "Montserrat", sans-serif;
+}
+.tdTrendNum {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-mid);
+  text-align: right;
+}
+.tdTrendRevenue {
+  padding: 12px 16px;
+  font-size: 13px;
+  text-align: right;
+}
+
+/* Report mobile cards */
+.reportCard {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.reportCardRank {
+  font-weight: 700;
+  font-size: 14px;
+  font-family: "Montserrat", sans-serif;
+  margin-bottom: 2px;
+}
+.reportCardName {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+.reportCardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.reportCardQty {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+.reportCardAmount {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.dailyCard {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.dailyCardDate {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-family: "Montserrat", sans-serif;
+  margin-bottom: 4px;
+}
+.dailyCardRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dailyCardStat {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* ── Cancel modal ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+.modalBox {
+  background: var(--surface, #fff);
+  padding: 24px 20px;
+  max-width: 420px;
+  width: 90vw;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+@media (min-width: 640px) {
+  .modalBox { padding: 32px 36px; }
+}
+.modalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+  letter-spacing: 0.1em;
+}
+.modalBody {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.8;
+  margin-bottom: 8px;
+}
+.modalOrderNo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.08em;
+}
+.modalOrderInfo {
+  font-size: 13px;
+  color: var(--text-mid);
+  margin-bottom: 20px;
+}
+.modalWarnCredit {
+  background: #FFF8E7;
+  border: 1px solid #E8D5A3;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #8B6914;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.modalWarnATM {
+  background: #FFF0F0;
+  border: 1px solid #E8BFBF;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #8B1414;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btnModalBack {
+  padding: 9px 24px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-mid);
+  cursor: pointer;
+  min-height: 44px;
+}
+.btnModalConfirm {
+  padding: 9px 24px;
+  background: #c0392b;
+  border: none;
+  font-size: 12px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+}
+.btnModalConfirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tableWrapMb {
+  margin-bottom: 24px;
+}
+.revenuePositive {
+  color: #3d7a55;
+}
+.revenueMuted {
+  color: #888580;
+}
+.dailyRevenuePositive {
+  font-weight: 600;
+  color: #3d7a55;
+}
+.dailyRevenueMuted {
+  font-weight: 600;
+  color: #888580;
+}
+
+.rankTop {
+  color: #b35252;
+}
+.rankNormal {
+  color: #888580;
+}

@@ -1,0 +1,25 @@
+/* faqs – page-specific (mobile-first) */
+
+.faqAnswer {
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.8;
+}
+
+.sortBtn {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-light);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sortNumInput {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 100px;
+}

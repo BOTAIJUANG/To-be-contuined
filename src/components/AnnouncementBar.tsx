@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import s from './AnnouncementBar.module.css';
 
 const BG_COLOR: Record<string, string> = {
   normal: '#1E1C1A',
@@ -48,30 +49,14 @@ export default function AnnouncementBar() {
   const bgColor  = BG_COLOR[type] ?? '#1E1C1A';
 
   return (
-    <>
-      <style>{`
-        @keyframes marquee {
-          0%   { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-        .ann-marquee {
-          display: inline-block;
-          animation: marquee ${duration} linear infinite;
-          white-space: nowrap;
-          padding-left: 100%;
-        }
-      `}</style>
-      <div style={{
+    <div
+      className={s.bar}
+      style={{
         background: bgColor,
-        color: '#fff',
-        padding: '8px 0',
-        overflow: 'hidden',
-        fontSize: '12px',
-        letterSpacing: '0.08em',
-        fontFamily: '"Noto Sans TC", sans-serif',
-      }}>
-        <div className="ann-marquee">{content}</div>
-      </div>
-    </>
+        '--ann-duration': duration,
+      } as React.CSSProperties}
+    >
+      <div className={s.marquee}>{content}</div>
+    </div>
   );
 }

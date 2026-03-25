@@ -8,6 +8,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import s from '../_shared/admin-shared.module.css';
+import p from './notifications.module.css';
 
 type NotifTab = 'alerts' | 'templates' | 'batch' | 'log';
 
@@ -78,13 +80,6 @@ export default function AdminNotificationsPage() {
     loadOrders();
   }, [tab, batchFilter]);
 
-  const tabStyle = (t: string): React.CSSProperties => ({
-    padding: '10px 20px', cursor: 'pointer', fontSize: '13px',
-    borderBottom: tab === t ? '2px solid #1E1C1A' : '2px solid transparent',
-    color: tab === t ? '#1E1C1A' : '#888580',
-    fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap',
-  });
-
   const handleSendBatch = async () => {
     if (selectedOrders.size === 0) { alert('請選擇訂單'); return; }
     if (!batchSubject || !batchBody) { alert('請填寫主旨和內容'); return; }
@@ -103,25 +98,23 @@ export default function AdminNotificationsPage() {
     setSelectedOrders(new Set());
   };
 
-  const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none', width: '100%' };
-
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 24px' }}>通知系統</h1>
+      <h1 className={`${s.pageTitle} ${s.mb24}`}>通知系統</h1>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #E8E4DC', marginBottom: '24px' }}>
-        <div style={tabStyle('alerts')}    onClick={() => setTab('alerts')}>後台提醒</div>
-        <div style={tabStyle('templates')} onClick={() => setTab('templates')}>Email 範本</div>
-        <div style={tabStyle('batch')}     onClick={() => setTab('batch')}>批次發送</div>
-        <div style={tabStyle('log')}       onClick={() => setTab('log')}>發送記錄</div>
+      <div className={s.tabBar}>
+        <div className={tab === 'alerts'    ? s.tabActive : s.tab} onClick={() => setTab('alerts')}>後台提醒</div>
+        <div className={tab === 'templates' ? s.tabActive : s.tab} onClick={() => setTab('templates')}>Email 範本</div>
+        <div className={tab === 'batch'     ? s.tabActive : s.tab} onClick={() => setTab('batch')}>批次發送</div>
+        <div className={tab === 'log'       ? s.tabActive : s.tab} onClick={() => setTab('log')}>發送記錄</div>
       </div>
 
       {/* ════ 後台提醒 ════ */}
       {tab === 'alerts' && (
         <div>
-          <div style={{ fontSize: '11px', color: '#888580', marginBottom: '16px' }}>每次進入頁面自動更新</div>
+          <div className={p.alertHint}>每次進入頁面自動更新</div>
           {alerts.map((a, i) => (
-            <div key={i} style={{ padding: '14px 20px', background: a.type === 'ok' ? '#f0faf4' : '#fff8e1', border: `1px solid ${a.type === 'ok' ? '#b2dfdb' : '#f0c040'}`, marginBottom: '10px', fontSize: '13px', color: a.type === 'ok' ? '#2ab85a' : '#7a5c00', borderRadius: '2px' }}>
+            <div key={i} className={p.alertItem} style={{ background: a.type === 'ok' ? '#f0faf4' : '#fff8e1', border: `1px solid ${a.type === 'ok' ? '#b2dfdb' : '#f0c040'}`, color: a.type === 'ok' ? '#2ab85a' : '#7a5c00' }}>
               {a.msg}
             </div>
           ))}
@@ -131,38 +124,38 @@ export default function AdminNotificationsPage() {
       {/* ════ Email 範本 ════ */}
       {tab === 'templates' && (
         <div>
-          <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '20px', fontSize: '12px', color: '#555250' }}>
-            範本支援變數：<code style={{ background: '#fff', padding: '1px 6px' }}>{'{{姓名}}'}</code>
-            <code style={{ background: '#fff', padding: '1px 6px', marginLeft: '6px' }}>{'{{訂單編號}}'}</code>
-            <code style={{ background: '#fff', padding: '1px 6px', marginLeft: '6px' }}>{'{{商品清單}}'}</code>
-            <code style={{ background: '#fff', padding: '1px 6px', marginLeft: '6px' }}>{'{{總金額}}'}</code>
-            <code style={{ background: '#fff', padding: '1px 6px', marginLeft: '6px' }}>{'{{追蹤號碼}}'}</code>
+          <div className={s.infoBar}>
+            範本支援變數：<code className={p.codeTag}>{'{{姓名}}'}</code>
+            <code className={`${p.codeTag} ${p.codeTagGap}`}>{'{{訂單編號}}'}</code>
+            <code className={`${p.codeTag} ${p.codeTagGap}`}>{'{{商品清單}}'}</code>
+            <code className={`${p.codeTag} ${p.codeTagGap}`}>{'{{總金額}}'}</code>
+            <code className={`${p.codeTag} ${p.codeTagGap}`}>{'{{追蹤號碼}}'}</code>
           </div>
           {templates.map((t) => (
-            <div key={t.key} style={{ background: '#fff', border: '1px solid #E8E4DC', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: editingTemplate === t.key ? '1px solid #E8E4DC' : 'none' }}>
+            <div key={t.key} className={p.templateCard}>
+              <div className={p.templateHeader} style={{ borderBottom: editingTemplate === t.key ? '1px solid var(--line)' : 'none' }}>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E1C1A', marginBottom: '4px' }}>{t.name}</div>
-                  <div style={{ fontSize: '12px', color: '#888580' }}>{t.subject}</div>
+                  <div className={p.templateTitle}>{t.name}</div>
+                  <div className={p.templateSubject}>{t.subject}</div>
                 </div>
                 <button
                   onClick={() => setEditingTemplate(editingTemplate === t.key ? null : t.key)}
-                  style={{ padding: '6px 16px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}
+                  className={s.btnSmall}
                 >
                   {editingTemplate === t.key ? '收合' : '編輯'}
                 </button>
               </div>
               {editingTemplate === t.key && (
-                <div style={{ padding: '20px' }}>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', display: 'block', marginBottom: '6px' }}>主旨</label>
-                    <input value={t.subject} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, subject: e.target.value } : x))} style={inputStyle} />
+                <div className={p.templateBody}>
+                  <div className={s.mb12}>
+                    <label className={s.label}>主旨</label>
+                    <input value={t.subject} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, subject: e.target.value } : x))} className={s.input} />
                   </div>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', display: 'block', marginBottom: '6px' }}>內容</label>
-                    <textarea value={t.body} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, body: e.target.value } : x))} rows={8} style={{ ...inputStyle, resize: 'vertical' }} />
+                  <div className={s.mb12}>
+                    <label className={s.label}>內容</label>
+                    <textarea value={t.body} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, body: e.target.value } : x))} rows={8} className={s.textarea} />
                   </div>
-                  <button onClick={() => alert('範本已儲存（本地）')} style={{ padding: '8px 24px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>
+                  <button onClick={() => alert('範本已儲存（本地）')} className={s.btnPrimary}>
                     儲存範本
                   </button>
                 </div>
@@ -175,35 +168,35 @@ export default function AdminNotificationsPage() {
       {/* ════ 批次發送 ════ */}
       {tab === 'batch' && (
         <div>
-          <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '12px 16px', marginBottom: '20px', fontSize: '12px', color: '#7a3c00' }}>
+          <div className={s.warningBar}>
             批次 Email 將同時寄送給所有選取的訂單收件人，請確認內容後再送出。
           </div>
 
           {/* 篩選 */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-            <select value={batchFilter} onChange={e => setBatchFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#555250', outline: 'none' }}>
+          <div className={p.batchControls}>
+            <select value={batchFilter} onChange={e => setBatchFilter(e.target.value)} className={`${s.filterSelect} ${p.batchFilterSelect}`}>
               <option value="">全部狀態</option>
               <option value="processing">處理中</option>
               <option value="shipped">已出貨</option>
               <option value="done">已完成</option>
             </select>
-            <button onClick={() => setSelectedOrders(new Set(batchOrders.map(o => o.order_no)))} style={{ padding: '8px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>全選</button>
-            <button onClick={() => setSelectedOrders(new Set())} style={{ padding: '8px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>取消全選</button>
-            <span style={{ fontSize: '12px', color: '#888580' }}>已選 {selectedOrders.size} 筆</span>
+            <button onClick={() => setSelectedOrders(new Set(batchOrders.map(o => o.order_no)))} className={s.btnSmall}>全選</button>
+            <button onClick={() => setSelectedOrders(new Set())} className={s.btnSmall}>取消全選</button>
+            <span className={p.selectionCount}>已選 {selectedOrders.size} 筆</span>
           </div>
 
           {/* 訂單列表 */}
-          <div style={{ background: '#fff', border: '1px solid #E8E4DC', marginBottom: '24px', maxHeight: '300px', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className={p.batchOrderList}>
+            <table className={p.inlineTable}>
               <tbody>
                 {batchOrders.map((o) => (
-                  <tr key={o.order_no} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                    <td style={{ padding: '10px 16px', width: '40px' }}>
-                      <input type="checkbox" checked={selectedOrders.has(o.order_no)} onChange={e => setSelectedOrders(prev => { const s = new Set(prev); e.target.checked ? s.add(o.order_no) : s.delete(o.order_no); return s; })} style={{ accentColor: '#1E1C1A' }} />
+                  <tr key={o.order_no} className={s.tr}>
+                    <td className={`${s.td} ${p.tdCheckbox}`}>
+                      <input type="checkbox" checked={selectedOrders.has(o.order_no)} onChange={e => setSelectedOrders(prev => { const set = new Set(prev); e.target.checked ? set.add(o.order_no) : set.delete(o.order_no); return set; })} className={s.checkbox} />
                     </td>
-                    <td style={{ padding: '10px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A' }}>{o.order_no}</td>
-                    <td style={{ padding: '10px 16px', fontSize: '13px', color: '#1E1C1A' }}>{o.buyer_name}</td>
-                    <td style={{ padding: '10px 16px', fontSize: '12px', color: '#888580' }}>{o.buyer_email}</td>
+                    <td className={`${s.td} ${p.tdOrderNo}`}>{o.order_no}</td>
+                    <td className={s.td}>{o.buyer_name}</td>
+                    <td className={`${s.td} ${p.tdSubtle}`}>{o.buyer_email}</td>
                   </tr>
                 ))}
               </tbody>
@@ -211,21 +204,21 @@ export default function AdminNotificationsPage() {
           </div>
 
           {/* 發送內容 */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', display: 'block', marginBottom: '6px' }}>使用範本</label>
-            <select onChange={e => { const t = templates.find(x => x.key === e.target.value); if (t) { setBatchSubject(t.subject); setBatchBody(t.body); } }} style={{ padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#555250', outline: 'none', marginBottom: '16px', minWidth: '240px' }}>
+          <div className={s.mb16}>
+            <label className={s.label}>使用範本</label>
+            <select onChange={e => { const t = templates.find(x => x.key === e.target.value); if (t) { setBatchSubject(t.subject); setBatchBody(t.body); } }} className={`${s.select} ${p.batchTemplateSelect}`}>
               <option value="">自行輸入</option>
               {templates.map(t => <option key={t.key} value={t.key}>{t.name}</option>)}
             </select>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', display: 'block', marginBottom: '6px' }}>主旨</label>
-              <input value={batchSubject} onChange={e => setBatchSubject(e.target.value)} placeholder="例：關於您訂單的重要通知" style={inputStyle} />
+            <div className={s.mb12}>
+              <label className={s.label}>主旨</label>
+              <input value={batchSubject} onChange={e => setBatchSubject(e.target.value)} placeholder="例：關於您訂單的重要通知" className={s.input} />
             </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', display: 'block', marginBottom: '6px' }}>內容</label>
-              <textarea value={batchBody} onChange={e => setBatchBody(e.target.value)} rows={8} placeholder={'親愛的 {{姓名}}，...'} style={{ ...inputStyle, resize: 'vertical' }} />
+            <div className={s.mb16}>
+              <label className={s.label}>內容</label>
+              <textarea value={batchBody} onChange={e => setBatchBody(e.target.value)} rows={8} placeholder={'親愛的 {{姓名}}，...'} className={s.textarea} />
             </div>
-            <button onClick={handleSendBatch} disabled={sending} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: sending ? 0.6 : 1 }}>
+            <button onClick={handleSendBatch} disabled={sending} className={s.btnPrimary}>
               {sending ? '發送中...' : `發送給 ${selectedOrders.size} 位顧客`}
             </button>
           </div>
@@ -234,31 +227,61 @@ export default function AdminNotificationsPage() {
 
       {/* ════ 發送記錄 ════ */}
       {tab === 'log' && (
-        <div style={{ background: '#fff', border: '1px solid #E8E4DC' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className={s.tableWrap}>
+          <table className={`${s.table} ${p.logTable}`}>
             <thead>
               <tr>
                 {['發送時間', '類型', '收件人數', '主旨', '狀態'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC' }}>{h}</th>
+                  <th key={h} className={s.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {log.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>尚無發送記錄</td></tr>
+                <tr><td colSpan={5} className={s.emptyRow}>尚無發送記錄</td></tr>
               ) : log.map((l, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250' }}>{l.time}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#1E1C1A' }}>{l.type}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{l.recipients}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250' }}>{l.subject}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{ fontSize: '11px', color: '#2ab85a', border: '1px solid #2ab85a', padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>{l.status}</span>
+                <tr key={i} className={s.tr}>
+                  <td className={`${s.td} ${p.tdMeta}`}>{l.time}</td>
+                  <td className={`${s.td} ${p.tdSmall}`}>{l.type}</td>
+                  <td className={s.td}>{l.recipients}</td>
+                  <td className={`${s.td} ${p.tdMeta}`}>{l.subject}</td>
+                  <td className={s.td}>
+                    <span className={`${s.badge} ${p.badgeSuccess}`}>{l.status}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {/* Mobile card list for log */}
+          <div className={s.cardList}>
+            {log.length === 0 ? (
+              <div className={s.emptyRow}>尚無發送記錄</div>
+            ) : log.map((l, i) => (
+              <div key={i} className={s.card}>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>時間</span>
+                  <span className={`${s.cardValue} ${p.cardValueSmall}`}>{l.time}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>類型</span>
+                  <span className={s.cardValue}>{l.type}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>收件人</span>
+                  <span className={s.cardValue}>{l.recipients}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>主旨</span>
+                  <span className={`${s.cardValue} ${p.cardValueSmall}`}>{l.subject}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>狀態</span>
+                  <span className={`${s.badge} ${p.badgeSuccess}`}>{l.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

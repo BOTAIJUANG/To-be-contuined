@@ -1,0 +1,31 @@
+/* coupons – page-specific (mobile-first) */
+
+.couponCode {
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+/* Card title with Montserrat font (mobile coupon code display) */
+.cardTitleMontserrat {
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Desktop table: coupon code cell */
+.tdCode {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+}
+
+/* Desktop table: small muted text */
+.tdMuted {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* Desktop table: small light text */
+.tdLight {
+  font-size: 12px;
+  color: var(--text-light);
+}

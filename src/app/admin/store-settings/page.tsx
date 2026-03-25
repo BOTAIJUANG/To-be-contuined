@@ -6,16 +6,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import s from '../_shared/admin-shared.module.css';
+import p from './store-settings.module.css';
 
 const DAYS_TW = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 const DAYS_EN = ['0', '1', '2', '3', '4', '5', '6'];
 
-const inputStyle: React.CSSProperties = { padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none' };
-const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' };
-const sectionTitle: React.CSSProperties = { fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '14px', color: '#1E1C1A', borderBottom: '1px solid #E8E4DC', paddingBottom: '12px', marginBottom: '20px' };
 const Toggle = ({ val, onChange }: { val: boolean; onChange: () => void }) => (
-  <div onClick={onChange} style={{ width: '40px', height: '22px', borderRadius: '11px', background: val ? '#1E1C1A' : '#E8E4DC', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: val ? '21px' : '3px', transition: 'left 0.3s' }} />
+  <div onClick={onChange} className={s.toggle} style={{ background: val ? '#1E1C1A' : '#E8E4DC' }}>
+    <div className={s.toggleDot} style={{ left: val ? '21px' : '3px' }} />
   </div>
 );
 
@@ -192,41 +191,34 @@ export default function AdminStoreSettingsPage() {
     alert('設定已儲存');
   };
 
-  const tabStyle = (t: string): React.CSSProperties => ({
-    padding: '10px 20px', cursor: 'pointer', fontSize: '13px',
-    borderBottom: tab === t ? '2px solid #1E1C1A' : '2px solid transparent',
-    color: tab === t ? '#1E1C1A' : '#888580',
-    fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap',
-  });
-
   const toggleWeekday = (d: string) => setBlockedWeekdays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
   const addBlockedDate = () => { if (!newBlockedDate || blockedDates.includes(newBlockedDate)) return; setBlockedDates(prev => [...prev, newBlockedDate].sort()); setNewBlockedDate(''); };
 
   const ColorRow = ({ label, val, set }: { label: string; val: string; set: (v: string) => void }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-      <label style={{ ...labelStyle, marginBottom: 0, width: '120px', flexShrink: 0 }}>{label}</label>
-      <input type="color" value={val} onChange={e => set(e.target.value)} style={{ width: '44px', height: '36px', border: '1px solid #E8E4DC', cursor: 'pointer', padding: '2px' }} />
-      <input value={val} onChange={e => set(e.target.value)} style={{ ...inputStyle, width: '120px', fontFamily: '"Montserrat", sans-serif' }} />
-      <button onClick={() => {}} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#888580', cursor: 'pointer' }}>預設</button>
+    <div className={p.colorRow}>
+      <label className={p.colorLabel}>{label}</label>
+      <input type="color" value={val} onChange={e => set(e.target.value)} className={p.colorPicker} />
+      <input value={val} onChange={e => set(e.target.value)} className={`${s.input} ${p.colorHexInput}`} />
+      <button onClick={() => {}} className={p.colorDefaultBtn}>預設</button>
     </div>
   );
 
-  if (loading) return <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p>;
+  if (loading) return <p className={s.loadingText}>載入中...</p>;
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 24px' }}>商店設定</h1>
+      <h1 className={`${s.pageTitle} ${p.pageTitleMb}`}>商店設定</h1>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #E8E4DC', marginBottom: '32px', overflowX: 'auto' }}>
+      <div className={`${s.tabBar} ${p.tabBarMb32}`}>
         {[{ key: 'info', label: '商店資訊' }, { key: 'shipping', label: '配送設定' }, { key: 'payment', label: '付款設定' }, { key: 'appearance', label: '前台外觀' }, { key: 'seo', label: 'SEO 設定' }].map(({ key, label }) => (
-          <div key={key} style={tabStyle(key)} onClick={() => setTab(key as any)}>{label}</div>
+          <div key={key} className={tab === key ? s.tabActive : s.tab} onClick={() => setTab(key as any)}>{label}</div>
         ))}
       </div>
 
       {/* ════ 商店資訊 ════ */}
       {tab === 'info' && (
-        <div style={{ maxWidth: '640px' }}>
-          <div style={sectionTitle}>基本資訊</div>
+        <div className={p.formContainer}>
+          <div className={s.sectionTitleBordered}>基本資訊</div>
           {[
             { label: '商店名稱', val: name, set: setName, ph: '未半甜點', max: '320px' },
             { label: '商店描述', val: description, set: setDescription, ph: '以純粹視覺為引...', max: '480px', textarea: true },
@@ -234,22 +226,22 @@ export default function AdminStoreSettingsPage() {
             { label: '商店電話', val: phone, set: setPhone, ph: '039-381-241', max: '220px' },
             { label: '實體地址', val: address, set: setAddress, ph: '260 台灣宜蘭縣...', max: '480px' },
           ].map(({ label, val, set, ph, max, textarea }) => (
-            <div key={label} style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}>{label}</label>
-              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={3} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: max, resize: 'vertical' }} />
-                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: max }} />}
+            <div key={label} className={s.mb20}>
+              <label className={s.label}>{label}</label>
+              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={3} placeholder={ph} className={s.textarea} style={{ maxWidth: max }} />
+                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} style={{ maxWidth: max }} />}
             </div>
           ))}
 
-          <div style={{ ...sectionTitle, marginTop: '32px' }}>社群連結</div>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>社群連結</div>
           {[
             { label: 'Instagram', val: instagram, set: setInstagram, ph: 'https://instagram.com/...' },
             { label: 'Facebook', val: facebook, set: setFacebook, ph: 'https://facebook.com/...' },
             { label: 'LINE 官方帳號', val: lineId, set: setLineId, ph: '@weiban' },
           ].map(({ label, val, set, ph }) => (
-            <div key={label} style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>{label}</label>
-              <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: '400px' }} />
+            <div key={label} className={s.mb16}>
+              <label className={s.label}>{label}</label>
+              <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={`${s.input} ${p.inputFullMax400}`} />
             </div>
           ))}
         </div>
@@ -257,8 +249,8 @@ export default function AdminStoreSettingsPage() {
 
       {/* ════ 配送設定 ════ */}
       {tab === 'shipping' && (
-        <div style={{ maxWidth: '600px' }}>
-          <div style={sectionTitle}>配送方式開關</div>
+        <div className={p.formContainerMid}>
+          <div className={s.sectionTitleBordered}>配送方式開關</div>
           {[
             { label: '一般宅配', val: shipHomeNormal, set: setShipHomeNormal },
             { label: '低溫宅配', val: shipHomeCold, set: setShipHomeCold },
@@ -266,87 +258,87 @@ export default function AdminStoreSettingsPage() {
             { label: '全家超商取貨', val: shipCvsFamily, set: setShipCvsFamily },
             { label: '門市自取', val: shipStore, set: setShipStore },
           ].map(({ label, val, set }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontSize: '13px', color: '#1E1C1A' }}>{label}</span>
+            <div key={label} className={p.toggleRow}>
+              <span className={p.toggleRowLabel}>{label}</span>
               <Toggle val={val} onChange={() => set(!val)} />
             </div>
           ))}
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>運費設定</div>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>運費設定</div>
           {[
             { label: '一般宅配運費', val: feeHomeNormal, set: setFeeHomeNormal },
             { label: '低溫宅配運費', val: feeHomeCold, set: setFeeHomeCold },
             { label: '超商取貨運費', val: feeCvs, set: setFeeCvs },
           ].map(({ label, val, set }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <label style={{ ...labelStyle, marginBottom: 0, width: '160px', flexShrink: 0 }}>{label}</label>
-              <input type="number" value={val} onChange={e => set(Number(e.target.value))} style={{ ...inputStyle, width: '90px' }} />
-              <span style={{ fontSize: '12px', color: '#888580' }}>NT$</span>
+            <div key={label} className={p.feeRow}>
+              <label className={p.feeLabel}>{label}</label>
+              <input type="number" value={val} onChange={e => set(Number(e.target.value))} className={`${s.input} ${p.feeInput}`} />
+              <span className={p.feeUnit}>NT$</span>
             </div>
           ))}
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>免運設定</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#1E1C1A' }}>啟用免運</span>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>免運設定</div>
+          <div className={p.toggleRowMb12}>
+            <span className={p.toggleRowLabel}>啟用免運</span>
             <Toggle val={freeShipEnabled} onChange={() => setFreeShipEnabled(!freeShipEnabled)} />
           </div>
           {freeShipEnabled && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                <label style={{ ...labelStyle, marginBottom: 0, width: '160px', flexShrink: 0 }}>免運門檻</label>
-                <input type="number" value={freeShip} onChange={e => setFreeShip(Number(e.target.value))} style={{ ...inputStyle, width: '90px' }} />
-                <span style={{ fontSize: '12px', color: '#888580' }}>NT$ 以上免一般宅配運費</span>
+              <div className={p.feeRow}>
+                <label className={p.feeLabel}>免運門檻</label>
+                <input type="number" value={freeShip} onChange={e => setFreeShip(Number(e.target.value))} className={`${s.input} ${p.feeInput}`} />
+                <span className={p.feeUnit}>NT$ 以上免一般宅配運費</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13px', color: '#1E1C1A' }}>低溫也免運</span>
+              <div className={p.toggleRowMb12}>
+                <span className={p.toggleRowLabel}>低溫也免運</span>
                 <Toggle val={freeShipCold} onChange={() => setFreeShipCold(!freeShipCold)} />
               </div>
             </>
           )}
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>前台側邊欄設定</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            <label style={{ ...labelStyle, marginBottom: 0, width: '200px', flexShrink: 0 }}>每個分類顯示商品數</label>
-            <input type="number" min={1} max={10} value={sidebarProductLimit} onChange={e => setSidebarProductLimit(Number(e.target.value))} style={{ ...inputStyle, width: '70px' }} />
-            <span style={{ fontSize: '12px', color: '#888580' }}>個（超過的折疊至「查看全部」）</span>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>前台側邊欄設定</div>
+          <div className={p.feeRowMb24}>
+            <label className={p.feeLabelWide}>每個分類顯示商品數</label>
+            <input type="number" min={1} max={10} value={sidebarProductLimit} onChange={e => setSidebarProductLimit(Number(e.target.value))} className={p.inputNarrow70} />
+            <span className={p.feeUnit}>個（超過的折疊至「查看全部」）</span>
           </div>
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>出貨日期限制</div>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>出貨日期限制</div>
           {[
             { label: '最早出貨天數', val: shipMinDays, set: setShipMinDays, hint: '天後（下單後至少幾天才能出貨）' },
             { label: '最晚可選天數', val: shipMaxDays, set: setShipMaxDays, hint: '天內（顧客最遠可選幾天後）' },
           ].map(({ label, val, set, hint }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <label style={{ ...labelStyle, marginBottom: 0, width: '160px', flexShrink: 0 }}>{label}</label>
-              <input type="number" value={val} onChange={e => set(Number(e.target.value))} style={{ ...inputStyle, width: '70px' }} />
-              <span style={{ fontSize: '12px', color: '#888580' }}>{hint}</span>
+            <div key={label} className={p.feeRow}>
+              <label className={p.feeLabel}>{label}</label>
+              <input type="number" value={val} onChange={e => set(Number(e.target.value))} className={p.inputNarrow70} />
+              <span className={p.feeUnit}>{hint}</span>
             </div>
           ))}
 
-          <div style={{ marginBottom: '16px' }}>
-            <label style={labelStyle}>不出貨的星期</label>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
+          <div className={s.mb16}>
+            <label className={s.label}>不出貨的星期</label>
+            <div className={p.weekdayGroup}>
               {DAYS_TW.map((d, i) => (
-                <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={blockedWeekdays.includes(DAYS_EN[i])} onChange={() => toggleWeekday(DAYS_EN[i])} style={{ accentColor: '#1E1C1A' }} />{d}
+                <label key={d} className={p.weekdayLabel}>
+                  <input type="checkbox" checked={blockedWeekdays.includes(DAYS_EN[i])} onChange={() => toggleWeekday(DAYS_EN[i])} className={s.checkbox} />{d}
                 </label>
               ))}
             </div>
           </div>
 
           <div>
-            <label style={labelStyle}>特定封鎖日期</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px', marginBottom: '8px' }}>
-              <input type="date" value={newBlockedDate} onChange={e => setNewBlockedDate(e.target.value)} style={{ ...inputStyle, width: '180px' }} />
-              <button onClick={addBlockedDate} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>＋ 新增</button>
+            <label className={s.label}>特定封鎖日期</label>
+            <div className={p.blockedDateRow}>
+              <input type="date" value={newBlockedDate} onChange={e => setNewBlockedDate(e.target.value)} className={p.blockedDateInputNarrow} />
+              <button onClick={addBlockedDate} className={s.btnSmall}>＋ 新增</button>
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div className={p.blockedDateWrap}>
               {blockedDates.map(d => (
-                <span key={d} style={{ background: '#EDE9E2', padding: '4px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {d} <span onClick={() => setBlockedDates(prev => prev.filter(x => x !== d))} style={{ cursor: 'pointer', color: '#888580', fontWeight: 700 }}>×</span>
+                <span key={d} className={p.blockedDateTag}>
+                  {d} <span onClick={() => setBlockedDates(prev => prev.filter(x => x !== d))} className={p.blockedDateRemove}>×</span>
                 </span>
               ))}
-              {blockedDates.length === 0 && <span style={{ fontSize: '12px', color: '#888580' }}>尚無封鎖日期</span>}
+              {blockedDates.length === 0 && <span className={p.emptyHint}>尚無封鎖日期</span>}
             </div>
           </div>
         </div>
@@ -354,73 +346,73 @@ export default function AdminStoreSettingsPage() {
 
       {/* ════ 付款設定 ════ */}
       {tab === 'payment' && (
-        <div style={{ maxWidth: '560px' }}>
-          <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '14px 20px', marginBottom: '24px', fontSize: '13px', color: '#7a5c00' }}>
+        <div className={p.paymentContainer}>
+          <div className={`${s.warningBar} ${p.warningBarMb24}`}>
             金流串接（綠界 ECPay）需設定以下金鑰，請向綠界申請商家帳號後填入。
           </div>
-          <div style={sectionTitle}>付款方式</div>
+          <div className={s.sectionTitleBordered}>付款方式</div>
           {[{ label: '信用卡（Visa / Master / JCB）' }, { label: 'ATM 轉帳' }].map(({ label }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontSize: '13px', color: '#1E1C1A' }}>{label}</span>
+            <div key={label} className={p.toggleRow}>
+              <span className={p.toggleRowLabel}>{label}</span>
               <Toggle val={true} onChange={() => {}} />
             </div>
           ))}
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>綠界 ECPay 金鑰</div>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>綠界 ECPay 金鑰</div>
           {[
             { label: '商店代號（MerchantID）', ph: '例：3002607' },
             { label: 'HashKey', ph: '請填入綠界 HashKey', type: 'password' },
             { label: 'HashIV', ph: '請填入綠界 HashIV', type: 'password' },
           ].map(({ label, ph, type }) => (
-            <div key={label} style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>{label}</label>
-              <input type={type ?? 'text'} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: '320px' }} />
+            <div key={label} className={s.mb16}>
+              <label className={s.label}>{label}</label>
+              <input type={type ?? 'text'} placeholder={ph} className={`${s.input} ${p.paymentInputMax320}`} />
             </div>
           ))}
-          <div style={{ fontSize: '12px', color: '#888580', marginTop: '8px' }}>金鑰請存放在 .env.local，不要直接輸入在此，避免外洩。</div>
+          <div className={p.seoHintMt8}>金鑰請存放在 .env.local，不要直接輸入在此，避免外洩。</div>
         </div>
       )}
 
       {/* ════ 前台外觀 ════ */}
       {tab === 'appearance' && (
-        <div style={{ maxWidth: '640px' }}>
-          <div style={sectionTitle}>品牌文字</div>
+        <div className={p.formContainer}>
+          <div className={s.sectionTitleBordered}>品牌文字</div>
           {[
             { label: 'Hero 主標題', val: heroTitle, set: setHeroTitle, ph: '未半甜點', max: '320px' },
             { label: 'Hero 副標題', val: heroSub, set: setHeroSub, ph: '手工甜點 · 2024', max: '400px' },
             { label: 'Hero 說明文字', val: heroDesc, set: setHeroDesc, ph: '以純粹視覺為引...', max: '480px', textarea: true },
             { label: 'Hero 按鈕文字', val: heroBtn, set: setHeroBtn, ph: '立即選購', max: '200px' },
           ].map(({ label, val, set, ph, max, textarea }) => (
-            <div key={label} style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}>{label}</label>
-              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={2} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: max, resize: 'vertical' }} />
-                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: max }} />}
+            <div key={label} className={s.mb20}>
+              <label className={s.label}>{label}</label>
+              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={2} placeholder={ph} className={s.textarea} style={{ maxWidth: max }} />
+                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} style={{ maxWidth: max }} />}
             </div>
           ))}
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>品牌故事頁</div>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={labelStyle}>品牌故事標題</label>
-            <input value={aboutTitle} onChange={e => setAboutTitle(e.target.value)} style={{ ...inputStyle, width: '100%', maxWidth: '320px' }} />
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>品牌故事頁</div>
+          <div className={s.mb20}>
+            <label className={s.label}>品牌故事標題</label>
+            <input value={aboutTitle} onChange={e => setAboutTitle(e.target.value)} className={`${s.input} ${p.inputFullMax320}`} />
           </div>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={labelStyle}>品牌故事內文</label>
-            <textarea value={aboutBody} onChange={e => setAboutBody(e.target.value)} rows={5} style={{ ...inputStyle, width: '100%', resize: 'vertical' }} />
+          <div className={s.mb20}>
+            <label className={s.label}>品牌故事內文</label>
+            <textarea value={aboutBody} onChange={e => setAboutBody(e.target.value)} rows={5} className={s.textarea} />
           </div>
-          <div style={{ marginBottom: '28px' }}>
-            <label style={labelStyle}>品牌故事圖片</label>
-            <div style={{ marginTop: '8px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-              {aboutImageUrl && <img src={aboutImageUrl} alt="品牌故事" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid #E8E4DC' }} />}
-              <div style={{ flex: 1 }}>
-                <input value={aboutImageUrl} onChange={e => setAboutImageUrl(e.target.value)} placeholder="貼上圖片網址，或點下方按鈕上傳" style={{ ...inputStyle, width: '100%' }} />
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ marginTop: '8px', padding: '7px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>
+          <div className={p.aboutImgMb28}>
+            <label className={s.label}>品牌故事圖片</label>
+            <div className={p.aboutImgWrap}>
+              {aboutImageUrl && <img src={aboutImageUrl} alt="品牌故事" className={p.aboutImgPreview} />}
+              <div className={p.aboutImgUploadFlex}>
+                <input value={aboutImageUrl} onChange={e => setAboutImageUrl(e.target.value)} placeholder="貼上圖片網址，或點下方按鈕上傳" className={`${s.input} ${p.aboutImgInputFull}`} />
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className={`${s.btnSmall} ${p.aboutImgBtnMt8}`}>
                   {uploading ? '上傳中...' : '從電腦上傳'}
                 </button>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAboutImageUpload} style={{ display: 'none' }} />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAboutImageUpload} className={p.hidden} />
               </div>
             </div>
           </div>
 
-          <div style={sectionTitle}>色彩主題</div>
+          <div className={s.sectionTitleBordered}>色彩主題</div>
           <ColorRow label="背景色"       val={colorBg}      set={setColorBg} />
           <ColorRow label="表面色"       val={colorSurface} set={setColorSurface} />
           <ColorRow label="深色文字"     val={colorDark}    set={setColorDark} />
@@ -428,60 +420,60 @@ export default function AdminStoreSettingsPage() {
           <ColorRow label="按鈕色"       val={colorBtn}     set={setColorBtn} />
 
           {/* 即時預覽 */}
-          <div style={{ marginBottom: '28px', padding: '20px', border: '1px solid #E8E4DC', background: colorSurface }}>
-            <div style={{ fontSize: '10px', color: '#888580', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '12px' }}>即時預覽</div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className={p.previewWrap} style={{ background: colorSurface }}>
+            <div className={p.previewLabel}>即時預覽</div>
+            <div className={p.previewRow}>
               {[
                 { color: colorBg,      label: '背景' },
                 { color: colorSurface, label: '表面' },
                 { color: colorDark,    label: '文字', light: true },
                 { color: colorPrice,   label: '價格', light: true },
               ].map(({ color, label, light }) => (
-                <div key={label} style={{ width: '60px', height: '40px', background: color, border: '1px solid #E8E4DC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: light ? '#fff' : '#888' }}>{label}</div>
+                <div key={label} className={p.previewSwatch} style={{ background: color, color: light ? '#fff' : '#888' }}>{label}</div>
               ))}
-              <button style={{ padding: '8px 20px', background: colorBtn, color: '#fff', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.2em', cursor: 'default' }}>按鈕</button>
+              <button className={p.previewButton} style={{ background: colorBtn }}>按鈕</button>
             </div>
           </div>
 
-          <div style={sectionTitle}>字體設定</div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={labelStyle}>標題字體</label>
-            <select value={fontTitle} onChange={e => setFontTitle(e.target.value)} style={{ ...inputStyle, width: '100%', maxWidth: '320px' }}>
+          <div className={s.sectionTitleBordered}>字體設定</div>
+          <div className={s.mb16}>
+            <label className={s.label}>標題字體</label>
+            <select value={fontTitle} onChange={e => setFontTitle(e.target.value)} className={`${s.select} ${p.selectMax320}`}>
               <option value="'Noto Serif TC', serif">Noto Serif TC（宋體，目前使用）</option>
               <option value="'Noto Sans TC', sans-serif">Noto Sans TC（黑體）</option>
               <option value="Georgia, serif">Georgia（英文襯線）</option>
             </select>
           </div>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={labelStyle}>內文字體</label>
-            <select value={fontBody} onChange={e => setFontBody(e.target.value)} style={{ ...inputStyle, width: '100%', maxWidth: '320px' }}>
+          <div className={s.mb20}>
+            <label className={s.label}>內文字體</label>
+            <select value={fontBody} onChange={e => setFontBody(e.target.value)} className={`${s.select} ${p.selectMax320}`}>
               <option value="'Noto Sans TC', sans-serif">Noto Sans TC（目前使用）</option>
               <option value="'Noto Serif TC', serif">Noto Serif TC（宋體）</option>
             </select>
           </div>
 
           {/* 字體預覽 */}
-          <div style={{ marginBottom: '28px', padding: '16px', border: '1px solid #E8E4DC', background: '#fff' }}>
-            <div style={{ fontFamily: fontTitle, fontSize: '22px', marginBottom: '8px', color: colorDark }}>未半甜點 — 品牌故事</div>
-            <div style={{ fontFamily: fontBody, fontSize: '14px', color: '#555250', lineHeight: 1.8 }}>以純粹視覺為引，將甜點的細膩質地融入潔白空間。</div>
+          <div className={p.fontPreviewBox}>
+            <div className={p.fontPreviewTitle} style={{ fontFamily: fontTitle, color: colorDark }}>未半甜點 — 品牌故事</div>
+            <div className={p.fontPreviewBody} style={{ fontFamily: fontBody }}>以純粹視覺為引，將甜點的細膩質地融入潔白空間。</div>
           </div>
 
-          <div style={sectionTitle}>頁尾版面</div>
+          <div className={s.sectionTitleBordered}>頁尾版面</div>
           {[
             { label: '顯示電話',     val: footerShowTel,       set: setFooterShowTel },
             { label: '顯示 Email',  val: footerShowEmail,     set: setFooterShowEmail },
             { label: '顯示地址',     val: footerShowAddress,   set: setFooterShowAddress },
             { label: '顯示版權文字', val: footerShowCopyright, set: setFooterShowCopyright },
           ].map(({ label, val, set }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontSize: '13px', color: '#1E1C1A' }}>{label}</span>
+            <div key={label} className={p.toggleRowCompact}>
+              <span className={p.toggleRowLabel}>{label}</span>
               <Toggle val={val} onChange={() => set(!val)} />
             </div>
           ))}
           {footerShowCopyright && (
-            <div style={{ marginTop: '16px' }}>
-              <label style={labelStyle}>版權文字</label>
-              <input value={footerCopyright} onChange={e => setFooterCopyright(e.target.value)} style={{ ...inputStyle, width: '100%', maxWidth: '360px' }} />
+            <div className={p.copyrightWrap}>
+              <label className={s.label}>版權文字</label>
+              <input value={footerCopyright} onChange={e => setFooterCopyright(e.target.value)} className={`${s.input} ${p.copyrightInput}`} />
             </div>
           )}
         </div>
@@ -489,23 +481,23 @@ export default function AdminStoreSettingsPage() {
 
       {/* ════ SEO 設定 ════ */}
       {tab === 'seo' && (
-        <div style={{ maxWidth: '580px' }}>
-          <div style={sectionTitle}>基本 SEO</div>
+        <div className={p.formContainerNarrow}>
+          <div className={s.sectionTitleBordered}>基本 SEO</div>
           {[
             { label: '網站標題', val: seoTitle, set: setSeoTitle, ph: '未半甜點 | 手工甜點', hint: '建議 50–60 字元' },
             { label: 'Meta 描述', val: seoDescription, set: setSeoDescription, ph: '以純粹視覺為引...', hint: '建議 150–160 字元', textarea: true },
             { label: '關鍵字', val: seoKeywords, set: setSeoKeywords, ph: '手工甜點, 杜拜Q餅, 韓系甜點' },
           ].map(({ label, val, set, ph, hint, textarea }) => (
-            <div key={label} style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}>{label}</label>
-              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={3} placeholder={ph} style={{ ...inputStyle, width: '100%', resize: 'vertical' }} />
-                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%' }} />}
-              {hint && <div style={{ fontSize: '11px', color: '#888580', marginTop: '4px' }}>{hint}</div>}
+            <div key={label} className={s.mb20}>
+              <label className={s.label}>{label}</label>
+              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={3} placeholder={ph} className={s.textarea} />
+                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={`${s.input} ${p.seoInputFull}`} />}
+              {hint && <div className={p.seoHint}>{hint}</div>}
             </div>
           ))}
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>Open Graph（社群分享預覽）</div>
-          <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#555250' }}>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>Open Graph（社群分享預覽）</div>
+          <div className={`${s.infoBar} ${p.infoBarMb16}`}>
             設定分享到 Facebook、LINE 時顯示的預覽圖和標題。
           </div>
           {[
@@ -513,15 +505,15 @@ export default function AdminStoreSettingsPage() {
             { label: 'OG 描述', val: ogDescription, set: setOgDescription, ph: '以純粹視覺為引...', textarea: true },
             { label: 'OG 圖片網址', val: ogImageUrl, set: setOgImageUrl, ph: '建議 1200×630px' },
           ].map(({ label, val, set, ph, textarea }) => (
-            <div key={label} style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}>{label}</label>
-              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={2} placeholder={ph} style={{ ...inputStyle, width: '100%', resize: 'vertical' }} />
-                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%' }} />}
+            <div key={label} className={s.mb20}>
+              <label className={s.label}>{label}</label>
+              {textarea ? <textarea value={val} onChange={e => set(e.target.value)} rows={2} placeholder={ph} className={s.textarea} />
+                : <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={`${s.input} ${p.seoInputFull}`} />}
             </div>
           ))}
 
-          <div style={{ ...sectionTitle, marginTop: '28px' }}>追蹤代碼</div>
-          <div style={{ background: '#fff8e1', border: '1px solid #f0c040', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#7a5c00' }}>
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>追蹤代碼</div>
+          <div className={`${s.warningBar} ${p.warningBarMb16}`}>
             追蹤代碼將注入到前台頁面，請確認代碼正確後再儲存。
           </div>
           {[
@@ -529,18 +521,18 @@ export default function AdminStoreSettingsPage() {
             { label: 'GA4 測量 ID', val: ga4Id, set: setGa4Id, ph: 'G-XXXXXXXXXX', hint: 'Google Analytics 4' },
             { label: 'GTM 容器 ID', val: gtmId, set: setGtmId, ph: 'GTM-XXXXXXX', hint: 'Google Tag Manager（選填）' },
           ].map(({ label, val, set, ph, hint }) => (
-            <div key={label} style={{ marginBottom: '20px' }}>
-              <label style={labelStyle}>{label}</label>
-              <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...inputStyle, width: '100%', maxWidth: '280px', fontFamily: '"Montserrat", sans-serif' }} />
-              <div style={{ fontSize: '11px', color: '#888580', marginTop: '4px' }}>{hint}</div>
+            <div key={label} className={s.mb20}>
+              <label className={s.label}>{label}</label>
+              <input value={val} onChange={e => set(e.target.value)} placeholder={ph} className={`${s.input} ${p.trackingInput}`} />
+              <div className={p.seoHint}>{hint}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* 儲存按鈕 */}
-      <div style={{ display: 'flex', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #E8E4DC' }}>
-        <button onClick={handleSave} disabled={saving} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+      <div className={p.saveBar}>
+        <button onClick={handleSave} disabled={saving} className={s.btnSave}>
           {saving ? '儲存中...' : '儲存設定'}
         </button>
       </div>

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
+import s from './orders.module.css';
 
 type OrderTab = 'list' | 'shiplist' | 'report';
 type ReportPeriod = 'today' | 'week' | 'month' | 'custom';
@@ -210,102 +211,145 @@ export default function AdminOrdersPage() {
     setCancelLoading(false);
   };
 
-  const tabStyle = (t: string): React.CSSProperties => ({ padding: '10px 20px', cursor: 'pointer', fontSize: '13px', borderBottom: tab === t ? '2px solid #1E1C1A' : '2px solid transparent', color: tab === t ? '#1E1C1A' : '#888580', fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap' });
-  const thStyle: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' };
-  const selectStyle: React.CSSProperties = { padding: '8px 10px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#555250', outline: 'none' };
-
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 24px' }}>訂單管理</h1>
+      <h1 className={s.title}>訂單管理</h1>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #E8E4DC', marginBottom: '24px' }}>
-        <div style={tabStyle('list')}     onClick={() => setTab('list')}>訂單列表</div>
-        <div style={tabStyle('shiplist')} onClick={() => setTab('shiplist')}>出貨單列表</div>
-        <div style={tabStyle('report')}   onClick={() => setTab('report')}>銷售庫存報表</div>
+      <div className={s.tabs}>
+        <div className={tab === 'list' ? s.tabActive : s.tab}     onClick={() => setTab('list')}>訂單列表</div>
+        <div className={tab === 'shiplist' ? s.tabActive : s.tab} onClick={() => setTab('shiplist')}>出貨單列表</div>
+        <div className={tab === 'report' ? s.tabActive : s.tab}   onClick={() => setTab('report')}>銷售庫存報表</div>
       </div>
 
       {/* ════ 訂單列表 ════ */}
       {tab === 'list' && (
         <>
-          <div style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '20px', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-              <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadOrders()} placeholder="訂單編號、姓名、電話" style={{ ...selectStyle, padding: '8px 12px', minWidth: '240px', fontSize: '13px', color: '#1E1C1A' }} />
-              <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} style={selectStyle} />
-              <span style={{ alignSelf: 'center', color: '#888580' }}>～</span>
-              <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} style={selectStyle} />
+          <div className={s.filterPanel}>
+            <div className={s.filterRow}>
+              <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadOrders()} placeholder="訂單編號、姓名、電話" className={s.input} />
+              <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className={s.dateInput} />
+              <span className={s.dateSep}>～</span>
+              <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className={s.dateInput} />
             </div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <select value={osStatus} onChange={e => setOsStatus(e.target.value)} style={selectStyle}>{STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
-              <select value={osPay}    onChange={e => setOsPay(e.target.value)}    style={selectStyle}>{PAY_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
-              <select value={osShip}   onChange={e => setOsShip(e.target.value)}   style={selectStyle}>{SHIP_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
-              <input type="number" value={osMin} onChange={e => setOsMin(e.target.value)} placeholder="最低金額" style={{ ...selectStyle, width: '100px' }} />
-              <input type="number" value={osMax} onChange={e => setOsMax(e.target.value)} placeholder="最高金額" style={{ ...selectStyle, width: '100px' }} />
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                <button onClick={() => { setKeyword(''); setDateStart(''); setDateEnd(''); setOsStatus(''); setOsPay(''); setOsShip(''); setOsMin(''); setOsMax(''); }} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}>清除</button>
-                <button onClick={loadOrders} style={{ padding: '8px 20px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.1em' }}>搜尋</button>
+            <div className={s.filterRowBottom}>
+              <select value={osStatus} onChange={e => setOsStatus(e.target.value)} className={s.select}>{STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}</select>
+              <select value={osPay}    onChange={e => setOsPay(e.target.value)}    className={s.select}>{PAY_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}</select>
+              <select value={osShip}   onChange={e => setOsShip(e.target.value)}   className={s.select}>{SHIP_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}</select>
+              <input type="number" value={osMin} onChange={e => setOsMin(e.target.value)} placeholder="最低金額" className={s.amountInput} />
+              <input type="number" value={osMax} onChange={e => setOsMax(e.target.value)} placeholder="最高金額" className={s.amountInput} />
+              <div className={s.filterActions}>
+                <button onClick={() => { setKeyword(''); setDateStart(''); setDateEnd(''); setOsStatus(''); setOsPay(''); setOsShip(''); setOsMin(''); setOsMax(''); }} className={s.btnClear}>清除</button>
+                <button onClick={loadOrders} className={s.btnSearch}>搜尋</button>
               </div>
             </div>
-            <div style={{ marginTop: '10px', fontSize: '12px', color: '#888580' }}>共 <strong style={{ color: '#1E1C1A' }}>{orders.length}</strong> 筆訂單</div>
+            <div className={s.orderCount}>共 <strong className={s.orderCountNum}>{orders.length}</strong> 筆訂單</div>
           </div>
 
-          {loading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> : (
-            <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {loading ? <p className={s.loading}>載入中...</p> : (
+            <div className={s.tableWrap}>
+              {/* Desktop table */}
+              <table className={s.table}>
                 <thead>
-                  <tr>{['訂單編號', '日期', '買家', '商品', '金額', '付款狀態', '配送', '配送狀態', '操作'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                  <tr>{['訂單編號', '日期', '買家', '商品', '金額', '付款狀態', '配送', '配送狀態', '操作'].map(h => <th key={h} className={s.th}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {orders.length === 0 ? (
-                    <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>沒有符合條件的訂單</td></tr>
+                    <tr><td colSpan={9} className={s.tdEmpty}>沒有符合條件的訂單</td></tr>
                   ) : orders.map(o => (
-                    <tr key={o.id} style={{ borderBottom: '1px solid #E8E4DC', cursor: 'pointer' }} onClick={() => setSelectedOrder(o)}>
-                      <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>{o.order_no}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontSize: '13px', color: '#1E1C1A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
+                      <td className={s.tdOrderNo}>{o.order_no}</td>
+                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className={s.tdBuyer}>
+                        <div className={s.buyerName}>
                           {o.buyer_name}
-                          <span style={{ fontSize: '9px', padding: '1px 6px', border: '1px solid', borderColor: o.member_id ? '#2ab85a' : '#b87a2a', color: o.member_id ? '#2ab85a' : '#b87a2a', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap' }}>
+                          <span className={s.buyerBadge} style={{ borderColor: o.member_id ? '#2ab85a' : '#b87a2a', color: o.member_id ? '#2ab85a' : '#b87a2a' }}>
                             {o.member_id ? '會員' : '訪客'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#888580' }}>{o.buyer_phone}</div>
+                        <div className={s.buyerPhone}>{o.buyer_phone}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250', maxWidth: '160px' }}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', whiteSpace: 'nowrap' }}>NT$ {o.total.toLocaleString()}</td>
-                      <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
+                      <td className={s.tdItems}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</td>
+                      <td className={s.tdAmount}>NT$ {o.total.toLocaleString()}</td>
+                      <td className={s.tdPayStatus} onClick={e => e.stopPropagation()}>
                         {/* 付款狀態由綠界 webhook 自動更新，不給手動改 */}
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '4px 12px',
-                          fontSize: '11px',
+                        <span className={s.payBadge} style={{
                           color: PAY_COLOR[o.pay_status] ?? '#888580',
                           border: `1px solid ${PAY_COLOR[o.pay_status] ?? '#E8E4DC'}`,
-                          fontFamily: '"Montserrat", sans-serif',
-                          letterSpacing: '0.1em',
                         }}>
                           {PAY_LABEL[o.pay_status] ?? o.pay_status}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '11px', color: '#555250', whiteSpace: 'nowrap' }}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
-                      <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
+                      <td className={s.tdShipMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
+                      <td className={s.tdShipStatus} onClick={e => e.stopPropagation()}>
                         {o.status === 'cancelled' ? (
-                          <span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '11px', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.1em' }}>已取消</span>
+                          <span className={s.cancelledBadge}>已取消</span>
                         ) : (
-                          <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} style={{ ...selectStyle, fontSize: '11px', color: STATUS_COLOR[o.status] }}>
-                            {SHIP_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
+                            {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
                           </select>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                        <button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', marginRight: '6px' }}>詳細</button>
+                      <td className={s.tdActions}>
+                        <button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} className={s.btnDetail}>詳細</button>
                         {o.status !== 'cancelled' && (
-                          <button onClick={e => { e.stopPropagation(); setCancelTarget(o); }} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #c0392b', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>取消</button>
+                          <button onClick={e => { e.stopPropagation(); setCancelTarget(o); }} className={s.btnCancel}>取消</button>
                         )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile card list */}
+              <div className={s.cardList}>
+                {orders.length === 0 ? (
+                  <div className={s.tdEmpty}>沒有符合條件的訂單</div>
+                ) : orders.map(o => (
+                  <div key={o.id} className={s.card} onClick={() => setSelectedOrder(o)}>
+                    <div className={s.cardTop}>
+                      <span className={s.cardOrderNo}>{o.order_no}</span>
+                      <span className={s.cardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</span>
+                    </div>
+                    <div className={s.cardMid}>
+                      <div className={s.cardBuyer}>
+                        {o.buyer_name}
+                        <span className={s.buyerBadge} style={{ borderColor: o.member_id ? '#2ab85a' : '#b87a2a', color: o.member_id ? '#2ab85a' : '#b87a2a' }}>
+                          {o.member_id ? '會員' : '訪客'}
+                        </span>
+                      </div>
+                      <span className={s.cardAmount}>NT$ {o.total.toLocaleString()}</span>
+                    </div>
+                    <div className={s.cardBottom}>
+                      <span className={s.payBadge} style={{
+                        color: PAY_COLOR[o.pay_status] ?? '#888580',
+                        border: `1px solid ${PAY_COLOR[o.pay_status] ?? '#E8E4DC'}`,
+                      }}>
+                        {PAY_LABEL[o.pay_status] ?? o.pay_status}
+                      </span>
+                      {o.status === 'cancelled' ? (
+                        <span className={s.cancelledBadge}>已取消</span>
+                      ) : (
+                        <span className={s.payBadge} style={{ color: STATUS_COLOR[o.status], border: `1px solid ${STATUS_COLOR[o.status]}` }}>
+                          {STATUS_LABEL[o.status]}
+                        </span>
+                      )}
+                      <span className={s.cardShip}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
+                    </div>
+                    <div className={s.cardItems}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</div>
+                    <div className={s.cardActions} onClick={e => e.stopPropagation()}>
+                      <button onClick={() => setSelectedOrder(o)} className={s.btnDetail}>詳細</button>
+                      {o.status !== 'cancelled' && (
+                        <>
+                          <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
+                            {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                          </select>
+                          <button onClick={() => setCancelTarget(o)} className={s.btnCancel}>取消</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </>
@@ -314,27 +358,51 @@ export default function AdminOrdersPage() {
       {/* ════ 出貨單列表 ════ */}
       {tab === 'shiplist' && (
         <>
-          <div style={{ background: '#EDE9E2', border: '1px solid #E8E4DC', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#555250' }}>顯示所有待出貨和已出貨的訂單。</div>
-          <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>{['訂單編號', '收件人', '地址', '配送方式', '指定出貨日', '配送狀態'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
+          <div className={s.shipNotice}>顯示所有待出貨和已出貨的訂單。</div>
+          <div className={s.tableWrap}>
+            {/* Desktop table */}
+            <table className={s.table}>
+              <thead><tr>{['訂單編號', '收件人', '地址', '配送方式', '指定出貨日', '配送狀態'].map(h => <th key={h} className={s.th}>{h}</th>)}</tr></thead>
               <tbody>
                 {orders.filter(o => o.status !== 'cancelled').map(o => (
-                  <tr key={o.id} style={{ borderBottom: '1px solid #E8E4DC', cursor: 'pointer' }} onClick={() => setSelectedOrder(o)}>
-                    <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', color: '#1E1C1A' }}>{o.order_no}</td>
-                    <td style={{ padding: '12px 16px' }}><div style={{ fontSize: '13px', color: '#1E1C1A' }}>{o.buyer_name}</div><div style={{ fontSize: '11px', color: '#888580' }}>{o.buyer_phone}</div></td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250', maxWidth: '180px' }}>{o.address || '門市自取'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250' }}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{o.ship_date ?? '—'}</td>
-                    <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                      <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} style={{ ...selectStyle, fontSize: '11px', color: STATUS_COLOR[o.status] }}>
-                        {SHIP_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
+                    <td className={s.tdOrderNo}>{o.order_no}</td>
+                    <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
+                    <td className={s.tdAddress}>{o.address || '門市自取'}</td>
+                    <td className={s.tdShipMethodCell}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
+                    <td className={s.tdShipDate}>{o.ship_date ?? '—'}</td>
+                    <td className={s.tdShipStatus} onClick={e => e.stopPropagation()}>
+                      <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
+                        {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
                       </select>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Mobile card list */}
+            <div className={s.cardList}>
+              {orders.filter(o => o.status !== 'cancelled').map(o => (
+                <div key={o.id} className={s.shipCard} onClick={() => setSelectedOrder(o)}>
+                  <div className={s.shipCardTop}>
+                    <span className={s.shipCardOrderNo}>{o.order_no}</span>
+                    <span className={s.shipCardMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
+                  </div>
+                  <div className={s.shipCardRecipient}>{o.buyer_name}</div>
+                  <div className={s.shipCardPhone}>{o.buyer_phone}</div>
+                  <div className={s.shipCardAddress}>{o.address || '門市自取'}</div>
+                  <div className={s.shipCardRow}>
+                    <span className={s.shipCardDate}>出貨日：{o.ship_date ?? '—'}</span>
+                    <span onClick={e => e.stopPropagation()}>
+                      <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
+                        {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                      </select>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -342,75 +410,110 @@ export default function AdminOrdersPage() {
       {/* ════ 銷售庫存報表 ════ */}
       {tab === 'report' && (
         <>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className={s.reportFilters}>
             {[{ key: 'today', label: '今日' }, { key: 'week', label: '本週' }, { key: 'month', label: '本月' }, { key: 'custom', label: '自訂' }].map(({ key, label }) => (
-              <button key={key} onClick={() => setReportPeriod(key as ReportPeriod)} style={{ padding: '7px 16px', background: reportPeriod === key ? '#1E1C1A' : 'transparent', color: reportPeriod === key ? '#F7F4EF' : '#555250', border: '1px solid #E8E4DC', fontSize: '12px', cursor: 'pointer' }}>{label}</button>
+              <button key={key} onClick={() => setReportPeriod(key as ReportPeriod)} className={reportPeriod === key ? s.btnPeriodActive : s.btnPeriod}>{label}</button>
             ))}
             {reportPeriod === 'custom' && (
               <>
-                <input type="date" value={reportCustomStart} onChange={e => setReportCustomStart(e.target.value)} style={selectStyle} />
-                <span style={{ color: '#888580' }}>～</span>
-                <input type="date" value={reportCustomEnd} onChange={e => setReportCustomEnd(e.target.value)} style={selectStyle} />
-                <button onClick={loadReport} style={{ padding: '7px 16px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontSize: '12px', cursor: 'pointer' }}>套用</button>
+                <input type="date" value={reportCustomStart} onChange={e => setReportCustomStart(e.target.value)} className={s.dateInput} />
+                <span className={s.dateSep}>～</span>
+                <input type="date" value={reportCustomEnd} onChange={e => setReportCustomEnd(e.target.value)} className={s.dateInput} />
+                <button onClick={loadReport} className={s.btnApply}>套用</button>
               </>
             )}
           </div>
 
-          {reportLoading ? <p style={{ color: '#888580', fontSize: '13px' }}>計算中...</p> : (
+          {reportLoading ? <p className={s.loading}>計算中...</p> : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+              <div className={s.reportStatGrid}>
                 {[{ label: '訂單數', value: reportStats.orders }, { label: '銷售件數', value: `${reportStats.qty} 件` }, { label: '總營收', value: `NT$ ${reportStats.revenue.toLocaleString()}` }, { label: '平均客單', value: `NT$ ${reportStats.avg.toLocaleString()}` }].map(({ label, value }) => (
-                  <div key={label} style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '18px 20px' }}>
-                    <div style={{ fontSize: '10px', color: '#888580', letterSpacing: '0.2em', marginBottom: '8px', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase' }}>{label}</div>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: '#1E1C1A' }}>{value}</div>
+                  <div key={label} className={s.reportStatCard}>
+                    <div className={s.reportStatLabel}>{label}</div>
+                    <div className={s.reportStatValue}>{value}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>商品銷售排行</div>
-              <div style={{ background: '#fff', border: '1px solid #E8E4DC', marginBottom: '24px', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead><tr>{['排名', '商品名稱', '銷售數量', '銷售金額', '佔總營收'].map((h, i) => <th key={h} style={{ ...thStyle, textAlign: i > 1 ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+              <div className={s.sectionLabel}>商品銷售排行</div>
+              <div className={`${s.tableWrap} ${s.tableWrapMb}`}>
+                {/* Desktop table */}
+                <table className={s.table}>
+                  <thead><tr>{['排名', '商品名稱', '銷售數量', '銷售金額', '佔總營收'].map((h, i) => <th key={h} className={i > 1 ? s.thRight : s.th}>{h}</th>)}</tr></thead>
                   <tbody>
                     {reportData.length === 0 ? (
-                      <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>此期間無資料</td></tr>
+                      <tr><td colSpan={5} className={s.tdEmpty}>此期間無資料</td></tr>
                     ) : reportData.map((p, i) => (
-                      <tr key={p.name} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '14px', color: i < 3 ? '#b35252' : '#888580', fontFamily: '"Montserrat", sans-serif' }}>#{i+1}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{p.name}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#555250', textAlign: 'right' }}>{p.qty} 件</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', textAlign: 'right' }}>NT$ {p.amount.toLocaleString()}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                            <div style={{ width: '60px', height: '5px', background: '#EDE9E2', borderRadius: '3px' }}>
-                              <div style={{ width: `${reportStats.revenue > 0 ? Math.round(p.amount/reportStats.revenue*100) : 0}%`, height: '100%', background: '#1E1C1A', borderRadius: '3px' }} />
+                      <tr key={p.name} className={s.tr}>
+                        <td className={`${s.tdRank} ${i < 3 ? s.rankTop : s.rankNormal}`}>#{i+1}</td>
+                        <td className={s.tdProductName}>{p.name}</td>
+                        <td className={s.tdQty}>{p.qty} 件</td>
+                        <td className={s.tdSalesAmount}>NT$ {p.amount.toLocaleString()}</td>
+                        <td className={s.tdPercent}>
+                          <div className={s.percentBar}>
+                            <div className={s.barTrack}>
+                              <div className={s.barFill} style={{ width: `${reportStats.revenue > 0 ? Math.round(p.amount/reportStats.revenue*100) : 0}%` }} />
                             </div>
-                            <span style={{ fontSize: '12px', color: '#555250' }}>{reportStats.revenue > 0 ? Math.round(p.amount/reportStats.revenue*100) : 0}%</span>
+                            <span className={s.percentText}>{reportStats.revenue > 0 ? Math.round(p.amount/reportStats.revenue*100) : 0}%</span>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile card list */}
+                <div className={s.cardList}>
+                  {reportData.length === 0 ? (
+                    <div className={s.tdEmpty}>此期間無資料</div>
+                  ) : reportData.map((p, i) => (
+                    <div key={p.name} className={s.reportCard}>
+                      <div className={`${s.reportCardRank} ${i < 3 ? s.rankTop : s.rankNormal}`}>#{i+1}</div>
+                      <div className={s.reportCardName}>{p.name}</div>
+                      <div className={s.reportCardRow}>
+                        <span className={s.reportCardQty}>{p.qty} 件 ・ {reportStats.revenue > 0 ? Math.round(p.amount/reportStats.revenue*100) : 0}%</span>
+                        <span className={s.reportCardAmount}>NT$ {p.amount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', marginBottom: '12px', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif' }}>每日銷售趨勢</div>
-              <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead><tr>{['日期', '訂單數', '銷售件數', '當日營收'].map((h, i) => <th key={h} style={{ ...thStyle, textAlign: i > 0 ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+              <div className={s.sectionLabel}>每日銷售趨勢</div>
+              <div className={s.tableWrap}>
+                {/* Desktop table */}
+                <table className={s.table}>
+                  <thead><tr>{['日期', '訂單數', '銷售件數', '當日營收'].map((h, i) => <th key={h} className={i > 0 ? s.thRight : s.th}>{h}</th>)}</tr></thead>
                   <tbody>
                     {reportDaily.length === 0 ? (
-                      <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>此期間無資料</td></tr>
+                      <tr><td colSpan={4} className={s.tdEmpty}>此期間無資料</td></tr>
                     ) : reportDaily.map(d => (
-                      <tr key={d.date} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', fontFamily: '"Montserrat", sans-serif' }}>{d.date}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#555250', textAlign: 'right' }}>{d.orders}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#555250', textAlign: 'right' }}>{d.qty} 件</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: d.revenue > 0 ? '#3d7a55' : '#888580', textAlign: 'right' }}>{d.revenue > 0 ? `NT$ ${d.revenue.toLocaleString()}` : '—'}</td>
+                      <tr key={d.date} className={s.tr}>
+                        <td className={s.tdTrendDate}>{d.date}</td>
+                        <td className={s.tdTrendNum}>{d.orders}</td>
+                        <td className={s.tdTrendNum}>{d.qty} 件</td>
+                        <td className={`${s.tdTrendRevenue} ${d.revenue > 0 ? s.revenuePositive : s.revenueMuted}`}>{d.revenue > 0 ? `NT$ ${d.revenue.toLocaleString()}` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile card list */}
+                <div className={s.cardList}>
+                  {reportDaily.length === 0 ? (
+                    <div className={s.tdEmpty}>此期間無資料</div>
+                  ) : reportDaily.map(d => (
+                    <div key={d.date} className={s.dailyCard}>
+                      <div className={s.dailyCardDate}>{d.date}</div>
+                      <div className={s.dailyCardRow}>
+                        <span className={s.dailyCardStat}>{d.orders} 筆 ・ {d.qty} 件</span>
+                        <span className={`${s.dailyCardStat} ${d.revenue > 0 ? s.dailyRevenuePositive : s.dailyRevenueMuted}`}>
+                          {d.revenue > 0 ? `NT$ ${d.revenue.toLocaleString()}` : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
@@ -426,45 +529,45 @@ export default function AdminOrdersPage() {
 
       {/* 取消訂單確認 Modal */}
       {cancelTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => !cancelLoading && setCancelTarget(null)}>
-          <div style={{ background: '#fff', padding: '32px 36px', maxWidth: '420px', width: '90%', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: '#1E1C1A', marginBottom: '16px', letterSpacing: '0.1em' }}>確認取消訂單</div>
-            <div style={{ fontSize: '13px', color: '#555250', lineHeight: 1.8, marginBottom: '8px' }}>
+        <div className={s.modalOverlay} onClick={() => !cancelLoading && setCancelTarget(null)}>
+          <div className={s.modalBox} onClick={e => e.stopPropagation()}>
+            <div className={s.modalTitle}>確認取消訂單</div>
+            <div className={s.modalBody}>
               確定要取消這筆訂單嗎？
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E1C1A', marginBottom: '4px', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.08em' }}>
+            <div className={s.modalOrderNo}>
               {cancelTarget.order_no}
             </div>
-            <div style={{ fontSize: '13px', color: '#555250', marginBottom: '20px' }}>
+            <div className={s.modalOrderInfo}>
               {cancelTarget.buyer_name} ・ NT$ {cancelTarget.total?.toLocaleString()}
             </div>
 
             {/* 信用卡已付款 → 自動退款提示 */}
             {cancelTarget.pay_method === 'credit' && cancelTarget.pay_status === 'paid' && (
-              <div style={{ background: '#FFF8E7', border: '1px solid #E8D5A3', padding: '12px 14px', fontSize: '12px', color: '#8B6914', lineHeight: 1.7, marginBottom: '16px' }}>
+              <div className={s.modalWarnCredit}>
                 此訂單為信用卡付款（已付款），取消後將自動進行信用卡刷退。
               </div>
             )}
 
             {/* ATM 已付款 → 手動退款提示 */}
             {cancelTarget.pay_method === 'atm' && cancelTarget.pay_status === 'paid' && (
-              <div style={{ background: '#FFF0F0', border: '1px solid #E8BFBF', padding: '12px 14px', fontSize: '12px', color: '#8B1414', lineHeight: 1.7, marginBottom: '16px' }}>
+              <div className={s.modalWarnATM}>
                 此訂單為 ATM虛擬帳號付款，退款將以銀行轉帳方式另行辦理，無法原路退回。請取消後手動處理退款。
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className={s.modalActions}>
               <button
                 onClick={() => setCancelTarget(null)}
                 disabled={cancelLoading}
-                style={{ padding: '9px 24px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '12px', color: '#555250', cursor: 'pointer' }}
+                className={s.btnModalBack}
               >
                 返回
               </button>
               <button
                 onClick={() => handleCancelOrder(cancelTarget)}
                 disabled={cancelLoading}
-                style={{ padding: '9px 24px', background: '#c0392b', border: 'none', fontSize: '12px', color: '#fff', cursor: 'pointer', fontWeight: 600, letterSpacing: '0.08em', opacity: cancelLoading ? 0.6 : 1 }}
+                className={s.btnModalConfirm}
               >
                 {cancelLoading ? '處理中...' : '確認取消'}
               </button>

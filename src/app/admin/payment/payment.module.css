@@ -1,0 +1,118 @@
+/* payment – page-specific (mobile-first) */
+
+.refundBtn {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: #c0392b;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .refundBtn { min-height: unset; }
+}
+
+.inlineSelect {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .inlineSelect { min-height: unset; }
+}
+
+.refundAmount {
+  font-size: 10px;
+  color: var(--text-light);
+}
+
+.orderInfo {
+  background: var(--surface);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-mid);
+}
+
+.refundWarning {
+  background: #fef0f0;
+  border: 1px solid #f5c6c6;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #c0392b;
+}
+
+.btnRefundConfirm {
+  padding: 10px 32px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 44px;
+}
+.btnRefundConfirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pageTitleMb {
+  margin-bottom: 24px;
+}
+.tdOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.buyerName {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.buyerEmail {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.tdNoWrap {
+  white-space: nowrap;
+}
+.tdPayMethod {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+.tdEcpay {
+  font-size: 11px;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+}
+.tdDateLight {
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.refundSelectBlock {
+  margin-bottom: 4px;
+  display: block;
+}
+.cardOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+}
+.cardDash {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.cardDateLight {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.modalWidth {
+  width: 480px;
+}

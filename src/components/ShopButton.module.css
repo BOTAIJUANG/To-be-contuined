@@ -1,0 +1,33 @@
+/* ── ShopButton (mobile-first) ── */
+
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 32px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: transparent;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.5s var(--ease-slow, cubic-bezier(0.6, 0, 0.2, 1));
+  min-height: 44px;
+}
+
+@media (min-width: 640px) {
+  .btn {
+    padding: 12px 44px;
+  }
+}
+
+.btn:hover {
+  background: var(--text-dark);
+  color: var(--bg);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}

@@ -1,0 +1,107 @@
+/* ── About Page (mobile-first) ── */
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 40px var(--gutter);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 56px var(--gutter);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 72px var(--gutter);
+  }
+}
+
+/* Grid: single column on mobile, two columns on lg */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    gap: 48px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+  }
+}
+
+/* Left image box */
+.imageBox {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .imageBox {
+    margin: 0;
+  }
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder {
+  text-align: center;
+  color: var(--text-light);
+}
+
+.placeholderIcon {
+  font-size: 52px;
+  margin-bottom: 12px;
+}
+
+.placeholderLabel {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Right text */
+.title {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.28em;
+  color: var(--text-dark);
+  margin: 0 0 20px;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 19px;
+    margin: 0 0 24px;
+  }
+}
+
+.body {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 2.4;
+  font-weight: 300;
+  white-space: pre-line;
+}

@@ -1,0 +1,22 @@
+/* ── Member Page (mobile-first) ── */
+
+.loading {
+  padding: 80px 0;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+}
+@media (min-width: 768px) {
+  .loading { padding: 120px 0; }
+}
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 40px var(--gutter);
+}
+@media (min-width: 768px) {
+  .container { padding: 72px var(--gutter) 40px; }
+}

@@ -1,0 +1,261 @@
+/* ── OrderDrawer (mobile-first) ── */
+
+/* 遮罩 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.overlayOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 抽屜本體 — 手機全螢幕，桌機 500px */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background: var(--bg);
+  z-index: 301;
+  transform: translateX(100%);
+  transition: transform 0.35s var(--ease);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+}
+.drawerOpen {
+  transform: translateX(0);
+}
+@media (min-width: 640px) {
+  .drawer {
+    width: 500px;
+    max-width: 90vw;
+  }
+}
+
+/* 標題列 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px var(--gutter, 16px);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .header { padding: 20px 24px; }
+}
+
+.headerLabel {
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.headerOrderNo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: "Montserrat", sans-serif;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 可捲動內容 */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px var(--gutter, 16px);
+}
+@media (min-width: 640px) {
+  .body { padding: 24px; }
+}
+
+/* 狀態徽章 */
+.badges {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 4px 12px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* 資訊區塊 */
+.section {
+  background: #fff;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+@media (min-width: 640px) {
+  .section { padding: 16px 20px; }
+}
+
+.sectionTitle {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* 資訊列 */
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  gap: 12px;
+}
+
+.rowLabel {
+  color: var(--text-light);
+  flex-shrink: 0;
+}
+
+.rowValue {
+  color: var(--text-dark);
+  text-align: right;
+  word-break: break-word;
+  max-width: 60%;
+}
+@media (min-width: 640px) {
+  .rowValue { max-width: 240px; }
+}
+
+/* 商品明細 */
+.productRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  gap: 12px;
+}
+
+.productName {
+  color: var(--text-dark);
+  word-break: break-word;
+}
+
+.productPrice {
+  color: #555250;
+  flex-shrink: 0;
+}
+
+/* 金額小計列 */
+.subtotalRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 應付金額 */
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+  border-top: 2px solid var(--line);
+  margin-top: 4px;
+}
+
+.totalPrice {
+  color: var(--price);
+}
+
+/* 快速操作 */
+.actionsWrap {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.actionGroup {
+  min-width: 0;
+}
+
+.actionLabel {
+  font-size: 11px;
+  color: var(--text-light);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.select {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 640px) {
+  .select { min-height: auto; }
+}
+
+.statusFixed {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-light);
+  border: 1px solid var(--line);
+  font-family: "Montserrat", sans-serif;
+}
+
+.payStatusBadge {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.tradeInfo {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+.tradeInfoSub {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+}

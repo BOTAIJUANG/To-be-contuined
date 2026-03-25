@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/lib/useSettings';
 import Footer from '@/components/Footer';
+import s from './shopping-info.module.css';
 
 interface Faq { id: number; question: string; answer: string; }
 
@@ -29,27 +30,21 @@ export default function ShoppingInfoPage() {
 
   return (
     <>
-      <div style={{ width: 'min(calc(100% - 60px), 1100px)', margin: 'auto', padding: '72px 0' }}>
-        <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 48px' }}>
-          SHOPPING INFO
-        </h2>
+      <div className={s.container}>
+        <h2 className={s.title}>SHOPPING INFO</h2>
 
         {loading ? (
-          <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p>
+          <p className={s.loading}>載入中...</p>
         ) : (
           <div>
             {faqs.map((faq, i) => (
-              <div key={faq.id} style={{ padding: '28px 0', borderBottom: '1px solid #E8E4DC' }}>
-                <h4 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 500, fontSize: '14px', letterSpacing: '0.15em', color: '#1E1C1A', margin: '0 0 12px' }}>
-                  {faq.question}
-                </h4>
-                <p style={{ fontSize: '13px', color: '#555250', lineHeight: 2.2, fontWeight: 300, whiteSpace: 'pre-line' }}>
-                  {faq.answer}
-                </p>
+              <div key={faq.id} className={s.faqItem}>
+                <h4 className={s.question}>{faq.question}</h4>
+                <p className={s.answer}>{faq.answer}</p>
               </div>
             ))}
             {faqs.length === 0 && (
-              <p style={{ color: '#888580', fontSize: '13px' }}>暫無購物說明內容。</p>
+              <p className={s.empty}>暫無購物說明內容。</p>
             )}
           </div>
         )}

@@ -1,0 +1,262 @@
+/* ── Nav 導覽列 (mobile-first) ── */
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--gutter, 16px);
+  height: var(--nav-h, 56px);
+  position: sticky;
+  top: 0;
+  background: rgba(247, 244, 239, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+  z-index: 200;
+}
+
+/* 品牌名 */
+.brand {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.25em;
+  color: var(--text-dark);
+  text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+@media (min-width: 768px) {
+  .brand {
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    max-width: 200px;
+  }
+}
+@media (min-width: 1024px) {
+  .brand { max-width: none; }
+}
+
+/* ── 桌機導覽連結（手機隱藏）── */
+.desktopLinks {
+  display: none;
+  align-items: center;
+  gap: 24px;
+}
+@media (min-width: 1024px) {
+  .desktopLinks { display: flex; }
+}
+.desktopLinks a {
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: var(--text-light);
+  text-decoration: none;
+  transition: color 0.3s;
+  white-space: nowrap;
+}
+.desktopLinks a:hover {
+  color: var(--text-dark);
+  opacity: 1;
+}
+.desktopLinks a.active {
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--text-dark);
+  padding-bottom: 2px;
+}
+
+/* ── 右側按鈕群 ── */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .actions { gap: 10px; }
+}
+
+/* 後台按鈕 — 手機只顯示 icon */
+.adminBtn {
+  padding: 8px;
+  border: 1px solid var(--text-dark);
+  background: transparent;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.adminBtnText { display: none; }
+@media (min-width: 768px) {
+  .adminBtn { padding: 8px 14px; }
+  .adminBtnText { display: inline; }
+}
+
+/* 登入/會員按鈕 */
+.authBtn {
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: transparent;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+@media (min-width: 768px) {
+  .authBtn {
+    padding: 8px 18px;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    max-width: 160px;
+  }
+}
+
+/* 購物車按鈕 */
+.cartBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: none;
+  background: var(--text-dark);
+  color: var(--bg);
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+}
+.cartLabel { display: none; }
+@media (min-width: 768px) {
+  .cartBtn {
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+  }
+  .cartLabel { display: inline; }
+}
+.cartBadge {
+  background: var(--price);
+  color: #fff;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Hamburger 按鈕（桌機隱藏）── */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  padding: 0;
+  gap: 5px;
+  order: -1;
+  margin-right: 8px;
+}
+@media (min-width: 1024px) {
+  .hamburger { display: none; }
+}
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: var(--text-dark);
+  transition: transform 0.3s var(--ease), opacity 0.3s;
+}
+.hamburger.open span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* ── 手機側欄 Menu ── */
+.mobileOverlay {
+  position: fixed;
+  inset: 0;
+  top: var(--nav-h, 56px);
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 190;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.mobileOverlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobileMenu {
+  position: fixed;
+  top: var(--nav-h, 56px);
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 85vw;
+  background: var(--bg);
+  z-index: 191;
+  transform: translateX(-100%);
+  transition: transform 0.35s var(--ease);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.mobileMenu.open {
+  transform: translateX(0);
+}
+@media (min-width: 1024px) {
+  .mobileOverlay,
+  .mobileMenu {
+    display: none !important;
+  }
+}
+
+.mobileMenu a {
+  display: block;
+  padding: 16px 24px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--text-mid);
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.mobileMenu a:hover {
+  background: var(--surface);
+  opacity: 1;
+}
+.mobileMenu a.active {
+  color: var(--text-dark);
+  font-weight: 500;
+  background: var(--surface);
+}

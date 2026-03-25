@@ -1,0 +1,312 @@
+/* ── Admin Dashboard (mobile-first) ── */
+
+/* Loading */
+.loading {
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+/* Page title */
+.title {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  color: var(--text-dark);
+  margin: 0 0 24px;
+}
+@media (min-width: 768px) {
+  .title { font-size: 22px; margin-bottom: 32px; }
+}
+
+/* ── Alert banners ── */
+.alertBanner {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 2;
+}
+@media (min-width: 640px) {
+  .alertBanner { padding: 14px 20px; }
+}
+.alertOrder {
+  composes: alertBanner;
+  background: #fff8e1;
+  border: 1px solid #f0c040;
+  color: #7a5c00;
+}
+.alertStock {
+  composes: alertBanner;
+  background: #fef0e8;
+  border: 1px solid #e8a87c;
+  color: #7a3c00;
+}
+.alertTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.alertItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+@media (min-width: 640px) {
+  .alertItem {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+.alertLink {
+  color: #c0392b;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .alertLink { min-height: auto; }
+}
+
+/* ── Clickable number ── */
+.clickNum {
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .clickNum { min-height: auto; }
+}
+
+/* ── Section label ── */
+.sectionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text-mid);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* ── Stat card grids ── */
+.statGrid3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+@media (min-width: 640px) {
+  .statGrid3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .statGrid3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+.statGrid2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+@media (min-width: 640px) {
+  .statGrid2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Stat card ── */
+.statCard {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+  transition: border-color 0.2s;
+}
+@media (min-width: 640px) {
+  .statCard { padding: 20px 24px; }
+}
+.statCardClickable {
+  composes: statCard;
+  cursor: pointer;
+  min-height: 44px;
+}
+.statCardAlert {
+  border-color: #f0c040;
+}
+.statLabel {
+  font-size: 11px;
+  color: var(--text-light);
+  letter-spacing: 0.15em;
+  margin-bottom: 10px;
+  font-family: "Montserrat", sans-serif;
+  text-transform: uppercase;
+}
+.statLabelArrow {
+  font-size: 10px;
+}
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+@media (min-width: 640px) {
+  .statValue { font-size: 28px; }
+}
+.statValueAlert {
+  color: #c0392b;
+}
+
+/* ── Recent orders header ── */
+.recentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.viewAll {
+  font-size: 12px;
+  color: var(--text-dark);
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .viewAll { min-height: auto; }
+}
+
+/* ── Recent orders table (desktop) ── */
+.recentTable {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line);
+}
+.emptyMsg {
+  padding: 24px;
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  display: none;
+}
+@media (min-width: 768px) {
+  .table { display: table; }
+}
+
+.th {
+  padding: 12px 16px;
+  text-align: left;
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+
+.tr {
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.tdOrderNo {
+  padding: 12px 16px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  color: var(--text-dark);
+}
+.tdName {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.tdAmount {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.tdDate {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+.tdPay {
+  padding: 12px 16px;
+  font-size: 12px;
+}
+.tdStatus {
+  padding: 12px 16px;
+}
+.statusBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  font-family: "Montserrat", sans-serif;
+  display: inline-block;
+}
+
+/* ── Mobile card list for recent orders ── */
+.cardList {
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 768px) {
+  .cardList { display: none; }
+}
+
+.card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  min-height: 44px;
+}
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.cardOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+.cardDate {
+  font-size: 11px;
+  color: var(--text-light);
+}
+.cardMid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.cardName {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.cardAmount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.cardBottom {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cardPay {
+  font-size: 11px;
+}

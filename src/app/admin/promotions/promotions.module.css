@@ -1,0 +1,144 @@
+/* promotions – page-specific (mobile-first) */
+
+.multiSelect {
+  border: 1px solid var(--line);
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.multiSelectLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.tierRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.tierInput {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 100px;
+}
+
+.tierPriceInput {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 120px;
+}
+
+.bundleRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.bundlePreview {
+  padding: 12px 16px;
+  background: var(--surface);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.statusBtnActive {
+  font-size: 11px;
+  border: 1px solid;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 12px;
+  min-height: 44px;
+}
+@media (min-width: 768px) {
+  .statusBtnActive { min-height: unset; }
+}
+
+/* ── Converted from inline styles ── */
+
+.pageTitleMb {
+  margin-bottom: 24px;
+}
+
+.addBtnMb {
+  margin-bottom: 20px;
+}
+
+.formTitleCustom {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+
+.tierUnit {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.addTierBtn {
+  margin-top: 4px;
+}
+
+.selectFlex1 {
+  flex: 1;
+}
+
+.bundleQtyInput {
+  width: 60px;
+}
+
+.bundleCheckWrap {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+}
+
+.bundlePriceHighlight {
+  color: var(--price);
+}
+
+.productPriceHint {
+  color: var(--text-light);
+  font-size: 11px;
+}
+
+.btnActionsMt20 {
+  margin-top: 20px;
+}
+
+.tdProductList {
+  font-size: 12px;
+  color: var(--text-mid);
+  max-width: 200px;
+}
+
+.tdSmallMuted {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+.tdBundlePrice {
+  color: var(--price);
+  font-weight: 600;
+}
+
+.tdTimeStatus {
+  font-size: 11px;
+}
+
+.tdActionsNowrap {
+  white-space: nowrap;
+}
+
+.cardValueSmall {
+  font-size: 12px;
+}

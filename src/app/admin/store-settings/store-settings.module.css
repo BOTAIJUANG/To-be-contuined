@@ -1,0 +1,404 @@
+/* store-settings page-specific styles */
+
+/* Max-width form container */
+.formContainer {
+  max-width: 640px;
+}
+
+.formContainerNarrow {
+  max-width: 580px;
+}
+
+.formContainerMid {
+  max-width: 600px;
+}
+
+/* Toggle row: label + toggle on same line */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.toggleRowLabel {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+/* Fee row: label + number input + unit */
+.feeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.feeLabel {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 0;
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.feeUnit {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Fee input narrow */
+.feeInput {
+  width: 90px;
+}
+
+/* Color row */
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.colorLabel {
+  composes: feeLabel;
+  width: 120px;
+}
+
+.colorPicker {
+  width: 44px;
+  height: 36px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.colorHexInput {
+  width: 120px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.colorDefaultBtn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+/* Color preview box */
+.previewWrap {
+  margin-bottom: 28px;
+  padding: 20px;
+  border: 1px solid var(--line);
+}
+
+.previewLabel {
+  font-size: 10px;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.previewRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.previewSwatch {
+  width: 60px;
+  height: 40px;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.previewButton {
+  padding: 8px 20px;
+  color: #fff;
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  cursor: default;
+}
+
+/* Font preview */
+.fontPreviewBox {
+  margin-bottom: 28px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+/* Brand image upload */
+.aboutImgWrap {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.aboutImgPreview {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+/* Blocked date tag */
+.blockedDateTag {
+  background: var(--surface);
+  padding: 4px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blockedDateRemove {
+  cursor: pointer;
+  color: var(--text-light);
+  font-weight: 700;
+}
+
+/* Weekday checkbox group */
+.weekdayGroup {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.weekdayLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+/* Footer save bar */
+.saveBar {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+/* Payment method row (same as toggleRow but without border for ECPay section) */
+.payMethodRow {
+  composes: toggleRow;
+}
+
+/* OG / SEO hint */
+.seoHint {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 639px) {
+  .feeRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .feeLabel {
+    width: auto;
+  }
+
+  .colorRow {
+    flex-wrap: wrap;
+  }
+
+  .colorLabel {
+    width: auto;
+  }
+
+  .aboutImgWrap {
+    flex-direction: column;
+  }
+}
+
+/* ── Converted from inline styles ── */
+
+.pageTitleMb {
+  margin-bottom: 24px;
+}
+
+.tabBarMb32 {
+  margin-bottom: 32px;
+}
+
+.sectionTitleMt28 {
+  margin-top: 28px;
+}
+
+.inputFull {
+  width: 100%;
+}
+
+.inputFullMax320 {
+  composes: inputFull;
+  max-width: 320px;
+}
+
+.inputFullMax400 {
+  composes: inputFull;
+  max-width: 400px;
+}
+
+.inputFullMax480 {
+  composes: inputFull;
+  max-width: 480px;
+}
+
+.textareaMax480 {
+  max-width: 480px;
+}
+
+.toggleRowMb12 {
+  composes: toggleRow;
+  margin-bottom: 12px;
+}
+
+.inputNarrow70 {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 70px;
+}
+
+.feeLabelWide {
+  composes: feeLabel;
+  width: 200px;
+}
+
+.blockedDateRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.blockedDateWrap {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.blockedDateInputNarrow {
+  composes: input from '../_shared/admin-shared.module.css';
+  width: 180px;
+}
+
+.emptyHint {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.paymentContainer {
+  max-width: 560px;
+}
+
+.paymentInputMax320 {
+  composes: inputFull;
+  max-width: 320px;
+}
+
+.seoHintMt8 {
+  composes: seoHint;
+  margin-top: 8px;
+}
+
+.aboutImgMb28 {
+  margin-bottom: 28px;
+}
+
+.aboutImgInputFull {
+  width: 100%;
+}
+
+.aboutImgUploadFlex {
+  flex: 1;
+}
+
+.aboutImgBtnMt8 {
+  margin-top: 8px;
+}
+
+.selectMax320 {
+  max-width: 320px;
+}
+
+.toggleRowCompact {
+  composes: toggleRow;
+  padding: 10px 0;
+}
+
+.copyrightWrap {
+  margin-top: 16px;
+}
+
+.copyrightInput {
+  composes: inputFull;
+  max-width: 360px;
+}
+
+.infoBarMb16 {
+  margin-bottom: 16px;
+}
+
+.warningBarMb16 {
+  margin-bottom: 16px;
+}
+
+.warningBarMb24 {
+  margin-bottom: 24px;
+}
+
+.trackingInput {
+  width: 100%;
+  max-width: 280px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.seoInputFull {
+  width: 100%;
+}
+
+.feeRowMb24 {
+  composes: feeRow;
+  margin-bottom: 24px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Font preview */
+.fontPreviewTitle {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.fontPreviewBody {
+  font-size: 14px;
+  color: #555250;
+  line-height: 1.8;
+}

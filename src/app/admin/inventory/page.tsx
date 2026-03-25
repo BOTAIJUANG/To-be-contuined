@@ -9,13 +9,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
-
-// ── 共用樣式 ─────────────────────────────────────
-const thStyle: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' };
-const thRight: React.CSSProperties = { ...thStyle, textAlign: 'right' };
-const inputStyle: React.CSSProperties = { padding: '9px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none' };
-const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '6px' };
-const sectionTitle: React.CSSProperties = { fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', color: '#555250', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', marginBottom: '12px' };
+import s from '../_shared/admin-shared.module.css';
+import p from './inventory.module.css';
 
 // ── 數字 input helpers（避免前導 0）────────────────
 const numVal = (v: number) => v === 0 ? '' : String(v);
@@ -24,8 +19,8 @@ const numChange = (set: (n: number) => void) => (e: React.ChangeEvent<HTMLInputE
 };
 
 const Toggle = ({ val, onChange }: { val: boolean; onChange: () => void }) => (
-  <div onClick={onChange} style={{ width: '40px', height: '22px', borderRadius: '11px', background: val ? '#1E1C1A' : '#E8E4DC', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: val ? '21px' : '3px', transition: 'left 0.3s' }} />
+  <div onClick={onChange} className={s.toggle} style={{ background: val ? '#1E1C1A' : '#E8E4DC' }}>
+    <div className={s.toggleDot} style={{ left: val ? '21px' : '3px' }} />
   </div>
 );
 
@@ -96,7 +91,7 @@ export default function AdminInventoryPage() {
   // 原料盤點
   const [showIngAuditModal, setShowIngAuditModal] = useState(false);
   const [auditTarget,       setAuditTarget]       = useState<any | null>(null);
-  const [auditActual,       setAuditActual]       = useState(0);    // 實際盤點數量
+  const [auditActual,       setAuditActual]       = useState(0);
   const [auditChangeType,   setAuditChangeType]   = useState('audit');
   const [auditReason,       setAuditReason]       = useState('');
   const [savingAudit,       setSavingAudit]       = useState(false);
@@ -326,10 +321,8 @@ export default function AdminInventoryPage() {
     const qtyAfter  = auditActual;
     const qtyChange = qtyAfter - qtyBefore;
 
-    // 更新庫存
     await supabase.from('ingredients').update({ stock: qtyAfter }).eq('id', auditTarget.id);
 
-    // 寫入記錄
     await supabase.from('ingredient_logs').insert({
       ingredient_id:   auditTarget.id,
       ingredient_name: auditTarget.name,
@@ -364,48 +357,41 @@ export default function AdminInventoryPage() {
     setIngLogsLoading(false);
   };
 
-  const tabStyle = (t: string): React.CSSProperties => ({
-    padding: '10px 20px', cursor: 'pointer', fontSize: '13px',
-    borderBottom: tab === t ? '2px solid #1E1C1A' : '2px solid transparent',
-    color: tab === t ? '#1E1C1A' : '#888580',
-    fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap',
-  });
-
   const FeatureToggleBar = ({ enabled, onToggle, label, desc }: { enabled: boolean; onToggle: () => void; label: string; desc: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#fff', border: '1px solid #E8E4DC', marginBottom: '20px' }}>
+    <div className={p.featureBar}>
       <div>
-        <div style={{ fontSize: '13px', color: '#1E1C1A', marginBottom: '4px' }}>{label}</div>
-        <div style={{ fontSize: '11px', color: '#888580' }}>{desc}</div>
+        <div className={p.featureBarLabel}>{label}</div>
+        <div className={p.featureBarDesc}>{desc}</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.2em', color: enabled ? '#2ab85a' : '#888580', textTransform: 'uppercase' }}>{enabled ? '啟用中' : '已停用'}</span>
+      <div className={p.featureBarRight}>
+        <span className={p.featureBarStatus} style={{ color: enabled ? '#2ab85a' : 'var(--text-light)' }}>{enabled ? '啟用中' : '已停用'}</span>
         <Toggle val={enabled} onChange={onToggle} />
       </div>
     </div>
   );
 
   const DisabledPlaceholder = ({ label, desc, onEnable }: { label: string; desc: string; onEnable: () => void }) => (
-    <div style={{ padding: '64px 0', textAlign: 'center', border: '1px solid #E8E4DC', background: '#fff' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+    <div className={p.disabledPlaceholder}>
+      <div className={p.placeholderIconWrap}>
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8B5B0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
       </div>
-      <div style={{ fontSize: '14px', color: '#888580', marginBottom: '8px' }}>{label}</div>
-      <div style={{ fontSize: '12px', color: '#888580', marginBottom: '24px' }}>{desc}</div>
-      <button onClick={onEnable} style={{ padding: '10px 28px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>啟用功能</button>
+      <div className={p.disabledPlaceholderLabel}>{label}</div>
+      <div className={p.disabledPlaceholderDesc}>{desc}</div>
+      <button onClick={onEnable} className={s.btnPrimary}>啟用功能</button>
     </div>
   );
 
   return (
     <div>
-      <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: '0 0 24px' }}>庫存管理</h1>
+      <h1 className={`${s.pageTitle} ${p.pageTitleMb}`}>庫存管理</h1>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #E8E4DC', marginBottom: '24px' }}>
-        <div style={tabStyle('product')}>    <span onClick={() => setTab('product')}>商品庫存</span></div>
-        <div style={tabStyle('ingredient')} onClick={() => setTab('ingredient')}>原料庫存 {!featureIngredient && <span style={{ fontSize: '10px', color: '#888580' }}>(停用)</span>}</div>
-        <div style={tabStyle('capacity')}   onClick={() => setTab('capacity')}>產能管理 {!featureCapacity && <span style={{ fontSize: '10px', color: '#888580' }}>(停用)</span>}</div>
-        <div style={tabStyle('logs')}       onClick={() => setTab('logs')}>異動記錄</div>
+      <div className={s.tabBar}>
+        <div className={tab === 'product' ? s.tabActive : s.tab} onClick={() => setTab('product')}>商品庫存</div>
+        <div className={tab === 'ingredient' ? s.tabActive : s.tab} onClick={() => setTab('ingredient')}>原料庫存 {!featureIngredient && <span className={p.tabDisabledHint}>(停用)</span>}</div>
+        <div className={tab === 'capacity' ? s.tabActive : s.tab} onClick={() => setTab('capacity')}>產能管理 {!featureCapacity && <span className={p.tabDisabledHint}>(停用)</span>}</div>
+        <div className={tab === 'logs' ? s.tabActive : s.tab} onClick={() => setTab('logs')}>異動記錄</div>
       </div>
 
       {/* ════ 商品庫存 ════ */}
@@ -413,82 +399,83 @@ export default function AdminInventoryPage() {
         <>
           {/* 低庫存警示 */}
           {inventory.some(i => i.inventory_mode === 'stock' && (i.stock - i.reserved) <= i.safety_stock && i.safety_stock > 0) && (
-            <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#7a3c00' }}>
+            <div className={s.errorBar}>
               有商品庫存低於安全庫存，請盡快補貨。
             </div>
           )}
 
           {/* 統計卡片 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+          <div className={s.statGrid}>
             {[
               { label: '商品種類',   value: inventory.length },
               { label: '低庫存',     value: inventory.filter(i => i.inventory_mode === 'stock' && (i.stock - i.reserved) <= i.safety_stock && i.safety_stock > 0).length, color: '#b87a2a' },
               { label: '完售中',     value: inventory.filter(i => i.products?.is_sold_out).length, color: '#c0392b' },
               { label: '預購商品',   value: inventory.filter(i => i.inventory_mode === 'preorder').length },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '16px 20px' }}>
-                <div style={{ fontSize: '10px', color: '#888580', letterSpacing: '0.2em', marginBottom: '8px', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: color ?? '#1E1C1A' }}>{value}</div>
+              <div key={label} className={s.statCard}>
+                <div className={s.statLabel}>{label}</div>
+                <div className={s.statValue} style={{ color: color ?? 'var(--text-dark)' }}>{value}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={sectionTitle}>庫存總覽</div>
-            <button onClick={openAddInv} style={{ padding: '7px 16px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>＋ 新增庫存</button>
+          <div className={`${s.flex} ${p.sectionHeader}`}>
+            <div className={s.sectionTitle}>庫存總覽</div>
+            <button onClick={openAddInv} className={s.btnPrimary}>＋ 新增庫存</button>
           </div>
 
-          {invLoading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> : (
-            <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {invLoading ? <p className={s.loadingText}>載入中...</p> : (
+            <div className={s.tableWrap}>
+              {/* Desktop table */}
+              <table className={s.table}>
                 <thead>
                   <tr>
-                    <th style={thStyle}>商品名稱</th>
-                    <th style={thStyle}>規格</th>
-                    <th style={thStyle}>模式</th>
-                    <th style={thRight}>實體庫存</th>
-                    <th style={thRight}>預留</th>
-                    <th style={thRight}>可售</th>
-                    <th style={thRight}>安全庫存</th>
-                    <th style={thStyle}>狀態</th>
-                    <th style={thStyle}>操作</th>
+                    <th className={s.th}>商品名稱</th>
+                    <th className={s.th}>規格</th>
+                    <th className={s.th}>模式</th>
+                    <th className={s.thRight}>實體庫存</th>
+                    <th className={s.thRight}>預留</th>
+                    <th className={s.thRight}>可售</th>
+                    <th className={s.thRight}>安全庫存</th>
+                    <th className={s.th}>狀態</th>
+                    <th className={s.th}>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {inventory.length === 0 ? (
-                    <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>尚未設定庫存</td></tr>
+                    <tr><td colSpan={9} className={s.emptyRow}>尚未設定庫存</td></tr>
                   ) : inventory.map(item => {
                     const isStock    = item.inventory_mode === 'stock';
                     const available  = isStock ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
                     const isLow      = isStock && item.safety_stock > 0 && available <= item.safety_stock;
                     const isSoldOut  = item.products?.is_sold_out;
                     return (
-                      <tr key={item.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{item.products?.name ?? '—'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{item.product_variants?.name ?? '—'}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontSize: '11px', padding: '2px 8px', background: isStock ? '#EDE9E2' : '#e8f0fb', color: isStock ? '#555250' : '#2a7ab8', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.1em' }}>
+                      <tr key={item.id} className={s.tr}>
+                        <td className={s.td}>{item.products?.name ?? '—'}</td>
+                        <td className={`${s.td} ${p.variantCol}`}>{item.product_variants?.name ?? '—'}</td>
+                        <td className={s.td}>
+                          <span className={isStock ? p.modeBadgeStock : p.modeBadgePreorder}>
                             {isStock ? 'STOCK' : 'PREORDER'}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', textAlign: 'right', fontWeight: 600 }}>{isStock ? item.stock : item.reserved_preorder}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#888580', textAlign: 'right' }}>{isStock ? item.reserved : '—'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a', textAlign: 'right' }}>
+                        <td className={`${s.td} ${p.tdRightBold}`}>{isStock ? item.stock : item.reserved_preorder}</td>
+                        <td className={`${s.td} ${p.tdRightLight}`}>{isStock ? item.reserved : '—'}</td>
+                        <td className={`${s.td} ${p.tdRightBold}`} style={{ color: available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a' }}>
                           {isStock ? available : `${item.max_preorder === 0 ? '不限' : available}`}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#888580', textAlign: 'right' }}>{isStock ? item.safety_stock : '—'}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontSize: '11px', color: isSoldOut ? '#c0392b' : '#2ab85a', border: `1px solid ${isSoldOut ? '#c0392b' : '#2ab85a'}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>
+                        <td className={`${s.td} ${p.tdRightLight}`}>{isStock ? item.safety_stock : '—'}</td>
+                        <td className={s.td}>
+                          <span className={s.badge} style={{ color: isSoldOut ? '#c0392b' : '#2ab85a', border: `1px solid ${isSoldOut ? '#c0392b' : '#2ab85a'}` }}>
                             {isSoldOut ? '完售' : '販售中'}
                           </span>
-                          {isLow && !isSoldOut && <span style={{ fontSize: '10px', color: '#b87a2a', display: 'block', marginTop: '3px' }}>低庫存</span>}
+                          {isLow && !isSoldOut && <span className={p.lowStockHint}>低庫存</span>}
                         </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap' }}>
-                            {isStock && <button onClick={() => openAdj(item, 'adjust')} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#2ab85a', cursor: 'pointer', whiteSpace: 'nowrap' }}>調整庫存</button>}
-                            {isStock && <button onClick={() => openAdj(item, 'audit')}  style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#888580', cursor: 'pointer' }}>盤點</button>}
-                            <button onClick={() => openEditInv(item)} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>編輯</button>
-                            <button onClick={() => deleteInv(item.id)} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
+                        <td className={s.td}>
+                          <div className={p.actionRow}>
+                            {isStock && <button onClick={() => openAdj(item, 'adjust')} className={`${s.btnSmall} ${p.btnAdjust}`}>調整庫存</button>}
+                            {isStock && <button onClick={() => openAdj(item, 'audit')} className={s.btnSmall}>盤點</button>}
+                            <button onClick={() => openEditInv(item)} className={s.btnSmall}>編輯</button>
+                            <button onClick={() => deleteInv(item.id)} className={s.btnDanger}>刪除</button>
                           </div>
                         </td>
                       </tr>
@@ -496,6 +483,52 @@ export default function AdminInventoryPage() {
                   })}
                 </tbody>
               </table>
+
+              {/* Mobile card list */}
+              <div className={s.cardList}>
+                {inventory.length === 0 ? (
+                  <div className={s.emptyRow}>尚未設定庫存</div>
+                ) : inventory.map(item => {
+                  const isStock    = item.inventory_mode === 'stock';
+                  const available  = isStock ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
+                  const isLow      = isStock && item.safety_stock > 0 && available <= item.safety_stock;
+                  const isSoldOut  = item.products?.is_sold_out;
+                  return (
+                    <div key={item.id} className={s.card}>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>商品</span>
+                        <span className={s.cardValue}>{item.products?.name ?? '—'}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>模式</span>
+                        <span className={isStock ? p.modeBadgeStock : p.modeBadgePreorder}>{isStock ? 'STOCK' : 'PREORDER'}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>庫存</span>
+                        <span className={`${s.cardValue} ${p.cardValueBold}`}>{isStock ? item.stock : item.reserved_preorder}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>可售</span>
+                        <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a' }}>
+                          {isStock ? available : `${item.max_preorder === 0 ? '不限' : available}`}
+                        </span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>狀態</span>
+                        <span className={s.badge} style={{ color: isSoldOut ? '#c0392b' : '#2ab85a', border: `1px solid ${isSoldOut ? '#c0392b' : '#2ab85a'}` }}>
+                          {isSoldOut ? '完售' : '販售中'}
+                        </span>
+                      </div>
+                      <div className={s.cardActions}>
+                        {isStock && <button onClick={() => openAdj(item, 'adjust')} className={`${s.btnSmall} ${p.btnAdjust}`}>調整</button>}
+                        {isStock && <button onClick={() => openAdj(item, 'audit')} className={s.btnSmall}>盤點</button>}
+                        <button onClick={() => openEditInv(item)} className={s.btnSmall}>編輯</button>
+                        <button onClick={() => deleteInv(item.id)} className={s.btnDanger}>刪除</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </>
@@ -511,103 +544,143 @@ export default function AdminInventoryPage() {
             <>
               {/* 低庫存警示 */}
               {ingredients.some(i => Number(i.stock) <= Number(i.safety_stock) && Number(i.safety_stock) > 0) && (
-                <div style={{ background: '#fef0e8', border: '1px solid #e8a87c', padding: '12px 16px', marginBottom: '16px', fontSize: '12px', color: '#7a3c00' }}>
+                <div className={s.errorBar}>
                   有品項庫存低於安全庫存，請盡快補貨。
                 </div>
               )}
 
               {/* 搜尋 + 篩選 + 新增 */}
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input value={ingSearch} onChange={e => setIngSearch(e.target.value)} placeholder="搜尋品項名稱..." style={{ ...inputStyle, minWidth: '200px' }} />
-                <select value={ingCatFilter} onChange={e => setIngCatFilter(e.target.value)} style={inputStyle}>
+              <div className={s.filterRow}>
+                <input value={ingSearch} onChange={e => setIngSearch(e.target.value)} placeholder="搜尋品項名稱..." className={s.searchInput} />
+                <select value={ingCatFilter} onChange={e => setIngCatFilter(e.target.value)} className={s.filterSelect}>
                   <option value="">全部分類</option>
                   <option value="原料">原料</option>
                   <option value="包材">包材</option>
                   <option value="耗材">耗材</option>
                 </select>
-                <div style={{ marginLeft: 'auto' }}>
-                  <button onClick={openAddIng} style={{ padding: '7px 16px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', cursor: 'pointer' }}>＋ 新增品項</button>
+                <div className={s.mlAuto}>
+                  <button onClick={openAddIng} className={s.btnPrimary}>＋ 新增品項</button>
                 </div>
               </div>
 
-              {ingLoading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> : (
-                <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              {ingLoading ? <p className={s.loadingText}>載入中...</p> : (
+                <div className={s.tableWrap}>
+                  {/* Desktop table */}
+                  <table className={s.table}>
                     <thead><tr>
-                      <th style={thStyle}>品項名稱</th>
-                      <th style={thStyle}>分類</th>
-                      <th style={thStyle}>單位</th>
-                      <th style={thRight}>現有庫存</th>
-                      <th style={thRight}>安全庫存</th>
-                      <th style={thStyle}>狀態</th>
-                      <th style={thStyle}>最近進貨日</th>
-                      <th style={thStyle}>保存期限</th>
-                      <th style={thStyle}>儲放位置</th>
-                      <th style={thStyle}>操作</th>
+                      <th className={s.th}>品項名稱</th>
+                      <th className={s.th}>分類</th>
+                      <th className={s.th}>單位</th>
+                      <th className={s.thRight}>現有庫存</th>
+                      <th className={s.thRight}>安全庫存</th>
+                      <th className={s.th}>狀態</th>
+                      <th className={s.th}>最近進貨日</th>
+                      <th className={s.th}>保存期限</th>
+                      <th className={s.th}>儲放位置</th>
+                      <th className={s.th}>操作</th>
                     </tr></thead>
                     <tbody>
                       {ingredients
                         .filter(i => (!ingSearch || i.name.includes(ingSearch)) && (!ingCatFilter || i.category === ingCatFilter))
                         .length === 0 ? (
-                        <tr><td colSpan={10} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>沒有符合條件的品項</td></tr>
+                        <tr><td colSpan={10} className={s.emptyRow}>沒有符合條件的品項</td></tr>
                       ) : ingredients
                         .filter(i => (!ingSearch || i.name.includes(ingSearch)) && (!ingCatFilter || i.category === ingCatFilter))
                         .map(ing => {
-                          const isLow     = Number(ing.safety_stock) > 0 && Number(ing.stock) <= Number(ing.safety_stock);
-                          // 比較日期時用當天 0:00，避免「今天到期」被誤判為已過期
+                          const isLow = Number(ing.safety_stock) > 0 && Number(ing.stock) <= Number(ing.safety_stock);
                           const today = new Date(); today.setHours(0, 0, 0, 0);
                           const isExpired = ing.expiry_date && new Date(ing.expiry_date + 'T23:59:59') < today;
                           return (
-                            <tr key={ing.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                              <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', fontWeight: isLow ? 600 : 400 }}>{ing.name}</td>
-                              <td style={{ padding: '12px 16px' }}>
-                                <span style={{ fontSize: '11px', padding: '2px 8px', background: ing.category === '原料' ? '#EDE9E2' : ing.category === '包材' ? '#e8f0fb' : '#fff8e1', color: '#555250', fontFamily: '"Montserrat", sans-serif' }}>
+                            <tr key={ing.id} className={s.tr}>
+                              <td className={`${s.td} ${isLow ? p.ingNameLow : ''}`}>{ing.name}</td>
+                              <td className={s.td}>
+                                <span className={p.ingCatBadge} style={{ background: ing.category === '原料' ? 'var(--surface)' : ing.category === '包材' ? '#e8f0fb' : '#fff8e1' }}>
                                   {ing.category ?? '原料'}
                                 </span>
                               </td>
-                              <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{ing.unit}</td>
-                              <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 600, color: isLow ? '#c0392b' : '#1E1C1A' }}>{ing.stock}</span>
+                              <td className={`${s.td} ${p.unitCol}`}>{ing.unit}</td>
+                              <td className={`${s.td} ${p.tdRightBold}`}>
+                                <span style={{ color: isLow ? '#c0392b' : 'var(--text-dark)' }}>{ing.stock}</span>
                               </td>
-                              <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', textAlign: 'right' }}>{ing.safety_stock}</td>
-                              <td style={{ padding: '12px 16px' }}>
-                                <span style={{ fontSize: '11px', color: isLow ? '#c0392b' : '#2ab85a', border: `1px solid ${isLow ? '#c0392b' : '#2ab85a'}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>
+                              <td className={`${s.td} ${p.safetyStockCol}`}>{ing.safety_stock}</td>
+                              <td className={s.td}>
+                                <span className={s.badge} style={{ color: isLow ? '#c0392b' : '#2ab85a', border: `1px solid ${isLow ? '#c0392b' : '#2ab85a'}` }}>
                                   {isLow ? '庫存不足' : '正常'}
                                 </span>
                               </td>
-                              <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{ing.restocked_at ?? '—'}</td>
-                              <td style={{ padding: '12px 16px', fontSize: '12px', color: isExpired ? '#c0392b' : '#555250' }}>{ing.expiry_date ?? '—'}{isExpired && ' 已過期'}</td>
-                              <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{ing.location ?? '—'}</td>
-                              <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
-                                <button onClick={() => openIngAudit(ing)} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#2ab85a', cursor: 'pointer', whiteSpace: 'nowrap' }}>盤點</button>
-                                <button onClick={() => openEditIng(ing)} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer' }}>編輯</button>
-                                <button onClick={() => deleteIng(ing.id)} style={{ padding: '5px 8px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer' }}>刪除</button>
+                              <td className={`${s.td} ${p.dateCol}`}>{ing.restocked_at ?? '—'}</td>
+                              <td className={`${s.td} ${p.dateColMid}`} style={isExpired ? { color: '#c0392b' } : undefined}>{ing.expiry_date ?? '—'}{isExpired && ' 已過期'}</td>
+                              <td className={`${s.td} ${p.locationCol}`}>{ing.location ?? '—'}</td>
+                              <td className={s.td}>
+                                <div className={p.actionRow}>
+                                  <button onClick={() => openIngAudit(ing)} className={`${s.btnSmall} ${p.btnAdjust}`}>盤點</button>
+                                  <button onClick={() => openEditIng(ing)} className={s.btnSmall}>編輯</button>
+                                  <button onClick={() => deleteIng(ing.id)} className={s.btnDanger}>刪除</button>
+                                </div>
                               </td>
                             </tr>
                           );
                         })}
                     </tbody>
                   </table>
+
+                  {/* Mobile card list */}
+                  <div className={s.cardList}>
+                    {ingredients
+                      .filter(i => (!ingSearch || i.name.includes(ingSearch)) && (!ingCatFilter || i.category === ingCatFilter))
+                      .length === 0 ? (
+                      <div className={s.emptyRow}>沒有符合條件的品項</div>
+                    ) : ingredients
+                      .filter(i => (!ingSearch || i.name.includes(ingSearch)) && (!ingCatFilter || i.category === ingCatFilter))
+                      .map(ing => {
+                        const isLow = Number(ing.safety_stock) > 0 && Number(ing.stock) <= Number(ing.safety_stock);
+                        return (
+                          <div key={ing.id} className={s.card}>
+                            <div className={s.cardRow}>
+                              <span className={s.cardLabel}>品項</span>
+                              <span className={`${s.cardValue} ${isLow ? p.ingNameLow : ''}`}>{ing.name}</span>
+                            </div>
+                            <div className={s.cardRow}>
+                              <span className={s.cardLabel}>分類</span>
+                              <span className={p.ingCatBadge} style={{ background: ing.category === '原料' ? 'var(--surface)' : ing.category === '包材' ? '#e8f0fb' : '#fff8e1' }}>{ing.category ?? '原料'}</span>
+                            </div>
+                            <div className={s.cardRow}>
+                              <span className={s.cardLabel}>庫存</span>
+                              <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: isLow ? '#c0392b' : 'var(--text-dark)' }}>{ing.stock} {ing.unit}</span>
+                            </div>
+                            <div className={s.cardRow}>
+                              <span className={s.cardLabel}>狀態</span>
+                              <span className={s.badge} style={{ color: isLow ? '#c0392b' : '#2ab85a', border: `1px solid ${isLow ? '#c0392b' : '#2ab85a'}` }}>{isLow ? '庫存不足' : '正常'}</span>
+                            </div>
+                            <div className={s.cardActions}>
+                              <button onClick={() => openIngAudit(ing)} className={`${s.btnSmall} ${p.btnAdjust}`}>盤點</button>
+                              <button onClick={() => openEditIng(ing)} className={s.btnSmall}>編輯</button>
+                              <button onClick={() => deleteIng(ing.id)} className={s.btnDanger}>刪除</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 
               {/* 異動記錄 */}
-              <div style={{ marginTop: '28px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={sectionTitle}>異動記錄</div>
-                  <button onClick={() => { setShowIngLogs(!showIngLogs); if (!showIngLogs) loadIngLogs(); }} style={{ padding: '6px 14px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif' }}>
+              <div className={s.mt28}>
+                <div className={`${s.flex} ${p.sectionHeader}`}>
+                  <div className={s.sectionTitle}>異動記錄</div>
+                  <button onClick={() => { setShowIngLogs(!showIngLogs); if (!showIngLogs) loadIngLogs(); }} className={s.btnSmall}>
                     {showIngLogs ? '收起' : '展開查看'}
                   </button>
                 </div>
                 {showIngLogs && (
                   <>
                     {/* 篩選 */}
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                      <select value={ingLogFilter.ingredient_id} onChange={e => setIngLogFilter(f => ({...f, ingredient_id: e.target.value}))} style={inputStyle}>
+                    <div className={`${s.filterRow} ${p.filterRowEnd}`}>
+                      <select value={ingLogFilter.ingredient_id} onChange={e => setIngLogFilter(f => ({...f, ingredient_id: e.target.value}))} className={s.filterSelect}>
                         <option value="">全部品項</option>
                         {ingredients.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                       </select>
-                      <select value={ingLogFilter.change_type} onChange={e => setIngLogFilter(f => ({...f, change_type: e.target.value}))} style={inputStyle}>
+                      <select value={ingLogFilter.change_type} onChange={e => setIngLogFilter(f => ({...f, change_type: e.target.value}))} className={s.filterSelect}>
                         <option value="">全部類型</option>
                         <option value="use">使用</option>
                         <option value="damage">損耗</option>
@@ -616,51 +689,69 @@ export default function AdminInventoryPage() {
                         <option value="audit">盤點修正</option>
                         <option value="adjust">其他</option>
                       </select>
-                      <input type="date" value={ingLogFilter.date_start} onChange={e => setIngLogFilter(f => ({...f, date_start: e.target.value}))} style={inputStyle} />
-                      <span style={{ color: '#888580', alignSelf: 'center' }}>～</span>
-                      <input type="date" value={ingLogFilter.date_end} onChange={e => setIngLogFilter(f => ({...f, date_end: e.target.value}))} style={inputStyle} />
-                      <button onClick={loadIngLogs} style={{ padding: '9px 16px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>查詢</button>
+                      <input type="date" value={ingLogFilter.date_start} onChange={e => setIngLogFilter(f => ({...f, date_start: e.target.value}))} className={s.input} />
+                      <span className={p.dateSeparator}>～</span>
+                      <input type="date" value={ingLogFilter.date_end} onChange={e => setIngLogFilter(f => ({...f, date_end: e.target.value}))} className={s.input} />
+                      <button onClick={loadIngLogs} className={s.btnPrimary}>查詢</button>
                     </div>
-                    {ingLogsLoading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> : (
-                      <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    {ingLogsLoading ? <p className={s.loadingText}>載入中...</p> : (
+                      <div className={s.tableWrap}>
+                        <table className={s.table}>
                           <thead><tr>
-                            <th style={thStyle}>時間</th>
-                            <th style={thStyle}>品項</th>
-                            <th style={thStyle}>類型</th>
-                            <th style={thRight}>調整前</th>
-                            <th style={thRight}>變動量</th>
-                            <th style={thRight}>調整後</th>
-                            <th style={thStyle}>原因</th>
-                            <th style={thStyle}>操作者</th>
+                            <th className={s.th}>時間</th>
+                            <th className={s.th}>品項</th>
+                            <th className={s.th}>類型</th>
+                            <th className={s.thRight}>調整前</th>
+                            <th className={s.thRight}>變動量</th>
+                            <th className={s.thRight}>調整後</th>
+                            <th className={s.th}>原因</th>
+                            <th className={s.th}>操作者</th>
                           </tr></thead>
                           <tbody>
                             {ingLogs.length === 0 ? (
-                              <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>沒有符合條件的記錄</td></tr>
-                            ) : ingLogs.map(log => {
+                              <tr><td colSpan={8} className={s.emptyRow}>沒有符合條件的記錄</td></tr>
+                            ) : ingLogs.map(logItem => {
                               const ING_TYPE_LABEL: Record<string, string> = { use: '使用', damage: '損耗', scrap: '報廢', purchase: '進貨補登', audit: '盤點修正', adjust: '其他' };
                               const ING_TYPE_COLOR: Record<string, string> = { use: '#888580', damage: '#c0392b', scrap: '#c0392b', purchase: '#2ab85a', audit: '#555250', adjust: '#b87a2a' };
                               return (
-                                <tr key={log.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('zh-TW')}</td>
-                                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{log.ingredient_name ?? '—'}</td>
-                                  <td style={{ padding: '12px 16px' }}>
-                                    <span style={{ fontSize: '11px', color: ING_TYPE_COLOR[log.change_type], border: `1px solid ${ING_TYPE_COLOR[log.change_type]}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap' }}>
-                                      {ING_TYPE_LABEL[log.change_type] ?? log.change_type}
+                                <tr key={logItem.id} className={s.tr}>
+                                  <td className={`${s.td} ${p.logTimeCell}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</td>
+                                  <td className={s.td}>{logItem.ingredient_name ?? '—'}</td>
+                                  <td className={s.td}>
+                                    <span className={s.badge} style={{ color: ING_TYPE_COLOR[logItem.change_type], border: `1px solid ${ING_TYPE_COLOR[logItem.change_type]}` }}>
+                                      {ING_TYPE_LABEL[logItem.change_type] ?? logItem.change_type}
                                     </span>
                                   </td>
-                                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#888580', textAlign: 'right' }}>{log.qty_before}</td>
-                                  <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: Number(log.qty_change) >= 0 ? '#2ab85a' : '#c0392b', textAlign: 'right' }}>
-                                    {Number(log.qty_change) >= 0 ? `+${log.qty_change}` : log.qty_change}
+                                  <td className={`${s.td} ${p.logQtyBefore}`}>{logItem.qty_before}</td>
+                                  <td className={`${s.td} ${p.logQtyChangeBold}`} style={{ color: Number(logItem.qty_change) >= 0 ? '#2ab85a' : '#c0392b' }}>
+                                    {Number(logItem.qty_change) >= 0 ? `+${logItem.qty_change}` : logItem.qty_change}
                                   </td>
-                                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', textAlign: 'right', fontWeight: 600 }}>{log.qty_after}</td>
-                                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250' }}>{log.reason ?? '—'}</td>
-                                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{log.admin_name ?? '—'}</td>
+                                  <td className={`${s.td} ${p.logQtyAfter}`}>{logItem.qty_after}</td>
+                                  <td className={`${s.td} ${p.logReasonCell}`}>{logItem.reason ?? '—'}</td>
+                                  <td className={`${s.td} ${p.logAdminCell}`}>{logItem.admin_name ?? '—'}</td>
                                 </tr>
                               );
                             })}
                           </tbody>
                         </table>
+
+                        <div className={s.cardList}>
+                          {ingLogs.length === 0 ? (
+                            <div className={s.emptyRow}>沒有符合條件的記錄</div>
+                          ) : ingLogs.map(logItem => {
+                            const ING_TYPE_LABEL: Record<string, string> = { use: '使用', damage: '損耗', scrap: '報廢', purchase: '進貨補登', audit: '盤點修正', adjust: '其他' };
+                            const ING_TYPE_COLOR: Record<string, string> = { use: '#888580', damage: '#c0392b', scrap: '#c0392b', purchase: '#2ab85a', audit: '#555250', adjust: '#b87a2a' };
+                            return (
+                              <div key={logItem.id} className={s.card}>
+                                <div className={s.cardRow}><span className={s.cardLabel}>時間</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</span></div>
+                                <div className={s.cardRow}><span className={s.cardLabel}>品項</span><span className={s.cardValue}>{logItem.ingredient_name ?? '—'}</span></div>
+                                <div className={s.cardRow}><span className={s.cardLabel}>類型</span><span className={s.badge} style={{ color: ING_TYPE_COLOR[logItem.change_type], border: `1px solid ${ING_TYPE_COLOR[logItem.change_type]}` }}>{ING_TYPE_LABEL[logItem.change_type] ?? logItem.change_type}</span></div>
+                                <div className={s.cardRow}><span className={s.cardLabel}>變動</span><span className={`${s.cardValue} ${p.cardChangeBold}`} style={{ color: Number(logItem.qty_change) >= 0 ? '#2ab85a' : '#c0392b' }}>{Number(logItem.qty_change) >= 0 ? `+${logItem.qty_change}` : logItem.qty_change}</span></div>
+                                <div className={s.cardRow}><span className={s.cardLabel}>調整後</span><span className={`${s.cardValue} ${p.cardAfterBold}`}>{logItem.qty_after}</span></div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </>
@@ -680,55 +771,67 @@ export default function AdminInventoryPage() {
           ) : (
             <>
               {/* 今日產能 */}
-              <div style={sectionTitle}>今日可售狀況</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+              <div className={s.sectionTitle}>今日可售狀況</div>
+              <div className={p.capacityGrid}>
                 {inventory.filter(i => i.inventory_mode === 'stock').map(item => {
                   const available = item.stock - item.reserved;
                   const capacity  = item.stock;
                   const pct       = capacity > 0 ? Math.round((capacity - available) / capacity * 100) : 0;
                   return (
-                    <div key={item.id} style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '16px 20px' }}>
-                      <div style={{ fontSize: '12px', color: '#888580', marginBottom: '4px' }}>{item.products?.name}{item.product_variants?.name && ` · ${item.product_variants.name}`}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '20px', fontWeight: 700, color: available <= 0 ? '#c0392b' : '#1E1C1A' }}>{available}</span>
-                        <span style={{ fontSize: '12px', color: '#888580', alignSelf: 'flex-end' }}>/ {capacity} 件</span>
+                    <div key={item.id} className={p.capacityCard}>
+                      <div className={p.capacityCardLabel}>{item.products?.name}{item.product_variants?.name && ` · ${item.product_variants.name}`}</div>
+                      <div className={p.capacityCardRow}>
+                        <span className={p.capacityCardValue} style={{ color: available <= 0 ? '#c0392b' : 'var(--text-dark)' }}>{available}</span>
+                        <span className={p.capacityCardSub}>/ {capacity} 件</span>
                       </div>
-                      <div style={{ height: '4px', background: '#E8E4DC', borderRadius: '2px' }}>
-                        <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, background: pct >= 100 ? '#c0392b' : pct >= 80 ? '#b87a2a' : '#2ab85a', borderRadius: '2px' }} />
+                      <div className={s.progressBar}>
+                        <div className={s.progressFill} style={{ width: `${Math.min(100, pct)}%`, background: pct >= 100 ? '#c0392b' : pct >= 80 ? '#b87a2a' : '#2ab85a' }} />
                       </div>
-                      <div style={{ fontSize: '10px', color: '#888580', marginTop: '6px' }}>已預留 {item.reserved} 件</div>
+                      <div className={p.capacityCardMeta}>已預留 {item.reserved} 件</div>
                     </div>
                   );
                 })}
               </div>
 
               {/* 出貨排程 */}
-              <div style={sectionTitle}>訂單出貨排程</div>
-              <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className={s.sectionTitle}>訂單出貨排程</div>
+              <div className={s.tableWrap}>
+                <table className={s.table}>
                   <thead><tr>
-                    <th style={thStyle}>出貨日</th>
-                    <th style={thStyle}>各類需求</th>
-                    <th style={thRight}>總件數</th>
-                    <th style={thStyle}>狀況</th>
+                    <th className={s.th}>出貨日</th>
+                    <th className={s.th}>各類需求</th>
+                    <th className={s.thRight}>總件數</th>
+                    <th className={s.th}>狀況</th>
                   </tr></thead>
                   <tbody>
                     {schedule.length === 0 ? (
-                      <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>近期無出貨排程</td></tr>
-                    ) : schedule.map(s => (
-                      <tr key={s.date} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                        <td style={{ padding: '12px 16px', fontFamily: '"Montserrat", sans-serif', fontSize: '13px', color: '#1E1C1A' }}>{s.date}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250' }}>
-                          {Object.entries(s.byCategory).map(([cat, qty]: any) => <span key={cat} style={{ marginRight: '12px' }}>{cat} {qty} 件</span>)}
+                      <tr><td colSpan={4} className={s.emptyRow}>近期無出貨排程</td></tr>
+                    ) : schedule.map(sched => (
+                      <tr key={sched.date} className={s.tr}>
+                        <td className={`${s.td} ${p.monoFont}`}>{sched.date}</td>
+                        <td className={`${s.td} ${p.schedDetailText}`}>
+                          {Object.entries(sched.byCategory).map(([cat, qty]: any) => <span key={cat} className={p.schedCatItem}>{cat} {qty} 件</span>)}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#1E1C1A', textAlign: 'right' }}>{s.total}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontSize: '11px', color: '#2ab85a', border: '1px solid #2ab85a', padding: '2px 8px', fontFamily: '"Montserrat", sans-serif' }}>正常</span>
+                        <td className={`${s.td} ${p.schedTotalBold}`}>{sched.total}</td>
+                        <td className={s.td}>
+                          <span className={`${s.badge} ${p.badgeNormal}`}>正常</span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
+                <div className={s.cardList}>
+                  {schedule.length === 0 ? (
+                    <div className={s.emptyRow}>近期無出貨排程</div>
+                  ) : schedule.map(sched => (
+                    <div key={sched.date} className={s.card}>
+                      <div className={s.cardRow}><span className={s.cardLabel}>出貨日</span><span className={`${s.cardValue} ${p.monoFont}`}>{sched.date}</span></div>
+                      <div className={s.cardRow}><span className={s.cardLabel}>總件數</span><span className={`${s.cardValue} ${p.cardAfterBold}`}>{sched.total}</span></div>
+                      <div className={s.cardRow}><span className={s.cardLabel}>狀況</span><span className={`${s.badge} ${p.badgeNormal}`}>正常</span></div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
@@ -739,65 +842,80 @@ export default function AdminInventoryPage() {
       {tab === 'logs' && (
         <div>
           {/* 篩選 */}
-          <div style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className={p.filterPanel}>
             <div>
-              <label style={labelStyle}>商品</label>
-              <select value={logFilter.product_id} onChange={e => setLogFilter(f => ({...f, product_id: e.target.value}))} style={{ ...inputStyle }}>
+              <label className={s.label}>商品</label>
+              <select value={logFilter.product_id} onChange={e => setLogFilter(f => ({...f, product_id: e.target.value}))} className={s.select}>
                 <option value="">全部商品</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {products.map(prod => <option key={prod.id} value={prod.id}>{prod.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>異動類型</label>
-              <select value={logFilter.change_type} onChange={e => setLogFilter(f => ({...f, change_type: e.target.value}))} style={{ ...inputStyle }}>
+              <label className={s.label}>異動類型</label>
+              <select value={logFilter.change_type} onChange={e => setLogFilter(f => ({...f, change_type: e.target.value}))} className={s.select}>
                 <option value="">全部類型</option>
                 {Object.entries(CHANGE_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>開始日期</label>
-              <input type="date" value={logFilter.date_start} onChange={e => setLogFilter(f => ({...f, date_start: e.target.value}))} style={inputStyle} />
+              <label className={s.label}>開始日期</label>
+              <input type="date" value={logFilter.date_start} onChange={e => setLogFilter(f => ({...f, date_start: e.target.value}))} className={s.input} />
             </div>
             <div>
-              <label style={labelStyle}>結束日期</label>
-              <input type="date" value={logFilter.date_end} onChange={e => setLogFilter(f => ({...f, date_end: e.target.value}))} style={inputStyle} />
+              <label className={s.label}>結束日期</label>
+              <input type="date" value={logFilter.date_end} onChange={e => setLogFilter(f => ({...f, date_end: e.target.value}))} className={s.input} />
             </div>
-            <button onClick={loadLogs} style={{ padding: '9px 20px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.15em', cursor: 'pointer' }}>查詢</button>
+            <button onClick={loadLogs} className={s.btnPrimary}>查詢</button>
           </div>
 
-          {logsLoading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> : (
-            <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {logsLoading ? <p className={s.loadingText}>載入中...</p> : (
+            <div className={s.tableWrap}>
+              <table className={s.table}>
                 <thead><tr>
-                  <th style={thStyle}>時間</th><th style={thStyle}>商品</th>
-                  <th style={thStyle}>規格</th><th style={thStyle}>類型</th>
-                  <th style={thRight}>異動前</th><th style={thRight}>變動量</th><th style={thRight}>異動後</th>
-                  <th style={thStyle}>原因</th><th style={thStyle}>操作者</th>
+                  <th className={s.th}>時間</th><th className={s.th}>商品</th>
+                  <th className={s.th}>規格</th><th className={s.th}>類型</th>
+                  <th className={s.thRight}>異動前</th><th className={s.thRight}>變動量</th><th className={s.thRight}>異動後</th>
+                  <th className={s.th}>原因</th><th className={s.th}>操作者</th>
                 </tr></thead>
                 <tbody>
                   {logs.length === 0 ? (
-                    <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>沒有符合條件的記錄</td></tr>
-                  ) : logs.map(log => (
-                    <tr key={log.id} style={{ borderBottom: '1px solid #E8E4DC' }}>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('zh-TW')}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A' }}>{log.products?.name ?? '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{log.product_variants?.name ?? '—'}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: '11px', color: CHANGE_TYPE_COLOR[log.change_type], border: `1px solid ${CHANGE_TYPE_COLOR[log.change_type]}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap' }}>
-                          {CHANGE_TYPE_LABEL[log.change_type] ?? log.change_type}
+                    <tr><td colSpan={9} className={s.emptyRow}>沒有符合條件的記錄</td></tr>
+                  ) : logs.map(logItem => (
+                    <tr key={logItem.id} className={s.tr}>
+                      <td className={`${s.td} ${p.logTimeCell}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</td>
+                      <td className={s.td}>{logItem.products?.name ?? '—'}</td>
+                      <td className={`${s.td} ${p.variantCol}`}>{logItem.product_variants?.name ?? '—'}</td>
+                      <td className={s.td}>
+                        <span className={s.badge} style={{ color: CHANGE_TYPE_COLOR[logItem.change_type], border: `1px solid ${CHANGE_TYPE_COLOR[logItem.change_type]}` }}>
+                          {CHANGE_TYPE_LABEL[logItem.change_type] ?? logItem.change_type}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#888580', textAlign: 'right' }}>{log.qty_before}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: log.qty_change >= 0 ? '#2ab85a' : '#c0392b', textAlign: 'right' }}>
-                        {log.qty_change >= 0 ? `+${log.qty_change}` : log.qty_change}
+                      <td className={`${s.td} ${p.logQtyBefore}`}>{logItem.qty_before}</td>
+                      <td className={`${s.td} ${p.logQtyChangeBold}`} style={{ color: logItem.qty_change >= 0 ? '#2ab85a' : '#c0392b' }}>
+                        {logItem.qty_change >= 0 ? `+${logItem.qty_change}` : logItem.qty_change}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1E1C1A', textAlign: 'right', fontWeight: 600 }}>{log.qty_after}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: '#555250', maxWidth: '160px' }}>{log.reason ?? '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: '#888580' }}>{log.admin_name ?? '—'}</td>
+                      <td className={`${s.td} ${p.logQtyAfter}`}>{logItem.qty_after}</td>
+                      <td className={`${s.td} ${p.logReasonCellWide}`}>{logItem.reason ?? '—'}</td>
+                      <td className={`${s.td} ${p.logAdminCell}`}>{logItem.admin_name ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              <div className={s.cardList}>
+                {logs.length === 0 ? (
+                  <div className={s.emptyRow}>沒有符合條件的記錄</div>
+                ) : logs.map(logItem => (
+                  <div key={logItem.id} className={s.card}>
+                    <div className={s.cardRow}><span className={s.cardLabel}>時間</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</span></div>
+                    <div className={s.cardRow}><span className={s.cardLabel}>商品</span><span className={s.cardValue}>{logItem.products?.name ?? '—'}</span></div>
+                    <div className={s.cardRow}><span className={s.cardLabel}>類型</span><span className={s.badge} style={{ color: CHANGE_TYPE_COLOR[logItem.change_type], border: `1px solid ${CHANGE_TYPE_COLOR[logItem.change_type]}` }}>{CHANGE_TYPE_LABEL[logItem.change_type] ?? logItem.change_type}</span></div>
+                    <div className={s.cardRow}><span className={s.cardLabel}>變動</span><span className={`${s.cardValue} ${p.cardChangeBold}`} style={{ color: logItem.qty_change >= 0 ? '#2ab85a' : '#c0392b' }}>{logItem.qty_change >= 0 ? `+${logItem.qty_change}` : logItem.qty_change}</span></div>
+                    <div className={s.cardRow}><span className={s.cardLabel}>異動後</span><span className={`${s.cardValue} ${p.cardAfterBold}`}>{logItem.qty_after}</span></div>
+                    <div className={s.cardRow}><span className={s.cardLabel}>原因</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{logItem.reason ?? '—'}</span></div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -806,35 +924,35 @@ export default function AdminInventoryPage() {
       {/* ════ 庫存調整 Modal ════ */}
       {showAdjModal && adjTarget && (
         <>
-          <div onClick={() => setShowAdjModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '480px', maxWidth: '90vw', zIndex: 201 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>
+          <div onClick={() => setShowAdjModal(false)} className={s.modalOverlay} />
+          <div className={`${s.modal} ${p.modal480}`}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>
                 {adjMode === 'audit' ? '盤點修正' : '調整庫存'}
               </span>
-              <button onClick={() => setShowAdjModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+              <button onClick={() => setShowAdjModal(false)} className={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: '16px' }}>
-              <div style={{ background: '#EDE9E2', padding: '12px 16px', fontSize: '13px', color: '#555250' }}>
+            <div className={`${s.modalBody} ${p.modalBodyGrid}`}>
+              <div className={p.adjInfoBar}>
                 {adjTarget.products?.name}{adjTarget.product_variants?.name && ` · ${adjTarget.product_variants.name}`}
-                <span style={{ float: 'right' }}>目前庫存：<strong>{adjTarget.stock}</strong> 件</span>
+                <span className={p.adjInfoRight}>目前庫存：<strong>{adjTarget.stock}</strong> 件</span>
               </div>
 
               {adjMode === 'adjust' ? (
                 <>
                   <div>
-                    <label style={labelStyle}>異動類型</label>
-                    <select value={adjType} onChange={e => setAdjType(e.target.value)} style={{ ...inputStyle, width: '100%' }}>
+                    <label className={s.label}>異動類型</label>
+                    <select value={adjType} onChange={e => setAdjType(e.target.value)} className={`${s.select} ${p.inputFull}`}>
                       {[['purchase','進貨'],['restock','補貨'],['damage','損耗'],['adjust','手動調整']].map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>數量（正數 = 增加，負數 = 減少）</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <button onClick={() => setAdjQty(q => q - 1)} style={{ width: '36px', height: '36px', border: '1px solid #E8E4DC', background: 'transparent', fontSize: '18px', cursor: 'pointer' }}>−</button>
-                      <input type="number" value={numVal(adjQty)} onChange={numChange(setAdjQty)} style={{ ...inputStyle, width: '80px', textAlign: 'center' }} />
-                      <button onClick={() => setAdjQty(q => q + 1)} style={{ width: '36px', height: '36px', border: '1px solid #E8E4DC', background: 'transparent', fontSize: '18px', cursor: 'pointer' }}>+</button>
-                      <span style={{ fontSize: '12px', color: '#888580' }}>
+                    <label className={s.label}>數量（正數 = 增加，負數 = 減少）</label>
+                    <div className={p.qtyControlRow}>
+                      <button onClick={() => setAdjQty(q => q - 1)} className={p.qtyBtn}>−</button>
+                      <input type="number" value={numVal(adjQty)} onChange={numChange(setAdjQty)} className={`${s.input} ${p.qtyInputCenter}`} />
+                      <button onClick={() => setAdjQty(q => q + 1)} className={p.qtyBtn}>+</button>
+                      <span className={p.qtyResult}>
                         → 調整後：<strong style={{ color: adjQty >= 0 ? '#2ab85a' : '#c0392b' }}>{Math.max(0, adjTarget.stock + adjQty)}</strong> 件
                       </span>
                     </div>
@@ -842,10 +960,10 @@ export default function AdminInventoryPage() {
                 </>
               ) : (
                 <div>
-                  <label style={labelStyle}>盤點後實際數量</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input type="number" value={numVal(adjAuditVal)} onChange={numChange(setAdjAuditVal)} style={{ ...inputStyle, width: '100px' }} />
-                    <span style={{ fontSize: '12px', color: '#888580' }}>
+                  <label className={s.label}>盤點後實際數量</label>
+                  <div className={p.qtyControlRow}>
+                    <input type="number" value={numVal(adjAuditVal)} onChange={numChange(setAdjAuditVal)} className={`${s.input} ${p.auditInput100}`} />
+                    <span className={p.qtyResult}>
                       差異：<strong style={{ color: adjAuditVal - adjTarget.stock >= 0 ? '#2ab85a' : '#c0392b' }}>
                         {adjAuditVal - adjTarget.stock >= 0 ? '+' : ''}{adjAuditVal - adjTarget.stock}
                       </strong> 件
@@ -855,15 +973,15 @@ export default function AdminInventoryPage() {
               )}
 
               <div>
-                <label style={labelStyle}>原因 *</label>
-                <input value={adjReason} onChange={e => setAdjReason(e.target.value)} placeholder={adjMode === 'audit' ? '盤點日期或備註' : '例：3/19 補貨、試作損耗'} style={{ ...inputStyle, width: '100%' }} />
+                <label className={s.label}>原因 *</label>
+                <input value={adjReason} onChange={e => setAdjReason(e.target.value)} placeholder={adjMode === 'audit' ? '盤點日期或備註' : '例：3/19 補貨、試作損耗'} className={`${s.input} ${p.inputFull}`} />
               </div>
 
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={handleAdj} disabled={savingAdj} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingAdj ? 0.6 : 1 }}>
+              <div className={s.btnActions}>
+                <button onClick={handleAdj} disabled={savingAdj} className={s.btnSave} style={{ opacity: savingAdj ? 0.6 : 1 }}>
                   {savingAdj ? '儲存中...' : '確認'}
                 </button>
-                <button onClick={() => setShowAdjModal(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+                <button onClick={() => setShowAdjModal(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>
@@ -873,47 +991,47 @@ export default function AdminInventoryPage() {
       {/* ════ 新增/編輯庫存 Modal ════ */}
       {showInvModal && (
         <>
-          <div onClick={() => setShowInvModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '500px', maxWidth: '90vw', zIndex: 201, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>{editingInvId ? '編輯庫存' : '新增庫存'}</span>
-              <button onClick={() => setShowInvModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+          <div onClick={() => setShowInvModal(false)} className={s.modalOverlay} />
+          <div className={`${s.modal} ${p.modal500}`}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>{editingInvId ? '編輯庫存' : '新增庫存'}</span>
+              <button onClick={() => setShowInvModal(false)} className={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: '16px' }}>
+            <div className={`${s.modalBody} ${p.modalBodyGrid}`}>
               <div>
-                <label style={labelStyle}>商品</label>
-                <select value={invForm.product_id} onChange={e => setInvForm({...invForm, product_id: Number(e.target.value)})} style={{ ...inputStyle, width: '100%' }}>
-                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                <label className={s.label}>商品</label>
+                <select value={invForm.product_id} onChange={e => setInvForm({...invForm, product_id: Number(e.target.value)})} className={`${s.select} ${p.inputFull}`}>
+                  {products.map(prod => <option key={prod.id} value={prod.id}>{prod.name}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>庫存模式</label>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                <label className={s.label}>庫存模式</label>
+                <div className={p.radioRow}>
                   {[['stock','現貨'],['preorder','預購']].map(([v, l]) => (
-                    <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input type="radio" value={v} checked={invForm.inventory_mode === v} onChange={() => setInvForm({...invForm, inventory_mode: v})} style={{ accentColor: '#1E1C1A' }} />{l}
+                    <label key={v} className={p.radioLabel}>
+                      <input type="radio" value={v} checked={invForm.inventory_mode === v} onChange={() => setInvForm({...invForm, inventory_mode: v})} className={s.checkbox} />{l}
                     </label>
                   ))}
                 </div>
               </div>
 
               {invForm.inventory_mode === 'stock' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div><label style={labelStyle}>實體庫存</label><input type="number" value={numVal(invForm.stock)} onChange={e => setInvForm({...invForm, stock: e.target.value === "" ? 0 : Number(e.target.value)})} style={{...inputStyle, width:'100%'}} /></div>
-                  <div><label style={labelStyle}>安全庫存門檻</label><input type="number" value={numVal(invForm.safety_stock)} onChange={e => setInvForm({...invForm, safety_stock: e.target.value === "" ? 0 : Number(e.target.value)})} style={{...inputStyle, width:'100%'}} /></div>
+                <div className={s.grid2}>
+                  <div><label className={s.label}>實體庫存</label><input type="number" value={numVal(invForm.stock)} onChange={e => setInvForm({...invForm, stock: e.target.value === "" ? 0 : Number(e.target.value)})} className={`${s.input} ${p.inputFull}`} /></div>
+                  <div><label className={s.label}>安全庫存門檻</label><input type="number" value={numVal(invForm.safety_stock)} onChange={e => setInvForm({...invForm, safety_stock: e.target.value === "" ? 0 : Number(e.target.value)})} className={`${s.input} ${p.inputFull}`} /></div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div><label style={labelStyle}>預購上限（0 = 不限）</label><input type="number" value={numVal(invForm.max_preorder)} onChange={e => setInvForm({...invForm, max_preorder: e.target.value === "" ? 0 : Number(e.target.value)})} style={{...inputStyle, width:'100%'}} /></div>
-                  <div><label style={labelStyle}>已接單數（唯讀）</label><input type="number" value={invForm.reserved_preorder} disabled style={{...inputStyle, width:'100%', opacity: 0.5}} /></div>
+                <div className={s.grid2}>
+                  <div><label className={s.label}>預購上限（0 = 不限）</label><input type="number" value={numVal(invForm.max_preorder)} onChange={e => setInvForm({...invForm, max_preorder: e.target.value === "" ? 0 : Number(e.target.value)})} className={`${s.input} ${p.inputFull}`} /></div>
+                  <div><label className={s.label}>已接單數（唯讀）</label><input type="number" value={invForm.reserved_preorder} disabled className={`${s.input} ${p.inputFull} ${p.inputDisabledHalf}`} /></div>
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={saveInv} disabled={savingInv} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingInv ? 0.6 : 1 }}>
+              <div className={s.btnActions}>
+                <button onClick={saveInv} disabled={savingInv} className={s.btnSave} style={{ opacity: savingInv ? 0.6 : 1 }}>
                   {savingInv ? '儲存中...' : '儲存'}
                 </button>
-                <button onClick={() => setShowInvModal(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+                <button onClick={() => setShowInvModal(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>
@@ -923,39 +1041,39 @@ export default function AdminInventoryPage() {
       {/* ════ 原料盤點 Modal ════ */}
       {showIngAuditModal && auditTarget && (
         <>
-          <div onClick={() => setShowIngAuditModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '480px', maxWidth: '90vw', zIndex: 201 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>盤點 — {auditTarget.name}</span>
-              <button onClick={() => setShowIngAuditModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+          <div onClick={() => setShowIngAuditModal(false)} className={s.modalOverlay} />
+          <div className={`${s.modal} ${p.modal480}`}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>盤點 — {auditTarget.name}</span>
+              <button onClick={() => setShowIngAuditModal(false)} className={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: '16px' }}>
+            <div className={`${s.modalBody} ${p.modalBodyGrid}`}>
               {/* 系統庫存 vs 實際 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ background: '#EDE9E2', padding: '14px 16px' }}>
-                  <div style={{ fontSize: '10px', color: '#888580', letterSpacing: '0.2em', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase', marginBottom: '8px' }}>系統庫存</div>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#1E1C1A' }}>{auditTarget.stock} <span style={{ fontSize: '12px', fontWeight: 400 }}>{auditTarget.unit}</span></div>
+              <div className={p.auditCompareGrid}>
+                <div className={p.auditSystemBox}>
+                  <div className={p.auditSystemLabel}>系統庫存</div>
+                  <div className={p.auditSystemValue}>{auditTarget.stock} <span className={p.auditSystemUnit}>{auditTarget.unit}</span></div>
                 </div>
-                <div style={{ background: '#fff', border: '1px solid #E8E4DC', padding: '14px 16px' }}>
-                  <div style={{ fontSize: '10px', color: '#888580', letterSpacing: '0.2em', fontFamily: '"Montserrat", sans-serif', textTransform: 'uppercase', marginBottom: '8px' }}>實際盤點數量</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className={p.auditActualBox}>
+                  <div className={p.auditSystemLabel}>實際盤點數量</div>
+                  <div className={`${s.flex} ${p.flexCenterGap8}`}>
                     <input
                       type="number"
                       step="0.1"
                       value={numVal(auditActual)}
                       onChange={e => setAuditActual(e.target.value === '' ? 0 : Number(e.target.value))}
-                      style={{ ...inputStyle, width: '90px', fontSize: '18px', fontWeight: 600, padding: '6px 8px' }}
+                      className={`${s.input} ${p.auditActualInput}`}
                     />
-                    <span style={{ fontSize: '12px', color: '#888580' }}>{auditTarget.unit}</span>
+                    <span className={p.unitLabel}>{auditTarget.unit}</span>
                   </div>
                 </div>
               </div>
 
               {/* 差異顯示 */}
               {auditActual !== Number(auditTarget.stock) && (
-                <div style={{ padding: '12px 16px', background: Number(auditActual) - Number(auditTarget.stock) > 0 ? '#f0faf4' : '#fef0f0', border: `1px solid ${Number(auditActual) - Number(auditTarget.stock) > 0 ? '#b2dfdb' : '#f5c6c6'}` }}>
-                  <div style={{ fontSize: '12px', color: '#555250', marginBottom: '4px' }}>差異</div>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: Number(auditActual) - Number(auditTarget.stock) > 0 ? '#2ab85a' : '#c0392b' }}>
+                <div className={Number(auditActual) - Number(auditTarget.stock) > 0 ? p.auditDiffPositive : p.auditDiffNegative}>
+                  <div className={p.auditDiffLabel}>差異</div>
+                  <div className={p.auditDiffValue} style={{ color: Number(auditActual) - Number(auditTarget.stock) > 0 ? '#2ab85a' : '#c0392b' }}>
                     {Number(auditActual) - Number(auditTarget.stock) > 0 ? '+' : ''}{(Number(auditActual) - Number(auditTarget.stock)).toFixed(1)} {auditTarget.unit}
                   </div>
                 </div>
@@ -965,8 +1083,8 @@ export default function AdminInventoryPage() {
               {auditActual !== Number(auditTarget.stock) ? (
                 <>
                   <div>
-                    <label style={labelStyle}>調整原因 *</label>
-                    <select value={auditChangeType} onChange={e => setAuditChangeType(e.target.value)} style={{ ...inputStyle, width: '100%' }}>
+                    <label className={s.label}>調整原因 *</label>
+                    <select value={auditChangeType} onChange={e => setAuditChangeType(e.target.value)} className={`${s.select} ${p.inputFull}`}>
                       <option value="audit">盤點修正</option>
                       <option value="use">使用</option>
                       <option value="damage">損耗</option>
@@ -976,30 +1094,31 @@ export default function AdminInventoryPage() {
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>備註說明 *</label>
+                    <label className={s.label}>備註說明 *</label>
                     <input
                       value={auditReason}
                       onChange={e => setAuditReason(e.target.value)}
                       placeholder="例：定期盤點、試作消耗、進貨未登記"
-                      style={{ ...inputStyle, width: '100%' }}
+                      className={`${s.input} ${p.inputFull}`}
                     />
                   </div>
                 </>
               ) : (
-                <div style={{ padding: '12px 16px', background: '#f0faf4', border: '1px solid #b2dfdb', fontSize: '13px', color: '#2ab85a', textAlign: 'center' }}>
+                <div className={p.auditOkBanner}>
                   庫存數量與系統一致，無需調整
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div className={s.btnActions}>
                 <button
                   onClick={handleIngAudit}
                   disabled={savingAudit || auditActual === Number(auditTarget.stock)}
-                  style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: (savingAudit || auditActual === Number(auditTarget.stock)) ? 0.4 : 1 }}
+                  className={s.btnSave}
+                  style={{ opacity: (savingAudit || auditActual === Number(auditTarget.stock)) ? 0.4 : 1 }}
                 >
                   {savingAudit ? '儲存中...' : '確認送出'}
                 </button>
-                <button onClick={() => setShowIngAuditModal(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+                <button onClick={() => setShowIngAuditModal(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>
@@ -1009,68 +1128,68 @@ export default function AdminInventoryPage() {
       {/* ════ 原料 Modal ════ */}
       {showIngModal && (
         <>
-          <div onClick={() => setShowIngModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '520px', maxWidth: '90vw', zIndex: 201, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>{editingIngId ? '編輯品項' : '新增品項'}</span>
-              <button onClick={() => setShowIngModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+          <div onClick={() => setShowIngModal(false)} className={s.modalOverlay} />
+          <div className={`${s.modal} ${p.modal520}`}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>{editingIngId ? '編輯品項' : '新增品項'}</span>
+              <button onClick={() => setShowIngModal(false)} className={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: '16px' }}>
+            <div className={`${s.modalBody} ${p.modalBodyGrid}`}>
               {/* 名稱 + 分類 + 單位 */}
               <div>
-                <label style={labelStyle}>品項名稱 *</label>
-                <input value={ingForm.name} onChange={e => setIngForm({...ingForm, name: e.target.value})} placeholder="例：草莓、牛皮紙袋、一次性手套" style={{...inputStyle, width:'100%'}} />
+                <label className={s.label}>品項名稱 *</label>
+                <input value={ingForm.name} onChange={e => setIngForm({...ingForm, name: e.target.value})} placeholder="例：草莓、牛皮紙袋、一次性手套" className={`${s.input} ${p.inputFull}`} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className={s.grid2}>
                 <div>
-                  <label style={labelStyle}>分類</label>
-                  <select value={ingForm.category} onChange={e => setIngForm({...ingForm, category: e.target.value})} style={{...inputStyle, width:'100%'}}>
+                  <label className={s.label}>分類</label>
+                  <select value={ingForm.category} onChange={e => setIngForm({...ingForm, category: e.target.value})} className={`${s.select} ${p.inputFull}`}>
                     <option value="原料">原料</option>
                     <option value="包材">包材</option>
                     <option value="耗材">耗材</option>
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>單位</label>
-                  <select value={ingForm.unit} onChange={e => setIngForm({...ingForm, unit: e.target.value})} style={{...inputStyle, width:'100%'}}>
+                  <label className={s.label}>單位</label>
+                  <select value={ingForm.unit} onChange={e => setIngForm({...ingForm, unit: e.target.value})} className={`${s.select} ${p.inputFull}`}>
                     {['kg','g','L','ml','個','包','張','盒','瓶'].map(u => <option key={u}>{u}</option>)}
                   </select>
                 </div>
               </div>
               {/* 庫存數量 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className={s.grid2}>
                 <div>
-                  <label style={labelStyle}>現有庫存</label>
-                  <input type="number" step="0.1" value={numVal(ingForm.stock)} onChange={e => setIngForm({...ingForm, stock: e.target.value === "" ? 0 : Number(e.target.value)})} style={{...inputStyle, width:'100%'}} />
+                  <label className={s.label}>現有庫存</label>
+                  <input type="number" step="0.1" value={numVal(ingForm.stock)} onChange={e => setIngForm({...ingForm, stock: e.target.value === "" ? 0 : Number(e.target.value)})} className={`${s.input} ${p.inputFull}`} />
                 </div>
                 <div>
-                  <label style={labelStyle}>安全庫存（低於此值警示）</label>
-                  <input type="number" step="0.1" value={numVal(ingForm.safety_stock)} onChange={e => setIngForm({...ingForm, safety_stock: e.target.value === "" ? 0 : Number(e.target.value)})} style={{...inputStyle, width:'100%'}} />
+                  <label className={s.label}>安全庫存（低於此值警示）</label>
+                  <input type="number" step="0.1" value={numVal(ingForm.safety_stock)} onChange={e => setIngForm({...ingForm, safety_stock: e.target.value === "" ? 0 : Number(e.target.value)})} className={`${s.input} ${p.inputFull}`} />
                 </div>
               </div>
               {/* 日期 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className={s.grid2}>
                 <div>
-                  <label style={labelStyle}>最近進貨日（選填）</label>
-                  <input type="date" value={ingForm.restocked_at} onChange={e => setIngForm({...ingForm, restocked_at: e.target.value})} style={{...inputStyle, width:'100%'}} />
+                  <label className={s.label}>最近進貨日（選填）</label>
+                  <input type="date" value={ingForm.restocked_at} onChange={e => setIngForm({...ingForm, restocked_at: e.target.value})} className={`${s.input} ${p.inputFull}`} />
                 </div>
                 <div>
-                  <label style={labelStyle}>保存期限（選填）</label>
-                  <input type="date" value={ingForm.expiry_date} onChange={e => setIngForm({...ingForm, expiry_date: e.target.value})} style={{...inputStyle, width:'100%'}} />
+                  <label className={s.label}>保存期限（選填）</label>
+                  <input type="date" value={ingForm.expiry_date} onChange={e => setIngForm({...ingForm, expiry_date: e.target.value})} className={`${s.input} ${p.inputFull}`} />
                 </div>
               </div>
               {/* 位置 + 備註 */}
               <div>
-                <label style={labelStyle}>儲放位置（選填）</label>
-                <input value={ingForm.location} onChange={e => setIngForm({...ingForm, location: e.target.value})} placeholder="例：冷藏區A、乾貨架2層" style={{...inputStyle, width:'100%'}} />
+                <label className={s.label}>儲放位置（選填）</label>
+                <input value={ingForm.location} onChange={e => setIngForm({...ingForm, location: e.target.value})} placeholder="例：冷藏區A、乾貨架2層" className={`${s.input} ${p.inputFull}`} />
               </div>
               <div>
-                <label style={labelStyle}>備註（選填）</label>
-                <input value={ingForm.note} onChange={e => setIngForm({...ingForm, note: e.target.value})} placeholder="進貨來源、注意事項等" style={{...inputStyle, width:'100%'}} />
+                <label className={s.label}>備註（選填）</label>
+                <input value={ingForm.note} onChange={e => setIngForm({...ingForm, note: e.target.value})} placeholder="進貨來源、注意事項等" className={`${s.input} ${p.inputFull}`} />
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={saveIng} disabled={savingIng} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: savingIng ? 0.6 : 1 }}>{savingIng ? '儲存中...' : '儲存'}</button>
-                <button onClick={() => setShowIngModal(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>取消</button>
+              <div className={s.btnActions}>
+                <button onClick={saveIng} disabled={savingIng} className={s.btnSave} style={{ opacity: savingIng ? 0.6 : 1 }}>{savingIng ? '儲存中...' : '儲存'}</button>
+                <button onClick={() => setShowIngModal(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>

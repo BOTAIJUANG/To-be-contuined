@@ -10,6 +10,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import s from '../_shared/admin-shared.module.css';
+import p from './announcements.module.css';
 
 interface Announcement {
   id: number; content: string; type: string;
@@ -73,118 +75,147 @@ export default function AdminAnnouncementsPage() {
     load();
   };
 
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid #E8E4DC', background: '#fff', fontFamily: 'inherit', fontSize: '13px', color: '#1E1C1A', outline: 'none', marginTop: '6px' };
-  const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', display: 'block' };
-
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '22px', letterSpacing: '0.2em', color: '#1E1C1A', margin: 0 }}>公告管理</h1>
-        <button onClick={openAdd} style={{ padding: '10px 24px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer' }}>
-          ＋ 新增公告
-        </button>
+      <div className={s.pageHeader}>
+        <h1 className={s.pageTitle}>公告管理</h1>
+        <button onClick={openAdd} className={s.btnPrimary}>＋ 新增公告</button>
       </div>
 
       {/* 前台預覽 */}
-      <div style={{ marginBottom: '28px' }}>
-        <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#888580', textTransform: 'uppercase', fontFamily: '"Montserrat", sans-serif', marginBottom: '8px' }}>前台顯示預覽</div>
-        <div style={{ background: activeAnn ? TYPE_COLOR[activeAnn.type] : '#E8E4DC', padding: '10px 20px', overflow: 'hidden' }}>
-          <span style={{ color: activeAnn ? '#fff' : '#888580', fontSize: '12px', letterSpacing: '0.08em', fontFamily: '"Noto Sans TC", sans-serif', whiteSpace: 'nowrap' }}>
+      <div className={s.mb28}>
+        <div className={p.previewLabel}>前台顯示預覽</div>
+        <div className={p.previewBar} style={{ background: activeAnn ? TYPE_COLOR[activeAnn.type] : 'var(--line)' }}>
+          <span className={p.previewText} style={{ color: activeAnn ? '#fff' : 'var(--text-light)' }}>
             {activeAnn ? activeAnn.content : '（無啟用中的公告）'}
           </span>
         </div>
       </div>
 
       {/* 公告列表 */}
-      {loading ? <p style={{ color: '#888580', fontSize: '13px' }}>載入中...</p> : (
-        <div style={{ background: '#fff', border: '1px solid #E8E4DC', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {loading ? <p className={s.loadingText}>載入中...</p> : (
+        <div className={s.tableWrap}>
+          {/* Desktop table */}
+          <table className={s.table}>
             <thead>
               <tr>
                 {['公告內容', '類型', '速度', '開始', '結束', '啟用', '操作'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.25em', color: '#888580', textTransform: 'uppercase', borderBottom: '1px solid #E8E4DC', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} className={s.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {announcements.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#888580', fontSize: '13px' }}>尚無公告</td></tr>
+                <tr><td colSpan={7} className={s.emptyRow}>尚無公告</td></tr>
               ) : announcements.map((ann) => (
-                <tr key={ann.id} style={{ borderBottom: '1px solid #E8E4DC', opacity: ann.is_active ? 1 : 0.5 }}>
-                  <td style={{ padding: '14px 16px', fontSize: '13px', color: '#1E1C1A', maxWidth: '300px' }}>{ann.content}</td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span style={{ fontSize: '11px', color: TYPE_COLOR[ann.type], border: `1px solid ${TYPE_COLOR[ann.type]}`, padding: '2px 8px', fontFamily: '"Montserrat", sans-serif', whiteSpace: 'nowrap' }}>
+                <tr key={ann.id} className={s.tr} style={{ opacity: ann.is_active ? 1 : 0.5 }}>
+                  <td className={`${s.td} ${p.tdContent}`}>{ann.content}</td>
+                  <td className={s.td}>
+                    <span className={s.badge} style={{ color: TYPE_COLOR[ann.type], border: `1px solid ${TYPE_COLOR[ann.type]}` }}>
                       {TYPE_LABEL[ann.type]}
                     </span>
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: '12px', color: '#555250' }}>{SPEED_LABEL[ann.speed]}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '12px', color: '#888580' }}>{ann.starts_at ?? '立即'}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '12px', color: '#888580' }}>{ann.ends_at ?? '永久'}</td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <input type="checkbox" checked={ann.is_active} onChange={() => toggleActive(ann)} style={{ accentColor: '#1E1C1A', cursor: 'pointer' }} />
+                  <td className={`${s.td} ${p.tdSmallMid}`}>{SPEED_LABEL[ann.speed]}</td>
+                  <td className={`${s.td} ${p.tdSmallLight}`}>{ann.starts_at ?? '立即'}</td>
+                  <td className={`${s.td} ${p.tdSmallLight}`}>{ann.ends_at ?? '永久'}</td>
+                  <td className={s.td}>
+                    <input type="checkbox" checked={ann.is_active} onChange={() => toggleActive(ann)} className={s.checkbox} />
                   </td>
-                  <td style={{ padding: '14px 16px', display: 'flex', gap: '8px' }}>
-                    <button onClick={() => openEdit(ann)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#555250', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif' }}>編輯</button>
-                    <button onClick={() => handleDelete(ann.id)} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid #E8E4DC', fontSize: '11px', color: '#c0392b', cursor: 'pointer', fontFamily: '"Montserrat", sans-serif' }}>刪除</button>
+                  <td className={s.td}>
+                    <div className={`${s.flex} ${s.gap8}`}>
+                      <button onClick={() => openEdit(ann)} className={s.btnSmall}>編輯</button>
+                      <button onClick={() => handleDelete(ann.id)} className={s.btnDanger}>刪除</button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {/* Mobile card list */}
+          <div className={s.cardList}>
+            {announcements.length === 0 ? (
+              <div className={s.emptyRow}>尚無公告</div>
+            ) : announcements.map((ann) => (
+              <div key={ann.id} className={s.card} style={{ opacity: ann.is_active ? 1 : 0.5 }}>
+                <div className={`${p.annContent}`}>{ann.content}</div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>類型</span>
+                  <span className={s.badge} style={{ color: TYPE_COLOR[ann.type], border: `1px solid ${TYPE_COLOR[ann.type]}` }}>
+                    {TYPE_LABEL[ann.type]}
+                  </span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>速度</span>
+                  <span className={s.cardValue}>{SPEED_LABEL[ann.speed]}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>期間</span>
+                  <span className={`${s.cardValue} ${p.cardValueSmall}`}>{ann.starts_at ?? '立即'} ~ {ann.ends_at ?? '永久'}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>啟用</span>
+                  <input type="checkbox" checked={ann.is_active} onChange={() => toggleActive(ann)} className={s.checkbox} />
+                </div>
+                <div className={s.cardActions}>
+                  <button onClick={() => openEdit(ann)} className={s.btnSmall}>編輯</button>
+                  <button onClick={() => handleDelete(ann.id)} className={s.btnDanger}>刪除</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Modal */}
       {showModal && (
         <>
-          <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '520px', maxWidth: '90vw', zIndex: 201, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E8E4DC' }}>
-              <span style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '15px', color: '#1E1C1A' }}>{editingId ? '編輯公告' : '新增公告'}</span>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888580' }}>×</button>
+          <div onClick={() => setShowModal(false)} className={s.modalOverlay} />
+          <div className={s.modal}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>{editingId ? '編輯公告' : '新增公告'}</span>
+              <button onClick={() => setShowModal(false)} className={s.modalClose}>×</button>
             </div>
-            <div style={{ padding: '24px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={labelStyle}>公告內容 *</label>
-                <textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={3} placeholder="例：本週五暫停出貨，造成不便敬請見諒。" style={{ ...inputStyle, resize: 'vertical' }} />
+            <div className={s.modalBody}>
+              <div>
+                <label className={s.label}>公告內容 *</label>
+                <textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={3} placeholder="例：本週五暫停出貨，造成不便敬請見諒。" className={s.textarea} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div className={`${s.grid2} ${p.modalFormGrid}`}>
                 <div>
-                  <label style={labelStyle}>類型</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inputStyle}>
+                  <label className={s.label}>類型</label>
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className={s.select}>
                     <option value="normal">一般（深色）</option>
                     <option value="promo">活動（暖橘）</option>
                     <option value="urgent">重要（紅色）</option>
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>捲動速度</label>
-                  <select value={form.speed} onChange={e => setForm({ ...form, speed: e.target.value })} style={inputStyle}>
+                  <label className={s.label}>捲動速度</label>
+                  <select value={form.speed} onChange={e => setForm({ ...form, speed: e.target.value })} className={s.select}>
                     <option value="slow">慢速</option>
                     <option value="normal">正常</option>
                     <option value="fast">快速</option>
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>開始日期（空白 = 立即）</label>
-                  <input type="date" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} style={inputStyle} />
+                  <label className={s.label}>開始日期（空白 = 立即）</label>
+                  <input type="date" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} className={s.input} />
                 </div>
                 <div>
-                  <label style={labelStyle}>結束日期（空白 = 永久）</label>
-                  <input type="date" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} style={inputStyle} />
+                  <label className={s.label}>結束日期（空白 = 永久）</label>
+                  <input type="date" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} className={s.input} />
                 </div>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#555250', cursor: 'pointer', marginBottom: '24px' }}>
-                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} style={{ accentColor: '#1E1C1A' }} />
+              <label className={s.checkLabel}>
+                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className={s.checkbox} />
                 立即啟用
               </label>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={handleSave} disabled={saving} style={{ padding: '10px 32px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+              <div className={s.btnActions}>
+                <button onClick={handleSave} disabled={saving} className={s.btnSave}>
                   {saving ? '儲存中...' : '儲存'}
                 </button>
-                <button onClick={() => setShowModal(false)} style={{ padding: '10px 32px', background: 'transparent', color: '#888580', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}>
-                  取消
-                </button>
+                <button onClick={() => setShowModal(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>

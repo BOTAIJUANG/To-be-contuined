@@ -1,0 +1,199 @@
+/* daily – page-specific (mobile-first) */
+
+.dateLabel {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 28px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.warningTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.warningItem {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.warningLink {
+  color: #c0392b;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.prepSection {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+@media (min-width: 640px) {
+  .prepSection { gap: 24px; }
+}
+
+.prepItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.prepName {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+.prepQty {
+  font-family: "Montserrat", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #b35252;
+}
+
+.prepUnit {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+@media (min-width: 640px) {
+  .orderHeader { padding: 14px 20px; }
+}
+
+.orderMeta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+@media (min-width: 640px) {
+  .orderMeta { gap: 20px; }
+}
+
+.orderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.orderExpanded {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+@media (min-width: 640px) {
+  .orderExpanded { padding: 0 20px 16px; }
+}
+
+.orderDetail {
+  padding-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-bottom: 12px;
+}
+@media (min-width: 640px) {
+  .orderDetail {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px;
+  }
+}
+
+.orderFullWidth {
+  grid-column: 1 / -1;
+}
+
+.orderItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-dark);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.orderLink {
+  font-size: 12px;
+  color: var(--text-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* stat helpers */
+.statCardAlert {
+  border-color: #f0c040;
+  cursor: pointer;
+}
+.statValueAlert {
+  color: #c0392b;
+}
+.statArrow {
+  font-size: 10px;
+}
+
+/* table helpers */
+.tableBlock {
+  display: block;
+}
+.emptyMsg {
+  padding: 24px;
+  color: var(--text-light);
+  font-size: 13px;
+}
+.orderBorder {
+  border-bottom: 1px solid var(--line);
+}
+.buyerName {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+.shipLabel {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.orderTotal {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+.toggleIcon {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.detailLabel {
+  color: var(--text-light);
+}
+.detailFullWidth {
+  grid-column: 1 / -1;
+}
+.itemListGrid {
+  display: grid;
+  gap: 6px;
+}
+.orderFooter {
+  margin-top: 12px;
+  text-align: right;
+}
+
+.badgeUnpaid {
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}

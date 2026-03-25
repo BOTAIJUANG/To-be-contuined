@@ -11,47 +11,19 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import s from './AuthPanel.module.css';
 
 type AuthView = 'login' | 'register' | 'forgot';
 
 // ── Google Logo ───────────────────────────────────
 const GoogleLogo = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" style={{ flexShrink: 0 }}>
+  <svg viewBox="0 0 24 24" width="18" height="18" className={s.googleIcon}>
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
   </svg>
 );
-
-// ── 共用樣式 ──────────────────────────────────────
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 0',
-  border: 'none', borderBottom: '1px solid #E8E4DC',
-  marginTop: '8px', fontFamily: 'inherit',
-  fontSize: '13px', background: 'transparent',
-  color: '#1E1C1A', letterSpacing: '0.05em', outline: 'none',
-};
-const labelStyle: React.CSSProperties = {
-  fontFamily: '"Montserrat", sans-serif',
-  fontSize: '10px', letterSpacing: '0.25em',
-  color: '#888580', textTransform: 'uppercase',
-};
-const primaryBtnStyle: React.CSSProperties = {
-  width: '100%', padding: '14px',
-  background: '#1E1C1A', color: '#F7F4EF',
-  border: 'none', fontFamily: '"Montserrat", sans-serif',
-  fontSize: '12px', fontWeight: 600,
-  letterSpacing: '0.3em', textTransform: 'uppercase',
-  cursor: 'pointer', marginTop: '8px',
-};
-const tabStyle = (isActive: boolean): React.CSSProperties => ({
-  padding: '12px 0', fontSize: '13px', letterSpacing: '0.15em',
-  color: isActive ? '#1E1C1A' : '#888580',
-  borderBottom: `2px solid ${isActive ? '#1E1C1A' : 'transparent'}`,
-  cursor: 'pointer', flex: 1, textAlign: 'center',
-  transition: 'all 0.3s', fontFamily: '"Noto Sans TC", sans-serif',
-});
 
 interface AuthPanelProps {
   onLoginSuccess: (name: string) => void;
@@ -219,23 +191,23 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
   };
 
   return (
-    <div style={{ maxWidth: '420px', margin: 'auto' }}>
+    <div className={s.wrapper}>
 
       {/* ── Tab（登入/註冊）── */}
       {view !== 'forgot' && (
-        <div style={{ display: 'flex', borderBottom: '1px solid #E8E4DC', marginBottom: '32px' }}>
-          <div style={tabStyle(view === 'login')}    onClick={() => switchView('login')}>登入</div>
-          <div style={tabStyle(view === 'register')} onClick={() => switchView('register')}>註冊</div>
+        <div className={s.tabs}>
+          <div className={view === 'login' ? s.tabActive : s.tab} onClick={() => switchView('login')}>登入</div>
+          <div className={view === 'register' ? s.tabActive : s.tab} onClick={() => switchView('register')}>註冊</div>
         </div>
       )}
 
       {/* 忘記密碼 Header */}
       {view === 'forgot' && (
-        <div style={{ marginBottom: '32px' }}>
-          <button onClick={() => switchView('login')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888580', fontSize: '12px', letterSpacing: '0.1em', padding: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className={s.forgotHeader}>
+          <button onClick={() => switchView('login')} className={s.backBtn}>
             ← 返回登入
           </button>
-          <div style={{ fontSize: '20px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A' }}>
+          <div className={s.forgotTitle}>
             重設密碼
           </div>
         </div>
@@ -243,14 +215,14 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
 
       {/* 錯誤訊息 */}
       {errorMsg && (
-        <div style={{ fontSize: '12px', color: '#c0392b', marginBottom: '16px', textAlign: 'center', padding: '10px', background: '#fef0f0', border: '1px solid #f5c6c6' }}>
+        <div className={s.errorMsg}>
           {errorMsg}
         </div>
       )}
 
       {/* 成功訊息 */}
       {successMsg && (
-        <div style={{ fontSize: '12px', color: '#2ab85a', marginBottom: '16px', textAlign: 'center', padding: '10px', background: '#f0faf4', border: '1px solid #b2dfdb' }}>
+        <div className={s.successMsg}>
           {successMsg}
         </div>
       )}
@@ -258,47 +230,47 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
       {/* ════ 登入 ════ */}
       {view === 'login' && (
         <div>
-          <div style={{ fontSize: '20px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A', marginBottom: '28px' }}>
+          <div className={s.sectionTitle}>
             歡迎回來
           </div>
 
           {/* Google 登入 */}
-          <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px' }}>
+          <button onClick={handleGoogleLogin} className={s.googleBtn}>
             <GoogleLogo /> 使用 Google 帳號登入
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
-            <span style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.15em' }}>或</span>
-            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
+          <div className={s.divider}>
+            <div className={s.dividerLine} />
+            <span className={s.dividerText}>或</span>
+            <div className={s.dividerLine} />
           </div>
 
           {/* Email 登入 */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={labelStyle}>電子信箱</label>
-            <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="your@email.com" style={inputStyle} />
+          <div className={s.fieldGroup}>
+            <label className={s.label}>電子信箱</label>
+            <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="your@email.com" className={s.input} />
           </div>
-          <div style={{ marginBottom: '24px' }}>
-            <label style={labelStyle}>密碼</label>
-            <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="請輸入密碼" style={inputStyle}
+          <div className={s.fieldGroup}>
+            <label className={s.label}>密碼</label>
+            <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="請輸入密碼" className={s.input}
               onKeyDown={e => e.key === 'Enter' && handleLogin()} />
           </div>
 
-          <button onClick={handleLogin} disabled={loading} style={{ ...primaryBtnStyle, opacity: loading ? 0.6 : 1 }}>
+          <button onClick={handleLogin} disabled={loading} className={loading ? s.primaryBtnDisabled : s.primaryBtn}>
             {loading ? '登入中...' : '登入'}
           </button>
 
-          <div style={{ marginTop: '16px', fontSize: '12px', color: '#888580', textAlign: 'center', lineHeight: 2.4 }}>
+          <div className={s.helperLinks}>
             <span
               onClick={() => switchView('forgot')}
-              style={{ color: '#1E1C1A', cursor: 'pointer', textDecoration: 'underline' }}
+              className={s.link}
             >
               忘記密碼？
             </span>
           </div>
-          <div style={{ fontSize: '12px', color: '#888580', textAlign: 'center' }}>
+          <div className={s.helperText}>
             還沒有帳號？{' '}
-            <span onClick={() => switchView('register')} style={{ color: '#1E1C1A', cursor: 'pointer', textDecoration: 'underline' }}>立即註冊</span>
+            <span onClick={() => switchView('register')} className={s.link}>立即註冊</span>
           </div>
         </div>
       )}
@@ -306,23 +278,23 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
       {/* ════ 註冊 ════ */}
       {view === 'register' && (
         <div>
-          <div style={{ fontSize: '20px', fontFamily: '"Noto Serif TC", serif', fontWeight: 200, letterSpacing: '0.15em', color: '#1E1C1A', marginBottom: '16px' }}>
+          <div className={s.registerTitle}>
             建立帳號
           </div>
 
-          <div style={{ fontSize: '12px', color: '#888580', lineHeight: 2, padding: '12px 16px', background: '#EDE9E2', marginBottom: '24px', letterSpacing: '0.05em' }}>
+          <div className={s.registerInfo}>
             註冊即可累積集章、管理訂單、儲存收件資訊。
           </div>
 
           {/* Google 快速註冊 */}
-          <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', border: '1px solid #E8E4DC', background: 'transparent', fontFamily: '"Noto Sans TC", sans-serif', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px' }}>
+          <button onClick={handleGoogleLogin} className={s.googleBtn}>
             <GoogleLogo /> 使用 Google 帳號快速註冊
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
-            <span style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.15em' }}>或使用 Email 註冊</span>
-            <div style={{ flex: 1, height: '1px', background: '#E8E4DC' }} />
+          <div className={s.divider}>
+            <div className={s.dividerLine} />
+            <span className={s.dividerText}>或使用 Email 註冊</span>
+            <div className={s.dividerLine} />
           </div>
 
           {[
@@ -333,19 +305,19 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
             { label: '密碼 *',    type: 'password', val: regPassword,  set: setRegPassword,  ph: '至少 8 個字元' },
             { label: '確認密碼 *',type: 'password', val: regPassword2, set: setRegPassword2, ph: '再輸入一次密碼' },
           ].map(({ label, type, val, set, ph }) => (
-            <div key={label} style={{ marginBottom: '24px' }}>
-              <label style={labelStyle}>{label}</label>
-              <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} style={inputStyle} />
+            <div key={label} className={s.fieldGroup}>
+              <label className={s.label}>{label}</label>
+              <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
             </div>
           ))}
 
-          <button onClick={handleRegister} disabled={loading} style={{ ...primaryBtnStyle, opacity: loading ? 0.6 : 1 }}>
+          <button onClick={handleRegister} disabled={loading} className={loading ? s.primaryBtnDisabled : s.primaryBtn}>
             {loading ? '建立中...' : '建立帳號'}
           </button>
 
-          <div style={{ marginTop: '16px', fontSize: '12px', color: '#888580', textAlign: 'center' }}>
+          <div className={s.helperText} style={{ marginTop: '16px' }}>
             已有帳號？{' '}
-            <span onClick={() => switchView('login')} style={{ color: '#1E1C1A', cursor: 'pointer', textDecoration: 'underline' }}>立即登入</span>
+            <span onClick={() => switchView('login')} className={s.link}>立即登入</span>
           </div>
         </div>
       )}
@@ -353,23 +325,23 @@ export default function AuthPanel({ onLoginSuccess }: AuthPanelProps) {
       {/* ════ 忘記密碼 ════ */}
       {view === 'forgot' && (
         <div>
-          <p style={{ fontSize: '13px', color: '#555250', lineHeight: 2, marginBottom: '28px' }}>
+          <p className={s.forgotDesc}>
             請輸入您的電子信箱，我們將寄送密碼重設連結給您。
           </p>
 
-          <div style={{ marginBottom: '28px' }}>
-            <label style={labelStyle}>電子信箱</label>
+          <div className={s.forgotField}>
+            <label className={s.label}>電子信箱</label>
             <input
               type="email"
               value={forgotEmail}
               onChange={e => setForgotEmail(e.target.value)}
               placeholder="your@email.com"
-              style={inputStyle}
+              className={s.input}
               onKeyDown={e => e.key === 'Enter' && handleForgotPassword()}
             />
           </div>
 
-          <button onClick={handleForgotPassword} disabled={loading} style={{ ...primaryBtnStyle, opacity: loading ? 0.6 : 1 }}>
+          <button onClick={handleForgotPassword} disabled={loading} className={loading ? s.primaryBtnDisabled : s.primaryBtn}>
             {loading ? '發送中...' : '發送重設連結'}
           </button>
         </div>

@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { usePromotions } from '@/hooks/usePromotions';
 import { CartItemForCalc } from '@/lib/promotions';
 import Link from 'next/link';
+import s from './checkout.module.css';
 
 const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
 
@@ -30,19 +31,14 @@ const PAY_OPTIONS = [
   { value: 'atm',    title: 'ATM虛擬帳號', sub: '虛擬 ATM 付款之退款，將以銀行轉帳方式另行辦理，無法原路退回。' },
 ];
 
-const labelStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '10px', letterSpacing: '0.3em', color: '#888580', textTransform: 'uppercase', display: 'block', marginBottom: '8px' };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 0', border: 'none', borderBottom: '1px solid #E8E4DC', fontFamily: 'inherit', fontSize: '13px', background: 'transparent', color: '#1E1C1A', letterSpacing: '0.05em', outline: 'none' };
-const sectionTitleStyle: React.CSSProperties = { fontFamily: '"Montserrat", sans-serif', fontSize: '11px', fontWeight: 600, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#1E1C1A', marginBottom: '16px' };
-const btnStyle: React.CSSProperties = { padding: '12px 44px', border: '1px solid rgba(0,0,0,0.18)', background: 'transparent', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.35em', textTransform: 'uppercase', color: '#1E1C1A', cursor: 'pointer' };
-
 const RadioCard = ({ value, title, sub, checked, onChange, fee }: { value: string; title: string; sub: string; checked: boolean; onChange: () => void; fee?: string }) => (
-  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px 20px', border: `1px solid ${checked ? '#1E1C1A' : '#E8E4DC'}`, cursor: 'pointer', marginBottom: '10px', transition: 'border-color 0.3s' }}>
-    <input type="radio" value={value} checked={checked} onChange={onChange} style={{ marginTop: '2px', accentColor: '#1E1C1A' }} />
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: '13px', color: '#1E1C1A', letterSpacing: '0.1em', marginBottom: '4px' }}>{title}</div>
-      <div style={{ fontSize: '11px', color: '#888580', letterSpacing: '0.05em' }}>{sub}</div>
+  <label className={`${s.radioCard} ${checked ? s.radioCardChecked : ''}`}>
+    <input type="radio" value={value} checked={checked} onChange={onChange} className={s.radioInput} />
+    <div className={s.radioBody}>
+      <div className={s.radioTitle}>{title}</div>
+      <div className={s.radioSub}>{sub}</div>
     </div>
-    {fee && <div style={{ fontSize: '12px', color: '#888580', whiteSpace: 'nowrap' }}>{fee}</div>}
+    {fee && <div className={s.radioFee}>{fee}</div>}
   </label>
 );
 
@@ -431,20 +427,20 @@ export default function CheckoutPage() {
   };
 
   const StepIndicator = () => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '52px' }}>
-      {[1, 2, 3].map((s, i) => {
+    <div className={s.stepIndicator}>
+      {[1, 2, 3].map((n, i) => {
         const labels = ['確認購物車', '收件資訊', '付款確認'];
-        const isActive = step === s || (step === 'done' && s === 3);
-        const isPast = typeof step === 'number' && step > s;
+        const isActive = step === n || (step === 'done' && n === 3);
+        const isPast = typeof step === 'number' && step > n;
         return (
-          <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: isActive || isPast ? '#1E1C1A' : 'transparent', border: `2px solid ${isActive || isPast ? '#1E1C1A' : '#E8E4DC'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 500, color: isActive || isPast ? '#F7F4EF' : '#888580' }}>
-                {isPast ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : s}
+          <div key={n} className={s.stepGroup}>
+            <div className={s.stepColumn}>
+              <div className={`${s.stepCircle} ${isActive || isPast ? s.stepCircleActive : s.stepCircleDefault}`}>
+                {isPast ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : n}
               </div>
-              <div style={{ fontSize: '11px', letterSpacing: '0.15em', color: isActive ? '#1E1C1A' : '#888580', whiteSpace: 'nowrap' }}>{labels[i]}</div>
+              <div className={`${s.stepLabel} ${isActive ? s.stepLabelActive : ''}`}>{labels[i]}</div>
             </div>
-            {i < 2 && <div style={{ width: '80px', height: '1px', background: isPast ? '#1E1C1A' : '#E8E4DC', margin: '0 8px', marginBottom: '24px' }} />}
+            {i < 2 && <div className={`${s.stepLine} ${isPast ? s.stepLinePast : s.stepLineDefault}`} />}
           </div>
         );
       })}
@@ -452,83 +448,83 @@ export default function CheckoutPage() {
   );
 
   return (
-    <div style={{ width: 'min(calc(100% - 60px), 860px)', margin: 'auto', padding: '72px 0' }}>
+    <div className={s.page}>
       <StepIndicator />
 
       {/* Step 1 */}
       {step === 1 && (
         <div>
-          <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 28px' }}>確認購物車</h2>
+          <h2 className={s.heading}>確認購物車</h2>
           {items.length === 0 ? (
-            <p style={{ color: '#888580', fontSize: '13px' }}>購物車是空的，<Link href="/shop" style={{ color: '#1E1C1A' }}>去選購</Link>。</p>
+            <p className={s.emptyCart}>購物車是空的，<Link href="/shop" className={s.emptyCartLink}>去選購</Link>。</p>
           ) : (
             <>
               {items.map(item => (
-                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #E8E4DC' }}>
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    <div style={{ width: '56px', height: '56px', background: item.isRedeemItem ? '#f0faf4' : '#EDE9E2', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div key={item.id} className={s.cartRow}>
+                  <div className={s.cartItemLeft}>
+                    <div className={`${s.cartThumb} ${item.isRedeemItem ? s.cartThumbRedeem : ''}`}>
                       {item.imageUrl
-                        ? <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={item.imageUrl} alt={item.name} className={s.cartThumbImg} />
                         : item.isRedeemItem ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2ab85a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" /></svg> : null
                       }
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '13px', color: '#1E1C1A', letterSpacing: '0.1em' }}>{item.name}</span>
-                        {item.isRedeemItem && <span style={{ fontSize: '10px', color: '#2ab85a', border: '1px solid #2ab85a', padding: '1px 6px', fontFamily: '"Montserrat", sans-serif' }}>兌換品</span>}
+                      <div className={s.cartItemNameRow}>
+                        <span className={s.cartItemName}>{item.name}</span>
+                        {item.isRedeemItem && <span className={s.redeemBadge}>兌換品</span>}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#888580' }}>× {item.qty}</div>
+                      <div className={s.cartItemQty}>&times; {item.qty}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '13px', fontFamily: '"Noto Serif TC", serif', color: item.isRedeemItem ? '#2ab85a' : '#1E1C1A', fontWeight: item.isRedeemItem ? 600 : 200 }}>
+                  <div className={`${s.cartItemPrice} ${item.isRedeemItem ? s.cartItemPriceRedeem : ''}`}>
                     {item.isRedeemItem ? '免費' : `NT$ ${(item.price * item.qty).toLocaleString()}`}
                   </div>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC', fontSize: '13px' }}>
-                <span style={{ color: '#888580' }}>小計</span>
-                <span style={{ color: '#1E1C1A' }}>NT$ {totalPrice.toLocaleString()}</span>
+              <div className={s.summaryRow}>
+                <span className={s.summaryLabel}>小計</span>
+                <span className={s.summaryValue}>NT$ {totalPrice.toLocaleString()}</span>
               </div>
               {/* 活動折扣 */}
               {promoResult.discounts.length > 0 && (
-                <div style={{ padding: '12px 0', borderBottom: '1px solid #E8E4DC' }}>
+                <div className={s.promoBlock}>
                   {promoResult.discounts.map(d => (
-                    <div key={d.promotion_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#2ab85a', padding: '3px 0' }}>
+                    <div key={d.promotion_id} className={s.promoRow}>
                       <span>{d.promotion_name}</span>
-                      <span>− NT$ {d.discount_amount.toLocaleString()}</span>
+                      <span>&minus; NT$ {d.discount_amount.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
               )}
               {/* 贈品提示 */}
               {promoResult.gifts.length > 0 && (
-                <div style={{ margin: '12px 0', padding: '10px 16px', background: '#f9f5ff', border: '1px solid #e8dff5', fontSize: '12px', color: '#6e3a8e', lineHeight: 2 }}>
+                <div className={s.giftBox}>
                   {promoResult.gifts.map(g => (
-                    <div key={`gift-${g.promotion_id}`}>🎁 {g.promotion_name}：贈品 × {g.qty}</div>
+                    <div key={`gift-${g.promotion_id}`}>🎁 {g.promotion_name}：贈品 &times; {g.qty}</div>
                   ))}
                 </div>
               )}
               {/* 折扣後小計 */}
               {promoDiscount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #E8E4DC', fontSize: '13px' }}>
-                  <span style={{ color: '#888580' }}>折扣後小計</span>
-                  <span style={{ color: '#b35252', fontFamily: '"Noto Serif TC", serif' }}>NT$ {(totalPrice - promoDiscount).toLocaleString()}</span>
+                <div className={s.summaryRow}>
+                  <span className={s.summaryLabel}>折扣後小計</span>
+                  <span className={s.summaryValueDiscount}>NT$ {(totalPrice - promoDiscount).toLocaleString()}</span>
                 </div>
               )}
               {/* 混購提示條 */}
               {hasMixed && mixedShipDate && (
-                <div style={{ margin: '16px 0', padding: '14px 20px', background: '#fff8e1', border: '1px solid #f0c040', fontSize: '13px', color: '#7a5c00', lineHeight: 2 }}>
+                <div className={s.mixedWarning}>
                   此購物車包含預購商品，若一起結帳，所有商品將於 <strong>{mixedShipDate}</strong> 統一出貨。
                 </div>
               )}
               {!memberId && (
-                <div style={{ margin: '24px 0', padding: '16px 20px', background: '#EDE9E2', fontSize: '12px', color: '#555250', lineHeight: 2 }}>
-                  目前為訪客購買。<Link href="/member" style={{ color: '#1E1C1A', textDecoration: 'underline' }}>登入會員</Link> 可累積集章、自動帶入地址，查單也更方便。
+                <div className={s.guestNotice}>
+                  目前為訪客購買。<Link href="/member" className={s.guestLink}>登入會員</Link> 可累積集章、自動帶入地址，查單也更方便。
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
-                <Link href="/shop" style={{ ...btnStyle, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>← 繼續選購</Link>
-                <button onClick={() => { if (hasMixed && !mixedConfirmed) { setShowMixedModal(true); } else { setStep(2); } }} style={btnStyle}>下一步</button>
+              <div className={s.actionRow}>
+                <Link href="/shop" className={s.btnLink}>&larr; 繼續選購</Link>
+                <button onClick={() => { if (hasMixed && !mixedConfirmed) { setShowMixedModal(true); } else { setStep(2); } }} className={s.btn}>下一步</button>
               </div>
             </>
           )}
@@ -538,26 +534,17 @@ export default function CheckoutPage() {
       {/* Step 2 */}
       {step === 2 && (
         <div>
-          <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 28px' }}>收件資訊</h2>
+          <h2 className={s.heading}>收件資訊</h2>
 
           {/* 已儲存地址快速帶入 */}
           {savedAddresses.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
-              <div style={sectionTitleStyle}>選擇已儲存地址</div>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div className={s.savedAddressesWrap}>
+              <div className={s.sectionTitle}>選擇已儲存地址</div>
+              <div className={s.savedAddressList}>
                 {savedAddresses.map(addr => {
                   const isSelected = selectedAddrId === addr.id;
                   return (
-                    <button key={addr.id} onClick={() => applyAddress(addr)} style={{
-                      padding: '8px 16px',
-                      background: isSelected ? '#1E1C1A' : 'transparent',
-                      border: isSelected ? '1px solid #1E1C1A' : '1px solid #E8E4DC',
-                      fontSize: '12px',
-                      color: isSelected ? '#F7F4EF' : '#555250',
-                      cursor: 'pointer',
-                      fontFamily: '"Noto Sans TC", sans-serif',
-                      transition: 'all 0.2s',
-                    }}>
+                    <button key={addr.id} onClick={() => applyAddress(addr)} className={`${s.savedAddrBtn} ${isSelected ? s.savedAddrBtnSelected : ''}`}>
                       {addr.label || addr.name}
                       {addr.is_default && ' ★'}
                     </button>
@@ -567,43 +554,43 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <div style={sectionTitleStyle}>配送方式</div>
+          <div className={s.sectionTitle}>配送方式</div>
           {availableShipOptions.map(opt => (
             <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
           ))}
 
-          <div style={{ ...sectionTitleStyle, marginTop: '28px' }}>收件人資訊</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+          <div className={s.sectionTitleSpaced}>收件人資訊</div>
+          <div className={s.grid2}>
             {[
               { label: '姓名 *',   type: 'text',  val: name,  set: setName,  ph: '收件人姓名' },
               { label: '手機 *',   type: 'tel',   val: phone, set: setPhone, ph: '0912-345-678' },
               { label: 'Email *',  type: 'email', val: email, set: setEmail, ph: '用於寄送訂單確認信' },
             ].map(({ label, type, val, set, ph }) => (
-              <div key={label} style={{ marginBottom: '24px' }}>
-                <label style={labelStyle}>{label}</label>
-                <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} style={inputStyle} />
+              <div key={label} className={s.fieldGroup}>
+                <label className={s.label}>{label}</label>
+                <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
               </div>
             ))}
           </div>
 
           {isHomeDelivery && (
             <>
-              <div style={{ ...sectionTitleStyle, marginTop: '20px' }}>收件地址</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={labelStyle}>縣市 *</label>
-                  <select value={city} onChange={e => setCity(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <div className={s.sectionTitleSmSpaced}>收件地址</div>
+              <div className={s.grid2}>
+                <div className={s.fieldGroup}>
+                  <label className={s.label}>縣市 *</label>
+                  <select value={city} onChange={e => setCity(e.target.value)} className={s.inputSelect}>
                     <option value="">選擇縣市</option>
                     {CITIES.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={labelStyle}>鄉鎮市區</label>
-                  <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="鄉鎮市區" style={inputStyle} />
+                <div className={s.fieldGroup}>
+                  <label className={s.label}>鄉鎮市區</label>
+                  <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="鄉鎮市區" className={s.input} />
                 </div>
-                <div style={{ marginBottom: '24px', gridColumn: '1/-1' }}>
-                  <label style={labelStyle}>詳細地址 *</label>
-                  <input value={address} onChange={e => setAddress(e.target.value)} placeholder="路名、門牌號碼" style={inputStyle} />
+                <div className={s.fieldGroupFull}>
+                  <label className={s.label}>詳細地址 *</label>
+                  <input value={address} onChange={e => setAddress(e.target.value)} placeholder="路名、門牌號碼" className={s.input} />
                 </div>
               </div>
             </>
@@ -611,100 +598,90 @@ export default function CheckoutPage() {
 
           {isCvsPickup && (
             <>
-              <div style={{ ...sectionTitleStyle, marginTop: '20px' }}>取貨門市資訊</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={labelStyle}>門市名稱 *</label>
-                  <input value={cvsStoreName} onChange={e => setCvsStoreName(e.target.value)} placeholder={`${shipMethod === 'cvs_711' ? '7-11' : '全家'} ○○門市`} style={inputStyle} />
+              <div className={s.sectionTitleSmSpaced}>取貨門市資訊</div>
+              <div className={s.grid2}>
+                <div className={s.fieldGroup}>
+                  <label className={s.label}>門市名稱 *</label>
+                  <input value={cvsStoreName} onChange={e => setCvsStoreName(e.target.value)} placeholder={`${shipMethod === 'cvs_711' ? '7-11' : '全家'} ○○門市`} className={s.input} />
                 </div>
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={labelStyle}>門市地址 *</label>
-                  <input value={cvsStoreAddr} onChange={e => setCvsStoreAddr(e.target.value)} placeholder="門市所在地址" style={inputStyle} />
+                <div className={s.fieldGroup}>
+                  <label className={s.label}>門市地址 *</label>
+                  <input value={cvsStoreAddr} onChange={e => setCvsStoreAddr(e.target.value)} placeholder="門市所在地址" className={s.input} />
                 </div>
               </div>
             </>
           )}
 
           {isStorePickup && (
-            <div style={{ marginTop: '20px', padding: '14px 20px', background: '#EDE9E2', fontSize: '13px', color: '#555250', lineHeight: 1.8 }}>
+            <div className={s.storePickupInfo}>
               門市自取地址：宜蘭市神農路二段 96 號<br />
               請於指定日期攜帶訂單編號至門市取貨。
             </div>
           )}
 
-          <div style={{ ...sectionTitleStyle, marginTop: '24px' }}>
+          <div className={s.sectionTitleMdSpaced}>
             {shipMethod === 'store' ? '指定到店日期' : '指定出貨日期'}
           </div>
 
           {/* 無交集：提示分開下單 */}
           {noIntersection ? (
-            <div style={{ padding: '16px 20px', background: '#fef0f0', border: '1px solid #f5c6c6', marginBottom: '24px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#c0392b', marginBottom: '6px' }}>無法安排同一天出貨</div>
-              <div style={{ fontSize: '13px', color: '#c0392b' }}>{intersectionMsg}</div>
+            <div className={s.noIntersection}>
+              <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
+              <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
             </div>
           ) : (hasMixed || items.every(i => i.isPreorder)) && mixedShipDate ? (
             /* 預購 / 混購：固定顯示統一出貨日 */
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ padding: '14px 20px', background: '#e8f0fb', border: '1px solid #b5d4f4', maxWidth: '400px' }}>
-                <div style={{ fontSize: '11px', color: '#2a5a8c', fontFamily: '"Montserrat", sans-serif', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '6px' }}>統一出貨日（固定）</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#1E1C1A' }}>{mixedShipDate}</div>
-                <div style={{ fontSize: '11px', color: '#888580', marginTop: '4px' }}>
+            <div className={s.fixedDateWrap}>
+              <div className={s.fixedDateBox}>
+                <div className={s.fixedDateLabel}>統一出貨日（固定）</div>
+                <div className={s.fixedDateValue}>{mixedShipDate}</div>
+                <div className={s.fixedDateHint}>
                   {hasMixed ? '因購物車含預購商品，所有商品統一於此日出貨' : '預購批次固定出貨日，無法更改'}
                 </div>
               </div>
             </div>
           ) : datesLoading ? (
             /* 載入中 */
-            <div style={{ fontSize: '13px', color: '#888580', marginBottom: '24px' }}>計算可出貨日期中...</div>
+            <div className={s.datesLoading}>計算可出貨日期中...</div>
           ) : availableDates.length > 0 ? (
             /* 有可選日期：顯示日期按鈕 */
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+            <div className={s.datesWrap}>
+              <div className={s.dateList}>
                 {availableDates.map(d => (
                   <button
                     key={d}
                     onClick={() => setDate(d)}
-                    style={{
-                      padding: '10px 18px',
-                      border: `1px solid ${date === d ? '#1E1C1A' : '#E8E4DC'}`,
-                      background: date === d ? '#1E1C1A' : 'transparent',
-                      color: date === d ? '#F7F4EF' : '#1E1C1A',
-                      fontFamily: '"Montserrat", sans-serif',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      letterSpacing: '0.05em',
-                    }}
+                    className={`${s.dateBtn} ${date === d ? s.dateBtnSelected : ''}`}
                   >
                     {d}
                   </button>
                 ))}
               </div>
-              {!date && <div style={{ fontSize: '11px', color: '#c0392b', marginTop: '4px' }}>請選擇出貨日期</div>}
-              {date && <div style={{ fontSize: '11px', color: '#888580', marginTop: '4px' }}>
+              {!date && <div className={s.dateHintError}>請選擇出貨日期</div>}
+              {date && <div className={s.dateHintOk}>
                 {shipMethod === 'store' ? '已選擇到店日期：' : '已選擇出貨日期：'}{date}
               </div>}
             </div>
           ) : (
             /* 沒有可選日期（空陣列，不是無交集） */
-            <div style={{ fontSize: '13px', color: '#888580', marginBottom: '24px', padding: '12px 16px', background: '#EDE9E2', border: '1px solid #E8E4DC' }}>
+            <div className={s.noDates}>
               目前沒有可選的出貨日期，請聯絡客服。
             </div>
           )}
 
-          <div style={sectionTitleStyle}>備註（選填）</div>
-          <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="包裝需求、禮盒說明等..." style={{ ...inputStyle, resize: 'vertical', marginBottom: '24px' }} />
+          <div className={s.sectionTitle}>備註（選填）</div>
+          <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="包裝需求、禮盒說明等..." className={s.inputTextarea} />
 
-          <div style={sectionTitleStyle}>折扣碼（選填）</div>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-            <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="輸入折扣碼" style={{ ...inputStyle, maxWidth: '220px', textTransform: 'uppercase' }} />
-            <button onClick={applyCoupon} style={{ ...btnStyle, padding: '11px 20px', whiteSpace: 'nowrap' }}>套用</button>
+          <div className={s.sectionTitle}>折扣碼（選填）</div>
+          <div className={s.couponRow}>
+            <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="輸入折扣碼" className={s.inputCoupon} />
+            <button onClick={applyCoupon} className={s.btnApply}>套用</button>
           </div>
-          {couponMsg && <div style={{ fontSize: '11px', marginTop: '6px', color: discount > 0 ? '#2ab85a' : '#c0392b' }}>{couponMsg}</div>}
+          {couponMsg && <div className={discount > 0 ? s.couponMsgOk : s.couponMsgErr}>{couponMsg}</div>}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
-            <button onClick={() => setStep(1)} style={btnStyle}>← 上一步</button>
-            <button onClick={validateStep2} style={btnStyle}>下一步</button>
+          <div className={s.actionRow}>
+            <button onClick={() => setStep(1)} className={s.btn}>&larr; 上一步</button>
+            <button onClick={validateStep2} className={s.btn}>下一步</button>
           </div>
         </div>
       )}
@@ -712,16 +689,16 @@ export default function CheckoutPage() {
       {/* Step 3 */}
       {step === 3 && (
         <div>
-          <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.28em', color: '#1E1C1A', margin: '0 0 28px' }}>選擇付款方式</h2>
+          <h2 className={s.heading}>選擇付款方式</h2>
           {PAY_OPTIONS.map(opt => (
             <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={payMethod === opt.value} onChange={() => setPayMethod(opt.value)} />
           ))}
 
-          <div style={{ ...sectionTitleStyle, marginTop: '28px' }}>訂單摘要</div>
-          <div style={{ background: '#EDE9E2', padding: '20px 24px' }}>
+          <div className={s.sectionTitleSpaced}>訂單摘要</div>
+          <div className={s.orderSummaryBox}>
             {items.map(item => (
-              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px 0', color: '#555250' }}>
-                <span>{item.name} × {item.qty}</span>
+              <div key={item.id} className={s.orderSummaryItem}>
+                <span>{item.name} &times; {item.qty}</span>
                 <span>NT$ {(item.price * item.qty).toLocaleString()}</span>
               </div>
             ))}
@@ -733,28 +710,28 @@ export default function CheckoutPage() {
             ...(promoDiscount > 0 ? promoResult.discounts.map(d => ({ label: d.promotion_name, value: `− NT$ ${d.discount_amount.toLocaleString()}`, green: true })) : []),
             ...(discount > 0 ? [{ label: '折扣碼', value: `− NT$ ${discount.toLocaleString()}`, green: true }] : []),
           ].map(({ label, value, green }: any) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '13px' }}>
-              <span style={{ color: green ? '#2ab85a' : '#888580' }}>{label}</span>
-              <span style={{ color: green ? '#2ab85a' : '#555250' }}>{value}</span>
+            <div key={label} className={s.step3SummaryRow}>
+              <span className={green ? s.step3SummaryLabelGreen : s.step3SummaryLabel}>{label}</span>
+              <span className={green ? s.step3SummaryValueGreen : s.step3SummaryValue}>{value}</span>
             </div>
           ))}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', marginTop: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#1E1C1A', letterSpacing: '0.1em' }}>應付金額</span>
-            <span style={{ fontFamily: '"Noto Serif TC", serif', fontSize: '20px', fontWeight: 200, color: '#b35252' }}>
+          <div className={s.totalRow}>
+            <span className={s.totalLabel}>應付金額</span>
+            <span className={s.totalValue}>
               NT$ {(totalPrice - discount - promoDiscount + shippingFee).toLocaleString()}
             </span>
           </div>
 
-          <div style={{ fontSize: '12px', color: '#888580', lineHeight: 2.2, padding: '16px 20px', background: '#F7F4EF', border: '1px solid #E8E4DC', margin: '16px 0 28px' }}>
-            · 下單後將寄送確認信至您的 Email<br />
-            · 信用卡付款由綠界 ECPay 安全處理<br />
-            · ATM虛擬帳號請於 72 小時內完成轉帳，逾時訂單自動取消
+          <div className={s.infoNotice}>
+            &middot; 下單後將寄送確認信至您的 Email<br />
+            &middot; 信用卡付款由綠界 ECPay 安全處理<br />
+            &middot; ATM虛擬帳號請於 72 小時內完成轉帳，逾時訂單自動取消
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <button onClick={() => setStep(2)} style={btnStyle}>← 上一步</button>
-            <button onClick={handleSubmit} disabled={submitting} style={{ ...btnStyle, background: '#1E1C1A', color: '#F7F4EF', borderColor: '#1E1C1A', padding: '13px 52px', opacity: submitting ? 0.6 : 1 }}>
+          <div className={s.actionRow}>
+            <button onClick={() => setStep(2)} className={s.btn}>&larr; 上一步</button>
+            <button onClick={handleSubmit} disabled={submitting} className={`${s.btnSubmit} ${submitting ? s.btnSubmitDisabled : ''}`}>
               {submitting ? '處理中...' : '確認下單'}
             </button>
           </div>
@@ -763,67 +740,67 @@ export default function CheckoutPage() {
 
       {/* 完成 */}
       {step === 'done' && (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <div style={{ marginBottom: '20px' }}>
+        <div className={s.doneWrap}>
+          <div className={s.doneIcon}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1E1C1A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><polyline points="9 12 11.5 14.5 16 9.5" />
             </svg>
           </div>
-          <h2 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '19px', letterSpacing: '0.3em', color: '#1E1C1A', marginBottom: '12px' }}>訂單已成立</h2>
-          <p style={{ fontSize: '13px', color: '#555250', marginBottom: '8px' }}>訂單確認信已寄至您的 Email</p>
-          <p style={{ fontFamily: '"Montserrat", sans-serif', fontSize: '11px', letterSpacing: '0.2em', color: '#888580', marginBottom: '32px' }}>{orderNo}</p>
-          <Link href="/" onClick={() => { sessionStorage.removeItem('checkout_step'); sessionStorage.removeItem('checkout_orderNo'); }} style={{ ...btnStyle, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>返回首頁</Link>
+          <h2 className={s.doneHeading}>訂單已成立</h2>
+          <p className={s.doneSubtext}>訂單確認信已寄至您的 Email</p>
+          <p className={s.doneOrderNo}>{orderNo}</p>
+          <Link href="/" onClick={() => { sessionStorage.removeItem('checkout_step'); sessionStorage.removeItem('checkout_orderNo'); }} className={s.doneHomeLink}>返回首頁</Link>
         </div>
       )}
       {/* 混購確認彈窗 */}
       {showMixedModal && hasMixed && mixedShipDate && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 400 }} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#fff', width: '520px', maxWidth: '90vw', zIndex: 401, padding: '32px' }}>
-            <h3 style={{ fontFamily: '"Noto Sans TC", sans-serif', fontWeight: 700, fontSize: '16px', color: '#1E1C1A', marginBottom: '20px', letterSpacing: '0.15em' }}>
+          <div className={s.modalOverlay} />
+          <div className={s.modalBox}>
+            <h3 className={s.modalTitle}>
               此購物車包含一般商品與預購商品
             </h3>
-            <p style={{ fontSize: '13px', color: '#555250', lineHeight: 2, marginBottom: '20px' }}>
+            <p className={s.modalText}>
               若一起結帳，所有商品將統一於最晚出貨日出貨。
             </p>
-            <div style={{ background: '#EDE9E2', padding: '16px 20px', marginBottom: '20px', display: 'grid', gap: '8px', fontSize: '13px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#888580' }}>一般商品最快可出貨日</span>
-                <span style={{ color: '#1E1C1A', fontWeight: 500 }}>{stockShipDate}</span>
+            <div className={s.modalDateGrid}>
+              <div className={s.modalDateRow}>
+                <span className={s.modalDateLabel}>一般商品最快可出貨日</span>
+                <span className={s.modalDateValue}>{stockShipDate}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#888580' }}>預購商品預計出貨日</span>
-                <span style={{ color: '#1E1C1A', fontWeight: 500 }}>{mixedShipDate}</span>
+              <div className={s.modalDateRow}>
+                <span className={s.modalDateLabel}>預購商品預計出貨日</span>
+                <span className={s.modalDateValue}>{mixedShipDate}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #E8E4DC' }}>
-                <span style={{ color: '#1E1C1A', fontWeight: 600 }}>本筆訂單統一出貨日</span>
-                <span style={{ color: '#b35252', fontWeight: 700 }}>{mixedShipDate}</span>
+              <div className={s.modalDateRowFinal}>
+                <span className={s.modalDateLabelFinal}>本筆訂單統一出貨日</span>
+                <span className={s.modalDateValueFinal}>{mixedShipDate}</span>
               </div>
             </div>
-            <p style={{ fontSize: '12px', color: '#888580', lineHeight: 2, marginBottom: '20px' }}>
+            <p className={s.modalHint}>
               若希望先收到一般商品，請返回購物車分成兩筆訂單下單。
             </p>
             {/* 勾選確認 */}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: '#1E1C1A', cursor: 'pointer', marginBottom: '24px', lineHeight: 1.8 }}>
+            <label className={s.modalCheckLabel}>
               <input
                 type="checkbox"
                 checked={mixedConfirmed}
                 onChange={e => setMixedConfirmed(e.target.checked)}
-                style={{ accentColor: '#1E1C1A', marginTop: '3px', flexShrink: 0 }}
+                className={s.modalCheckbox}
               />
               我已了解本訂單將於 <strong>{mixedShipDate}</strong> 統一出貨
             </label>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div className={s.modalBtnRow}>
               <button
                 onClick={() => { if (!mixedConfirmed) { alert('請先勾選確認後再繼續'); return; } setShowMixedModal(false); setStep(2); }}
                 disabled={!mixedConfirmed}
-                style={{ flex: 1, padding: '12px', background: '#1E1C1A', color: '#F7F4EF', border: 'none', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.2em', cursor: mixedConfirmed ? 'pointer' : 'not-allowed', opacity: mixedConfirmed ? 1 : 0.4 }}
+                className={`${s.modalBtnConfirm} ${!mixedConfirmed ? s.modalBtnConfirmDisabled : ''}`}
               >
                 確認一起結帳
               </button>
               <button
                 onClick={() => { setShowMixedModal(false); setMixedConfirmed(false); }}
-                style={{ flex: 1, padding: '12px', background: 'transparent', color: '#555250', border: '1px solid #E8E4DC', fontFamily: '"Montserrat", sans-serif', fontSize: '12px', letterSpacing: '0.2em', cursor: 'pointer' }}
+                className={s.modalBtnCancel}
               >
                 返回購物車調整
               </button>

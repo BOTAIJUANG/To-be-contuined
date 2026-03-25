@@ -1,0 +1,547 @@
+/* inventory page-specific styles */
+
+/* Mode badge (STOCK / PREORDER) */
+.modeBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.1em;
+}
+
+.modeBadgeStock {
+  composes: modeBadge;
+  background: var(--surface);
+  color: var(--text-mid);
+}
+
+.modeBadgePreorder {
+  composes: modeBadge;
+  background: #e8f0fb;
+  color: #2a7ab8;
+}
+
+/* Low stock alert label */
+.lowStockHint {
+  font-size: 10px;
+  color: #b87a2a;
+  display: block;
+  margin-top: 3px;
+}
+
+/* Action buttons row */
+.actionRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+/* Ingredient category badge */
+.ingCatBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  color: var(--text-mid);
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Capacity card */
+.capacityCard {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+}
+
+.capacityCardLabel {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+
+.capacityCardRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.capacityCardValue {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.capacityCardSub {
+  font-size: 12px;
+  color: var(--text-light);
+  align-self: flex-end;
+}
+
+.capacityCardMeta {
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+/* Disabled feature placeholder */
+.disabledPlaceholder {
+  padding: 64px 0;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.disabledPlaceholderLabel {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+.disabledPlaceholderDesc {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 24px;
+}
+
+/* Adj modal qty controls */
+.qtyControlRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qtyBtn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.qtyInputCenter {
+  width: 80px;
+  text-align: center;
+}
+
+.qtyResult {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Audit comparison grid */
+.auditCompareGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.auditSystemBox {
+  background: var(--surface);
+  padding: 14px 16px;
+}
+
+.auditSystemLabel {
+  font-size: 10px;
+  color: var(--text-light);
+  letter-spacing: 0.2em;
+  font-family: "Montserrat", sans-serif;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.auditSystemValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.auditSystemUnit {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.auditActualBox {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 14px 16px;
+}
+
+.auditActualInput {
+  width: 90px;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 6px 8px;
+}
+
+/* Audit difference banner */
+.auditDiffPositive {
+  padding: 12px 16px;
+  background: #f0faf4;
+  border: 1px solid #b2dfdb;
+}
+
+.auditDiffNegative {
+  padding: 12px 16px;
+  background: #fef0f0;
+  border: 1px solid #f5c6c6;
+}
+
+.auditDiffLabel {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-bottom: 4px;
+}
+
+.auditDiffValue {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.auditOkBanner {
+  padding: 12px 16px;
+  background: #f0faf4;
+  border: 1px solid #b2dfdb;
+  font-size: 13px;
+  color: #2ab85a;
+  text-align: center;
+}
+
+/* Inv modal radio row */
+.radioRow {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Filter panel (logs tab) */
+.filterPanel {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+@media (max-width: 639px) {
+  .filterPanel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Feature toggle bar (FeatureToggleBar component) */
+.featureBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+
+.featureBarLabel {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.featureBarDesc {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.featureBarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.featureBarStatus {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Capacity grid */
+.capacityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 767px) {
+  .capacityGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .capacityGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* adj modal info bar */
+.adjInfoBar {
+  background: var(--surface);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-mid);
+}
+
+/* Full-width input / select */
+.inputFull {
+  width: 100%;
+}
+
+/* Page title with margin */
+.pageTitleMb {
+  margin-bottom: 24px;
+}
+
+/* Disabled tab hint */
+.tabDisabledHint {
+  font-size: 10px;
+  color: var(--text-light);
+}
+
+/* Section header: space-between + center */
+.sectionHeader {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Variant/small text column */
+.variantCol {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Text align right + font-weight 600 */
+.tdRightBold {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Text align right + light color */
+.tdRightLight {
+  text-align: right;
+  color: var(--text-light);
+}
+
+/* Card value bold */
+.cardValueBold {
+  font-weight: 600;
+}
+
+/* Adjust button green accent */
+.btnAdjust {
+  color: #2ab85a;
+}
+
+/* Ingredient name bold when low */
+.ingNameLow {
+  font-weight: 600;
+}
+
+/* Unit column */
+.unitCol {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Safety stock column */
+.safetyStockCol {
+  font-size: 12px;
+  color: var(--text-light);
+  text-align: right;
+}
+
+/* Date column light */
+.dateCol {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Date column mid */
+.dateColMid {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* Location column */
+.locationCol {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Filter row align */
+.filterRowEnd {
+  align-items: flex-end;
+}
+
+/* Date separator */
+.dateSeparator {
+  color: var(--text-light);
+  align-self: center;
+}
+
+/* Log time cell */
+.logTimeCell {
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+/* Log qty-before cell */
+.logQtyBefore {
+  color: var(--text-light);
+  text-align: right;
+}
+
+/* Log qty-after cell */
+.logQtyAfter {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Log qty-change bold */
+.logQtyChangeBold {
+  font-weight: 700;
+  text-align: right;
+}
+
+/* Log reason cell */
+.logReasonCell {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* Log admin cell */
+.logAdminCell {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Log reason cell in main logs (wider) */
+.logReasonCellWide {
+  font-size: 12px;
+  color: var(--text-mid);
+  max-width: 160px;
+}
+
+/* Card value small */
+.cardValueSm {
+  font-size: 12px;
+}
+
+/* Card change bold */
+.cardChangeBold {
+  font-weight: 700;
+}
+
+/* Card after bold */
+.cardAfterBold {
+  font-weight: 600;
+}
+
+/* Schedule mono font */
+.monoFont {
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Schedule category item */
+.schedCatItem {
+  margin-right: 12px;
+}
+
+/* Schedule total bold */
+.schedTotalBold {
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Normal badge (green) */
+.badgeNormal {
+  color: #2ab85a;
+  border: 1px solid #2ab85a;
+}
+
+/* Disabled placeholder icon wrap */
+.placeholderIconWrap {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Modal width 480 */
+.modal480 {
+  width: 480px;
+}
+
+/* Modal width 500 */
+.modal500 {
+  width: 500px;
+}
+
+/* Modal width 520 */
+.modal520 {
+  width: 520px;
+}
+
+/* Modal body grid */
+.modalBodyGrid {
+  display: grid;
+  gap: 16px;
+}
+
+/* Adj info bar float right span */
+.adjInfoRight {
+  float: right;
+}
+
+/* Align center + gap 8 */
+.flexCenterGap8 {
+  align-items: center;
+  gap: 8px;
+}
+
+/* Unit label */
+.unitLabel {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Schedule detail text */
+.schedDetailText {
+  font-size: 12px;
+  color: var(--text-mid);
+}
+
+/* Audit input 100px width */
+.auditInput100 {
+  width: 100px;
+}
+
+/* Disabled input half opacity */
+.inputDisabledHalf {
+  opacity: 0.5;
+}
+
+@media (max-width: 639px) {
+  .auditCompareGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,1094 @@
+/* ── MemberDashboard (mobile-first) ── */
+
+/* 主版面：手機單欄，桌面左右分欄 */
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+@media (min-width: 768px) {
+  .layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+}
+
+/* ── 左側欄（手機時變成頂部橫滑 tab）── */
+.sidebar {
+  /* 手機：橫向 tabs */
+}
+
+.avatar {
+  display: none;
+}
+@media (min-width: 768px) {
+  .avatar {
+    display: block;
+    text-align: center;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.avatarCircle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin: 0 auto 12px;
+  font-family: "Noto Sans TC", sans-serif;
+}
+
+.avatarName {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.avatarRole {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+
+/* 手機導航：橫向可滑動 */
+.nav {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+
+@media (min-width: 768px) {
+  .nav {
+    display: grid;
+    margin-top: 20px;
+    overflow-x: visible;
+    border-bottom: none;
+  }
+}
+
+.navItem {
+  display: block;
+  padding: 12px 16px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: "Noto Sans TC", sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  min-height: 44px;
+  text-align: left;
+}
+@media (min-width: 768px) {
+  .navItem {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    white-space: normal;
+  }
+}
+
+.navItemActive {
+  composes: navItem;
+  color: var(--text-dark);
+  border-bottom-color: var(--text-dark);
+}
+@media (min-width: 768px) {
+  .navItemActive {
+    padding-left: 6px;
+    border-bottom-color: var(--line);
+  }
+}
+
+.navLogout {
+  composes: navItem;
+  border-bottom: none;
+}
+@media (min-width: 768px) {
+  .navLogout { margin-top: 8px; }
+}
+
+/* ── 右側內容 ── */
+.content {
+  min-width: 0;
+}
+
+/* ── 共用標題 ── */
+.sectionHeading {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.28em;
+  color: var(--text-dark);
+  margin: 0 0 24px;
+}
+@media (min-width: 640px) {
+  .sectionHeading {
+    font-size: 19px;
+    margin-bottom: 32px;
+  }
+}
+
+/* ── 共用 label / input ── */
+.label {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  margin-top: 8px;
+  font-family: inherit;
+  font-size: 16px; /* prevent iOS zoom */
+  background: transparent;
+  color: var(--text-dark);
+  letter-spacing: 0.05em;
+  outline: none;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .input { font-size: 13px; }
+}
+
+.fieldGroup {
+  margin-bottom: 20px;
+}
+@media (min-width: 640px) {
+  .fieldGroup { margin-bottom: 24px; }
+}
+
+/* ── 個人資料 ── */
+.profileForm {
+  max-width: 520px;
+}
+
+.saveBtn {
+  margin-top: 24px;
+  padding: 12px 44px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: transparent;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* ── 集章卡 ── */
+.stampCard {
+  background: var(--surface);
+  padding: 20px 16px;
+  margin-bottom: 24px;
+}
+@media (min-width: 640px) {
+  .stampCard { padding: 32px; }
+}
+
+.stampCardName {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+
+.stampGrid {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+@media (min-width: 640px) {
+  .stampGrid { gap: 10px; }
+}
+
+.stampSlot {
+  position: relative;
+  padding-bottom: 100%;
+}
+
+.stampSlotInner {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.stampIcon {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+}
+
+.stampEmoji {
+  font-size: 20px;
+}
+
+.stampFrozenEmoji {
+  font-size: 16px;
+}
+
+.stampNumber {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.2);
+  font-family: "Montserrat", sans-serif;
+}
+
+.stampRewardTag {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-family: "Montserrat", sans-serif;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.stampSummary {
+  font-size: 13px;
+  color: #555250;
+  letter-spacing: 0.05em;
+  margin-top: 24px;
+}
+
+.stampFrozenNote {
+  color: #b87a2a;
+  margin-left: 8px;
+}
+
+.stampAvailable {
+  color: var(--text-light);
+  margin-left: 8px;
+}
+
+/* ── 進行中兌換 ── */
+.redeemActiveSection {
+  margin-bottom: 24px;
+}
+
+.subSectionTitle {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+
+.subSectionTitleWarn {
+  composes: subSectionTitle;
+  color: #b87a2a;
+}
+
+.activeRedemption {
+  padding: 12px 14px;
+  background: #fff8e1;
+  border: 1px solid #f0c040;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .activeRedemption {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+  }
+}
+
+.activeRedemptionName {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.activeRedemptionCost {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-left: 8px;
+}
+
+.activeRedemptionDetail {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.cancelRedeemBtn {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: #c0392b;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-height: 44px;
+  align-self: flex-start;
+}
+@media (min-width: 640px) {
+  .cancelRedeemBtn {
+    min-height: auto;
+    align-self: center;
+  }
+}
+
+/* ── 兌換獎勵列表 ── */
+.rewardListSection {
+  margin-bottom: 24px;
+}
+
+.rewardGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.rewardCard {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+@media (min-width: 640px) {
+  .rewardCard { padding: 16px 20px; }
+}
+
+.rewardCardCanRedeem {
+  composes: rewardCard;
+  background: #f0faf4;
+  border-color: #2ab85a;
+}
+
+.rewardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+@media (min-width: 640px) {
+  .rewardHeader { gap: 16px; }
+}
+
+.rewardStampCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rewardStampNumber {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rewardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.rewardName {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.rewardDesc {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.rewardNeedMore {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.rewardActiveBadge {
+  font-size: 11px;
+  color: #b87a2a;
+  border: 1px solid #b87a2a;
+  padding: 3px 10px;
+  font-family: "Montserrat", sans-serif;
+  white-space: nowrap;
+}
+
+.rewardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.redeemOnlineBtn {
+  flex: 1;
+  padding: 9px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.redeemCodeBtn {
+  flex: 1;
+  padding: 9px;
+  background: transparent;
+  color: var(--text-dark);
+  border: 1px solid var(--text-dark);
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* ── 集章說明 ── */
+.stampInfo {
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 2;
+  padding: 16px 20px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+/* ── 異動記錄 ── */
+.logsSection {
+  margin-top: 28px;
+}
+
+.logRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.logReason {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.logDate {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.logChange {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.logChangePositive {
+  composes: logChange;
+  color: #2ab85a;
+}
+
+.logChangeNegative {
+  composes: logChange;
+  color: #c0392b;
+}
+
+.logAfter {
+  font-size: 11px;
+  color: var(--text-light);
+  text-align: right;
+}
+
+.showMoreBtn {
+  margin-top: 12px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  color: var(--text-light);
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: 44px;
+}
+
+/* ── Modal 共用（兌換確認 / 兌換碼結果 / 地址）── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 400;
+}
+
+.modalOverlayLight {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 200;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 90vw;
+  max-width: 480px;
+  z-index: 401;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@media (min-width: 640px) {
+  .modal { padding: 32px; }
+}
+
+.modalSmall {
+  composes: modal;
+  max-width: 400px;
+  text-align: center;
+}
+
+.modalAddr {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  width: 90vw;
+  max-width: 480px;
+  z-index: 201;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalTitle {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+}
+
+/* ── 兌換確認 Modal ── */
+.rewardInfoBox {
+  background: var(--surface);
+  padding: 14px 20px;
+  margin-bottom: 20px;
+}
+
+.rewardInfoName {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.rewardInfoDesc {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.rewardInfoCost {
+  font-size: 12px;
+  color: #555250;
+  margin-top: 8px;
+}
+
+.warningBox {
+  background: #fef0e8;
+  border: 1px solid #e8a87c;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #7a3c00;
+  line-height: 2;
+}
+
+.confirmLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-dark);
+  cursor: pointer;
+  margin-bottom: 24px;
+  line-height: 1.8;
+}
+
+.confirmCheckbox {
+  accent-color: var(--text-dark);
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+}
+
+.modalPrimaryBtn {
+  flex: 1;
+  padding: 12px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.modalPrimaryBtnDisabled {
+  composes: modalPrimaryBtn;
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.modalSecondaryBtn {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  color: #555250;
+  border: 1px solid var(--line);
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* ── 兌換碼結果 Modal ── */
+.codeResultIcon {
+  margin-bottom: 16px;
+}
+
+.codeResultTitle {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.codeResultReward {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 24px;
+}
+
+.codeBox {
+  background: var(--surface);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.codeText {
+  font-family: "Montserrat", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-dark);
+}
+@media (min-width: 640px) {
+  .codeText { font-size: 28px; }
+}
+
+.codeExpiry {
+  font-size: 12px;
+  color: #c0392b;
+  margin-bottom: 24px;
+}
+
+.codeHint {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 24px;
+  line-height: 1.8;
+}
+
+.codeCloseBtn {
+  width: 100%;
+  padding: 12px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* ── 訂單記錄 ── */
+.ordersEmpty {
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.orderCard {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 640px) {
+  .orderCard { padding: 20px 0; }
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.orderNo {
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-dark);
+}
+
+.orderStatusBadge {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  padding: 2px 10px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.orderItems {
+  font-size: 12px;
+  color: #555250;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.orderTracking {
+  font-size: 12px;
+  color: #2ab85a;
+  margin-bottom: 6px;
+}
+
+.orderFooter {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.orderDate {
+  color: var(--text-light);
+}
+
+.orderTotal {
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+/* ── 收件地址 ── */
+.addressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.addAddrBtn {
+  padding: 8px 20px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.addressSubtitle {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 24px;
+}
+
+.addressEmpty {
+  padding: 32px;
+  border: 1px dashed var(--line);
+  text-align: center;
+}
+
+.addressEmptyText {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 16px;
+}
+
+.addressEmptyBtn {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 12px;
+  color: var(--text-light);
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  min-height: 44px;
+}
+
+.addressCard {
+  padding: 16px;
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+  position: relative;
+}
+@media (min-width: 640px) {
+  .addressCard { padding: 20px 24px; }
+}
+
+.addressCardDefault {
+  composes: addressCard;
+  border-color: var(--text-dark);
+}
+
+.addressDefaultBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 10px;
+  color: var(--text-dark);
+  border: 1px solid var(--text-dark);
+  padding: 2px 8px;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.15em;
+}
+@media (min-width: 640px) {
+  .addressDefaultBadge { top: 16px; right: 16px; }
+}
+
+.addressLabel {
+  font-size: 11px;
+  color: var(--text-light);
+  letter-spacing: 0.15em;
+  margin-bottom: 6px;
+  font-family: "Montserrat", sans-serif;
+  text-transform: uppercase;
+}
+
+.addressName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.addressPhone {
+  font-size: 12px;
+  color: #555250;
+  margin-bottom: 4px;
+}
+
+.addressDetail {
+  font-size: 12px;
+  color: #555250;
+}
+
+.addressActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.addrActionBtn {
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 5px 12px;
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (min-width: 640px) {
+  .addrActionBtn { min-height: auto; }
+}
+
+.addrActionDefault {
+  composes: addrActionBtn;
+  color: var(--text-light);
+}
+
+.addrActionEdit {
+  composes: addrActionBtn;
+  color: #555250;
+}
+
+.addrActionDelete {
+  composes: addrActionBtn;
+  color: #c0392b;
+}
+
+/* ── 地址 Modal ── */
+.addrModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 640px) {
+  .addrModalHeader { padding: 20px 24px; }
+}
+
+.addrModalTitle {
+  font-family: "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-dark);
+}
+
+.addrModalClose {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-light);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addrModalBody {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .addrModalBody { padding: 24px; }
+}
+
+.addrTwoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .addrTwoCol { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+
+.radioGroup {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dark);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.radioInput {
+  accent-color: var(--text-dark);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555250;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.addrModalActions {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.addrSaveBtn {
+  padding: 10px 32px;
+  background: var(--text-dark);
+  color: var(--bg);
+  border: none;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.addrSaveBtnDisabled {
+  composes: addrSaveBtn;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.addrCancelBtn {
+  padding: 10px 32px;
+  background: transparent;
+  color: var(--text-light);
+  border: 1px solid var(--line);
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  min-height: 44px;
+}
