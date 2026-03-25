@@ -19,7 +19,8 @@ import Footer from '@/components/Footer';
 export default function MemberPage() {
   // 登入的使用者資料（null = 未登入）
   const [user, setUser] = useState<{ id: string; name: string } | null>(null);
-  const [loading, setLoading] = useState(true); // 初始載入中
+  const [authChecked, setAuthChecked] = useState(false);  // 是否已確認 session 狀態
+  const [authSlow, setAuthSlow] = useState(false);        // 是否載入較久
   const [storeSettings, setStoreSettings] = useState<any>(null);
 
   // ── 頁面載入時檢查是否已登入 ──────────────────────
@@ -28,9 +29,11 @@ export default function MemberPage() {
     supabase.from('store_settings').select('phone, email, address').eq('id', 1).single()
       .then(({ data }) => { if (data) setStoreSettings(data); }, () => {});
 
+    // 3 秒後若還沒確認完，顯示「載入較久」提示（但不當成未登入）
+    const slowTimer = setTimeout(() => setAuthSlow(true), 3000);
+
     // auth：只用 getSession 快速取，不呼叫 refreshSession
     // token 刷新交給 onAuthStateChange 自動處理
-    const timeout = setTimeout(() => setLoading(false), 3000); // 最多等 3 秒
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
@@ -38,11 +41,11 @@ export default function MemberPage() {
           name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
         });
       }
-      clearTimeout(timeout);
-      setLoading(false);
+      clearTimeout(slowTimer);
+      setAuthChecked(true);
     }).catch(() => {
-      clearTimeout(timeout);
-      setLoading(false);
+      clearTimeout(slowTimer);
+      setAuthChecked(true);
     });
 
     // 監聽登入狀態變化（登入/登出/token 刷新時自動更新）
@@ -63,10 +66,11 @@ export default function MemberPage() {
       } else {
         setUser(null);
       }
-      setLoading(false); // 不管登入登出，都結束載入狀態
+      clearTimeout(slowTimer);
+      setAuthChecked(true);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(slowTimer); };
   }, []);
 
   // 登入成功（AuthPanel 呼叫）
@@ -80,11 +84,11 @@ export default function MemberPage() {
     setUser(null);
   };
 
-  // 初始載入中
-  if (loading) {
+  // auth 尚未確認完成 → 顯示載入狀態（不顯示 AuthPanel）
+  if (!authChecked) {
     return (
       <div style={{ padding: '120px 0', textAlign: 'center', color: '#888580', fontSize: '13px', letterSpacing: '0.15em' }}>
-        載入中...
+        {authSlow ? '正在確認登入狀態，請稍候...' : '載入中...'}
       </div>
     );
   }
