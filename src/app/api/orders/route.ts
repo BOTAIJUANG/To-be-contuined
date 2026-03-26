@@ -158,7 +158,8 @@ export async function POST(req: NextRequest) {
 
     orderItems.push({
       product_id:  item.product_id,
-      name:        product.name,
+      variant_id:  item.variant_id ?? null,
+      name:        product.name + (variant ? ` (${variant.name})` : ''),
       price:       unitPrice,
       qty:         item.qty,
       is_gift:     false,
@@ -353,6 +354,34 @@ export async function POST(req: NextRequest) {
           qty: g.qty,
           name: giftNameMap.get(g.product_id) ?? `贈品 #${g.product_id}`,
         }));
+      }
+    }
+  }
+
+  // ── 7.6 贈品庫存預檢 ──────────────────────────────
+  for (const gift of giftItems) {
+    const { data: inv } = await supabaseAdmin
+      .from('inventory')
+      .select('id, inventory_mode, stock, reserved, reserved_preorder, preorder_limit')
+      .eq('product_id', gift.product_id)
+      .is('variant_id', null)
+      .single();
+    if (!inv) continue;
+    if (inv.inventory_mode === 'stock') {
+      const available = inv.stock - inv.reserved;
+      if (available < gift.qty) {
+        return NextResponse.json(
+          { error: `贈品「${gift.name}」庫存不足（剩餘 ${available} 件），無法完成訂單` },
+          { status: 400 },
+        );
+      }
+    } else if (inv.inventory_mode === 'preorder' && inv.preorder_limit) {
+      const available = inv.preorder_limit - inv.reserved_preorder;
+      if (available < gift.qty) {
+        return NextResponse.json(
+          { error: `贈品「${gift.name}」預購額度不足（剩餘 ${available} 件），無法完成訂單` },
+          { status: 400 },
+        );
       }
     }
   }

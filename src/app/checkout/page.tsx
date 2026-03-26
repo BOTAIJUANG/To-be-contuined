@@ -106,6 +106,20 @@ export default function CheckoutPage() {
   const { promoResult, promotions: loadedPromos } = usePromotions(cartItemsForCalc);
   const promoDiscount = promoResult.total_discount;
 
+  // 贈品商品名稱
+  const [giftProductNames, setGiftProductNames] = useState<Record<number, { name: string; image_url?: string }>>({});
+  useEffect(() => {
+    const giftIds = [...new Set(promoResult.gifts.map(g => g.product_id))];
+    if (giftIds.length === 0) { setGiftProductNames({}); return; }
+    supabase.from('products').select('id, name, image_url').in('id', giftIds).then(({ data }) => {
+      if (data) {
+        const map: Record<number, { name: string; image_url?: string }> = {};
+        data.forEach((p: any) => { map[p.id] = { name: p.name, image_url: p.image_url }; });
+        setGiftProductNames(map);
+      }
+    });
+  }, [promoResult.gifts]);
+
   // Step 2 欄位
   const [shipMethod, setShipMethod] = useState('home');
   const [name,       setName]       = useState('');
@@ -558,6 +572,30 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ))}
+              {/* 贈品顯示在購物車列表中 */}
+              {promoResult.gifts.map(g => {
+                const info = giftProductNames[g.product_id];
+                return (
+                  <div key={`gift-${g.promotion_id}-${g.product_id}`} className={s.cartRow}>
+                    <div className={s.cartItemLeft}>
+                      <div className={`${s.cartThumb} ${s.cartThumbRedeem}`}>
+                        {info?.image_url
+                          ? <img src={info.image_url} alt={info.name} className={s.cartThumbImg} />
+                          : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2ab85a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" /></svg>
+                        }
+                      </div>
+                      <div>
+                        <div className={s.cartItemNameRow}>
+                          <span className={s.cartItemName}>{info?.name ?? `贈品 #${g.product_id}`}</span>
+                          <span className={s.redeemBadge}>贈品</span>
+                        </div>
+                        <div className={s.cartItemQty}>&times; {g.qty}<span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-light)' }}>{g.promotion_name}</span></div>
+                      </div>
+                    </div>
+                    <div className={`${s.cartItemPrice} ${s.cartItemPriceRedeem}`}>免費</div>
+                  </div>
+                );
+              })}
               <div className={s.summaryRow}>
                 <span className={s.summaryLabel}>小計</span>
                 <span className={s.summaryValue}>NT$ {totalPrice.toLocaleString()}</span>
@@ -570,14 +608,6 @@ export default function CheckoutPage() {
                       <span>{d.promotion_name}</span>
                       <span>&minus; NT$ {d.discount_amount.toLocaleString()}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-              {/* 贈品提示 */}
-              {promoResult.gifts.length > 0 && (
-                <div className={s.giftBox}>
-                  {promoResult.gifts.map(g => (
-                    <div key={`gift-${g.promotion_id}`}>🎁 {g.promotion_name}：贈品 &times; {g.qty}</div>
                   ))}
                 </div>
               )}
@@ -776,7 +806,13 @@ export default function CheckoutPage() {
             {items.map(item => (
               <div key={item.id} className={s.orderSummaryItem}>
                 <span>{item.name} &times; {item.qty}</span>
-                <span>NT$ {(item.price * item.qty).toLocaleString()}</span>
+                <span>{item.isRedeemItem ? '免費' : `NT$ ${(item.price * item.qty).toLocaleString()}`}</span>
+              </div>
+            ))}
+            {promoResult.gifts.map(g => (
+              <div key={`gift3-${g.promotion_id}-${g.product_id}`} className={s.orderSummaryItem} style={{ color: '#2ab85a' }}>
+                <span>{giftProductNames[g.product_id]?.name ?? `贈品 #${g.product_id}`} &times; {g.qty}（贈品）</span>
+                <span>免費</span>
               </div>
             ))}
           </div>
