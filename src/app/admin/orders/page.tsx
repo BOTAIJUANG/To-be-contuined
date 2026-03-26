@@ -8,7 +8,7 @@ import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
 import s from './orders.module.css';
 
-type OrderTab = 'list' | 'shiplist' | 'report';
+type OrderTab = 'list' | 'shiplist' | 'shipped' | 'report';
 type ReportPeriod = 'today' | 'week' | 'month' | 'custom';
 
 const STATUS_OPTIONS = [
@@ -22,11 +22,11 @@ const SHIP_STATUS_OPTIONS = [
   { value: 'done', label: '已完成' },
 ];
 const PAY_OPTIONS = [
-  { value: '', label: '全部' }, { value: 'pending', label: '待付款' },
+  { value: '', label: '全部付款狀態' }, { value: 'pending', label: '待付款' },
   { value: 'paid', label: '已付款' }, { value: 'failed', label: '付款失敗' },
 ];
 const SHIP_OPTIONS = [
-  { value: '', label: '全部' }, { value: 'home_normal', label: '一般宅配' },
+  { value: '', label: '全部配送方式' }, { value: 'home_normal', label: '一般宅配' },
   { value: 'home_cold', label: '低溫宅配' }, { value: 'cvs_711', label: '7-11取貨' },
   { value: 'cvs_family', label: '全家取貨' }, { value: 'store', label: '門市自取' },
 ];
@@ -35,6 +35,25 @@ const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped:
 const PAY_COLOR: Record<string, string>    = { pending: '#8b6722', paid: '#4a7a56', failed: '#b55245' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '失敗' };
 const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家' };
+const SORT_OPTIONS = [
+  { value: 'newest', label: '最新優先' }, { value: 'oldest', label: '最舊優先' },
+  { value: 'amount_desc', label: '金額高到低' }, { value: 'amount_asc', label: '金額低到高' },
+];
+const SHIP_SORT_OPTIONS = [
+  { value: 'oldest', label: '最舊訂單優先' }, { value: 'newest', label: '最新訂單優先' },
+  { value: 'ship_date_asc', label: '到貨日最早' }, { value: 'ship_date_desc', label: '到貨日最晚' },
+];
+const SHIPPED_SORT_OPTIONS = [
+  { value: 'shipped_newest', label: '最新出貨優先' }, { value: 'shipped_oldest', label: '最舊出貨優先' },
+];
+
+function productSummary(items: any[]) {
+  if (!items || items.length === 0) return '—';
+  const first = items[0];
+  const rest = items.length - 1;
+  return rest > 0 ? `${first.name} ×${first.qty}，另有 ${rest} 項` : `${first.name} ×${first.qty}`;
+}
+function totalQty(items: any[]) { return items?.reduce((s: number, i: any) => s + i.qty, 0) ?? 0; }
 
 function getPeriodRange(period: ReportPeriod, cs: string, ce: string) {
   const now = new Date(); const today = now.toISOString().split('T')[0];
@@ -63,6 +82,23 @@ export default function AdminOrdersPage() {
   const [osShip, setOsShip] = useState('');
   const [osMin, setOsMin] = useState('');
   const [osMax, setOsMax] = useState('');
+  const [osSort, setOsSort] = useState('newest');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // 出貨列表（待出貨）
+  const [shipOrders, setShipOrders] = useState<any[]>([]);
+  const [shipLoading, setShipLoading] = useState(false);
+  const [shipSelected, setShipSelected] = useState<Set<number>>(new Set());
+  const [shipKeyword, setShipKeyword] = useState('');
+  const [shipSort, setShipSort] = useState('oldest');
+  const [shipConfirmModal, setShipConfirmModal] = useState(false);
+  const [shipProcessing, setShipProcessing] = useState(false);
+
+  // 已出貨訂單
+  const [shippedOrders, setShippedOrders] = useState<any[]>([]);
+  const [shippedLoading, setShippedLoading] = useState(false);
+  const [shippedKeyword, setShippedKeyword] = useState('');
+  const [shippedSort, setShippedSort] = useState('shipped_newest');
 
   // 報表
   const [reportPeriod, setReportPeriod] = useState<ReportPeriod>('month');
@@ -73,27 +109,137 @@ export default function AdminOrdersPage() {
   const [reportDaily, setReportDaily] = useState<any[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
 
-  const loadOrders = async () => {
+  const loadOrders = async (overrides: Record<string, string> = {}) => {
     setLoading(true);
-    let q = supabase.from('orders').select('*, order_items(name, qty, price)').order('created_at', { ascending: false });
-    if (osStatus)  q = q.eq('status', osStatus);
-    if (osPay)     q = q.eq('pay_status', osPay);
-    if (osShip)    q = q.eq('ship_method', osShip);
-    if (dateStart) q = q.gte('created_at', dateStart);
-    if (dateEnd)   q = q.lte('created_at', dateEnd + 'T23:59:59');
-    if (osMin)     q = q.gte('total', Number(osMin));
-    if (osMax)     q = q.lte('total', Number(osMax));
+    const kw = 'keyword' in overrides ? overrides.keyword : keyword;
+    const ds = 'dateStart' in overrides ? overrides.dateStart : dateStart;
+    const de = 'dateEnd' in overrides ? overrides.dateEnd : dateEnd;
+    const st = 'osStatus' in overrides ? overrides.osStatus : osStatus;
+    const py = 'osPay' in overrides ? overrides.osPay : osPay;
+    const sh = 'osShip' in overrides ? overrides.osShip : osShip;
+    const mn = 'osMin' in overrides ? overrides.osMin : osMin;
+    const mx = 'osMax' in overrides ? overrides.osMax : osMax;
+    const sort = 'osSort' in overrides ? overrides.osSort : osSort;
+
+    let orderBy = 'created_at';
+    let ascending = false;
+    if (sort === 'oldest') ascending = true;
+    if (sort === 'amount_desc') { orderBy = 'total'; }
+    if (sort === 'amount_asc') { orderBy = 'total'; ascending = true; }
+
+    let q = supabase.from('orders').select('*, order_items(name, qty, price)').order(orderBy, { ascending });
+    if (st)  q = q.eq('status', st);
+    if (py)  q = q.eq('pay_status', py);
+    if (sh)  q = q.eq('ship_method', sh);
+    if (ds)  q = q.gte('created_at', ds);
+    if (de)  q = q.lte('created_at', de + 'T23:59:59');
+    if (mn)  q = q.gte('total', Number(mn));
+    if (mx)  q = q.lte('total', Number(mx));
     const { data } = await q;
     let list = data ?? [];
-    if (keyword) {
-      const kw = keyword.toLowerCase();
-      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw));
+    if (kw) {
+      const kwl = kw.toLowerCase();
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kwl) || (o.buyer_name ?? '').includes(kwl) || (o.buyer_phone ?? '').includes(kwl));
     }
     setOrders(list);
     setLoading(false);
   };
 
+  const removeChip = (overrides: Record<string, string>) => {
+    if ('osStatus' in overrides) setOsStatus(overrides.osStatus);
+    if ('osPay' in overrides) setOsPay(overrides.osPay);
+    if ('osShip' in overrides) setOsShip(overrides.osShip);
+    if ('dateStart' in overrides) setDateStart(overrides.dateStart);
+    if ('dateEnd' in overrides) setDateEnd(overrides.dateEnd);
+    if ('osMin' in overrides) setOsMin(overrides.osMin);
+    if ('osMax' in overrides) setOsMax(overrides.osMax);
+    loadOrders(overrides);
+  };
+
+  const clearAll = () => {
+    setKeyword(''); setDateStart(''); setDateEnd('');
+    setOsStatus(''); setOsPay(''); setOsShip('');
+    setOsMin(''); setOsMax(''); setOsSort('newest');
+    loadOrders({ keyword: '', dateStart: '', dateEnd: '', osStatus: '', osPay: '', osShip: '', osMin: '', osMax: '', osSort: 'newest' });
+  };
+
+  // ── 出貨列表（待出貨）──
+  const loadShipOrders = async () => {
+    setShipLoading(true);
+    let orderBy = 'created_at';
+    let ascending = true;
+    if (shipSort === 'newest') ascending = false;
+    if (shipSort === 'ship_date_asc') { orderBy = 'ship_date'; }
+    if (shipSort === 'ship_date_desc') { orderBy = 'ship_date'; ascending = false; }
+
+    const { data } = await supabase.from('orders')
+      .select('*, order_items(name, qty, price, product_id, variant_id)')
+      .eq('pay_status', 'paid').eq('status', 'processing').is('shipped_at', null)
+      .order(orderBy, { ascending });
+    let list = data ?? [];
+    if (shipKeyword) {
+      const kw = shipKeyword.toLowerCase();
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw));
+    }
+    setShipOrders(list);
+    setShipSelected(new Set());
+    setShipLoading(false);
+  };
+
+  const toggleShipSelect = (id: number) => {
+    setShipSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+  const toggleShipSelectAll = () => {
+    setShipSelected(prev => prev.size === shipOrders.length ? new Set() : new Set(shipOrders.map(o => o.id)));
+  };
+
+  const batchMarkShipped = async () => {
+    setShipProcessing(true);
+    const ids = Array.from(shipSelected);
+    for (const id of ids) { await updateStatus(id, 'status', 'shipped'); }
+    setShipConfirmModal(false);
+    setShipProcessing(false);
+    loadShipOrders();
+  };
+
+  // ── 已出貨訂單 ──
+  const loadShippedOrders = async () => {
+    setShippedLoading(true);
+    const ascending = shippedSort === 'shipped_oldest';
+    const { data } = await supabase.from('orders')
+      .select('*, order_items(name, qty, price)')
+      .not('shipped_at', 'is', null)
+      .order('shipped_at', { ascending });
+    let list = data ?? [];
+    if (shippedKeyword) {
+      const kw = shippedKeyword.toLowerCase();
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw));
+    }
+    setShippedOrders(list);
+    setShippedLoading(false);
+  };
+
+  // ── CSV 匯出 ──
+  const exportCSV = (list: any[], filename: string) => {
+    const BOM = '\uFEFF';
+    const headers = ['訂單編號', '下單日期', '收件人', '電話', '地址', '配送方式', '指定出貨日', '商品名稱', '數量', '單價', '小計', '備註'];
+    const rows = list.flatMap(o => (o.order_items ?? []).map((item: any) => [
+      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'), o.buyer_name, o.buyer_phone,
+      o.address || '門市自取', SHIP_LABEL[o.ship_method] ?? o.ship_method, o.ship_date ?? '',
+      item.name, item.qty, item.price, item.price * item.qty, o.note ?? '',
+    ]));
+    const csv = BOM + [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => { loadOrders(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === 'shiplist') loadShipOrders(); }, [tab, shipSort]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === 'shipped') loadShippedOrders(); }, [tab, shippedSort]);
 
   const loadReport = async () => {
     setReportLoading(true);
@@ -217,7 +363,8 @@ export default function AdminOrdersPage() {
 
       <div className={s.tabs}>
         <div className={tab === 'list' ? s.tabActive : s.tab}     onClick={() => setTab('list')}>訂單列表</div>
-        <div className={tab === 'shiplist' ? s.tabActive : s.tab} onClick={() => setTab('shiplist')}>出貨單列表</div>
+        <div className={tab === 'shiplist' ? s.tabActive : s.tab} onClick={() => setTab('shiplist')}>出貨列表</div>
+        <div className={tab === 'shipped' ? s.tabActive : s.tab}  onClick={() => setTab('shipped')}>已出貨訂單</div>
         <div className={tab === 'report' ? s.tabActive : s.tab}   onClick={() => setTab('report')}>銷售庫存報表</div>
       </div>
 
@@ -225,24 +372,58 @@ export default function AdminOrdersPage() {
       {tab === 'list' && (
         <>
           <div className={s.filterPanel}>
-            <div className={s.filterRow}>
-              <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadOrders()} placeholder="訂單編號、姓名、電話" className={s.input} />
-              <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className={s.dateInput} />
-              <span className={s.dateSep}>～</span>
-              <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className={s.dateInput} />
-            </div>
-            <div className={s.filterRowBottom}>
-              <select value={osStatus} onChange={e => setOsStatus(e.target.value)} className={s.select}>{STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}</select>
-              <select value={osPay}    onChange={e => setOsPay(e.target.value)}    className={s.select}>{PAY_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}</select>
-              <select value={osShip}   onChange={e => setOsShip(e.target.value)}   className={s.select}>{SHIP_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}</select>
-              <input type="number" value={osMin} onChange={e => setOsMin(e.target.value)} placeholder="最低金額" className={s.amountInput} />
-              <input type="number" value={osMax} onChange={e => setOsMax(e.target.value)} placeholder="最高金額" className={s.amountInput} />
-              <div className={s.filterActions}>
-                <button onClick={() => { setKeyword(''); setDateStart(''); setDateEnd(''); setOsStatus(''); setOsPay(''); setOsShip(''); setOsMin(''); setOsMax(''); }} className={s.btnClear}>清除</button>
-                <button onClick={loadOrders} className={s.btnSearch}>搜尋</button>
+            {/* Row 1: Search Bar */}
+            <div className={s.searchBar}>
+              <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadOrders()} placeholder="搜尋訂單編號 / 姓名 / 電話" className={s.input} />
+              <div className={s.searchDates}>
+                <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className={s.searchDateInput} />
+                <span className={s.dateSep}>～</span>
+                <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className={s.searchDateInput} />
+              </div>
+              <div className={s.searchActions}>
+                <button onClick={() => loadOrders()} className={s.btnSearch}>搜尋</button>
+                <button onClick={clearAll} className={s.btnClear}>清除</button>
               </div>
             </div>
-            <div className={s.orderCount}>共 <strong className={s.orderCountNum}>{orders.length}</strong> 筆訂單</div>
+
+            {/* Mobile: expand filters toggle */}
+            <button className={s.filterExpandBtn} onClick={() => setShowFilters(v => !v)}>
+              {showFilters ? '收起篩選條件' : '展開更多條件'}
+            </button>
+
+            {/* Row 2: Filter Bar */}
+            <div className={`${s.filterBar} ${showFilters ? s.filterBarOpen : ''}`}>
+              <select value={osStatus} onChange={e => setOsStatus(e.target.value)} className={s.select}>{STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+              <select value={osPay} onChange={e => setOsPay(e.target.value)} className={s.select}>{PAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+              <select value={osShip} onChange={e => setOsShip(e.target.value)} className={s.select}>{SHIP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+              <input type="number" value={osMin} onChange={e => setOsMin(e.target.value)} placeholder="最低金額" className={s.amountInput} />
+              <input type="number" value={osMax} onChange={e => setOsMax(e.target.value)} placeholder="最高金額" className={s.amountInput} />
+              <select value={osSort} onChange={e => setOsSort(e.target.value)} className={s.sortSelect}>{SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+            </div>
+
+            {/* Row 3: Result Bar */}
+            <div className={s.resultBar}>
+              <span className={s.resultCount}>共 <strong className={s.resultCountNum}>{orders.length}</strong> 筆訂單</span>
+              {(osStatus || osPay || osShip || dateStart || dateEnd || osMin || osMax) && (
+                <div className={s.filterChips}>
+                  {osStatus && <span className={s.filterChip}>{STATUS_OPTIONS.find(o => o.value === osStatus)?.label}<button onClick={() => removeChip({ osStatus: '' })} className={s.chipRemove}>×</button></span>}
+                  {osPay && <span className={s.filterChip}>{PAY_OPTIONS.find(o => o.value === osPay)?.label}<button onClick={() => removeChip({ osPay: '' })} className={s.chipRemove}>×</button></span>}
+                  {osShip && <span className={s.filterChip}>{SHIP_OPTIONS.find(o => o.value === osShip)?.label}<button onClick={() => removeChip({ osShip: '' })} className={s.chipRemove}>×</button></span>}
+                  {(dateStart || dateEnd) && (
+                    <span className={s.filterChip}>
+                      {dateStart && dateEnd ? `${dateStart.slice(5).replace('-', '/')} - ${dateEnd.slice(5).replace('-', '/')}` : dateStart ? `${dateStart.slice(5).replace('-', '/')} 起` : `至 ${dateEnd!.slice(5).replace('-', '/')}`}
+                      <button onClick={() => removeChip({ dateStart: '', dateEnd: '' })} className={s.chipRemove}>×</button>
+                    </span>
+                  )}
+                  {(osMin || osMax) && (
+                    <span className={s.filterChip}>
+                      {osMin && osMax ? `$${osMin}-$${osMax}` : osMin ? `$${osMin} 以上` : `$${osMax} 以下`}
+                      <button onClick={() => removeChip({ osMin: '', osMax: '' })} className={s.chipRemove}>×</button>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {loading ? <p className={s.loading}>載入中...</p> : (
@@ -360,55 +541,147 @@ export default function AdminOrdersPage() {
         </>
       )}
 
-      {/* ════ 出貨單列表 ════ */}
+      {/* ════ 出貨列表（待出貨作業）════ */}
       {tab === 'shiplist' && (
         <>
-          <div className={s.shipNotice}>顯示所有待出貨和已出貨的訂單。</div>
-          <div className={s.tableWrap}>
-            {/* Desktop table */}
-            <table className={s.table}>
-              <thead><tr>{['訂單編號', '收件人', '地址', '配送方式', '指定出貨日', '配送狀態'].map(h => <th key={h} className={s.th}>{h}</th>)}</tr></thead>
-              <tbody>
-                {orders.filter(o => o.status !== 'cancelled').map(o => (
-                  <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
-                    <td className={s.tdOrderNo}>{o.order_no}</td>
-                    <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
-                    <td className={s.tdAddress}>{o.address || '門市自取'}</td>
-                    <td className={s.tdShipMethodCell}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
-                    <td className={s.tdShipDate}>{o.ship_date ?? '—'}</td>
-                    <td className={s.tdShipStatus} onClick={e => e.stopPropagation()}>
-                      <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
-                        {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* 搜尋 + 排序 */}
+          <div className={s.shipToolbar}>
+            <input value={shipKeyword} onChange={e => setShipKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadShipOrders()} placeholder="搜尋訂單編號 / 姓名 / 電話" className={s.shipSearchInput} />
+            <select value={shipSort} onChange={e => setShipSort(e.target.value)} className={s.shipSortSelect}>{SHIP_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+            <button onClick={() => loadShipOrders()} className={s.btnSearch}>搜尋</button>
+          </div>
 
-            {/* Mobile card list */}
-            <div className={s.cardList}>
-              {orders.filter(o => o.status !== 'cancelled').map(o => (
-                <div key={o.id} className={s.shipCard} onClick={() => setSelectedOrder(o)}>
-                  <div className={s.shipCardTop}>
-                    <span className={s.shipCardOrderNo}>{o.order_no}</span>
-                    <span className={s.shipCardMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
-                  </div>
-                  <div className={s.shipCardRecipient}>{o.buyer_name}</div>
-                  <div className={s.shipCardPhone}>{o.buyer_phone}</div>
-                  <div className={s.shipCardAddress}>{o.address || '門市自取'}</div>
-                  <div className={s.shipCardRow}>
-                    <span className={s.shipCardDate}>出貨日：{o.ship_date ?? '—'}</span>
-                    <span onClick={e => e.stopPropagation()}>
-                      <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
-                        {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
-                      </select>
-                    </span>
-                  </div>
-                </div>
-              ))}
+          {/* 批次操作列 */}
+          <div className={s.batchBar}>
+            <label className={s.batchCheck}>
+              <input type="checkbox" className={s.checkbox} checked={shipOrders.length > 0 && shipSelected.size === shipOrders.length} onChange={toggleShipSelectAll} />
+              全選
+            </label>
+            <span className={s.batchCount}>已選 {shipSelected.size} 筆</span>
+            <div className={s.batchActions}>
+              <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportCSV(list, `待出貨_${new Date().toISOString().split('T')[0]}.csv`); }}>匯出 Excel</button>
+              <button className={s.btnShipBatch} disabled={shipSelected.size === 0} onClick={() => setShipConfirmModal(true)}>標記出貨</button>
             </div>
           </div>
+
+          {shipLoading ? <p className={s.loading}>載入中...</p> : (
+            <div className={s.tableWrap}>
+              {/* Desktop table */}
+              <table className={s.table}>
+                <thead><tr>
+                  <th className={s.thCheck}><input type="checkbox" className={s.checkbox} checked={shipOrders.length > 0 && shipSelected.size === shipOrders.length} onChange={toggleShipSelectAll} /></th>
+                  {['訂單編號', '日期', '收件人', '地址', '商品摘要', '數量', '備註', '配送', '到貨日', ''].map(h => <th key={h} className={s.th}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {shipOrders.length === 0 ? (
+                    <tr><td colSpan={11} className={s.tdEmpty}>目前沒有待出貨訂單</td></tr>
+                  ) : shipOrders.map(o => (
+                    <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
+                      <td className={s.tdCheck} onClick={e => e.stopPropagation()}><input type="checkbox" className={s.checkbox} checked={shipSelected.has(o.id)} onChange={() => toggleShipSelect(o.id)} /></td>
+                      <td className={s.tdOrderNo}>{o.order_no}</td>
+                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
+                      <td className={s.tdAddress}>{o.address || '門市自取'}</td>
+                      <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
+                      <td className={s.tdQtyCell}>{totalQty(o.order_items)}</td>
+                      <td className={s.tdNote} title={o.note ?? ''}>{o.note || '—'}</td>
+                      <td className={s.tdShipMethodCell}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
+                      <td className={s.tdShipDate}>{o.ship_date ?? '—'}</td>
+                      <td className={s.tdActions}><button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} className={s.btnDetail}>詳細</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Mobile card list */}
+              <div className={s.cardList}>
+                {shipOrders.length === 0 ? (
+                  <div className={s.tdEmpty}>目前沒有待出貨訂單</div>
+                ) : shipOrders.map(o => (
+                  <div key={o.id} className={s.shipCard} onClick={() => setSelectedOrder(o)}>
+                    <div className={s.shipCardTop}>
+                      <span className={s.shipCardOrderNo}>{o.order_no}</span>
+                      <span className={s.shipCardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</span>
+                    </div>
+                    <div className={s.shipCardRecipient}>{o.buyer_name} ・ {o.buyer_phone}</div>
+                    <div className={s.shipCardAddress}>{o.address || '門市自取'}</div>
+                    <div className={s.shipCardProduct}>{productSummary(o.order_items)}（共 {totalQty(o.order_items)} 件）</div>
+                    {o.note && <div className={s.shipCardNote}>備註：{o.note}</div>}
+                    <div className={s.shipCardRow}>
+                      <span className={s.shipCardMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
+                      <span className={s.shipCardDate}>到貨日：{o.ship_date ?? '—'}</span>
+                    </div>
+                    <div className={s.shipCardActions} onClick={e => e.stopPropagation()}>
+                      <div className={s.shipCardCheckWrap}>
+                        <input type="checkbox" className={s.checkbox} checked={shipSelected.has(o.id)} onChange={() => toggleShipSelect(o.id)} />
+                        <button onClick={() => setSelectedOrder(o)} className={s.btnDetail}>詳細</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ════ 已出貨訂單 ════ */}
+      {tab === 'shipped' && (
+        <>
+          <div className={s.shipToolbar}>
+            <input value={shippedKeyword} onChange={e => setShippedKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadShippedOrders()} placeholder="搜尋訂單編號 / 姓名 / 電話" className={s.shipSearchInput} />
+            <select value={shippedSort} onChange={e => setShippedSort(e.target.value)} className={s.shipSortSelect}>{SHIPPED_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+            <button onClick={() => loadShippedOrders()} className={s.btnSearch}>搜尋</button>
+            <button className={s.btnExport} onClick={() => exportCSV(shippedOrders, `已出貨_${new Date().toISOString().split('T')[0]}.csv`)}>匯出 Excel</button>
+          </div>
+
+          {shippedLoading ? <p className={s.loading}>載入中...</p> : (
+            <div className={s.tableWrap}>
+              {/* Desktop table */}
+              <table className={s.table}>
+                <thead><tr>{['訂單編號', '出貨日', '下單日', '收件人', '地址', '商品摘要', '備註', '配送', ''].map(h => <th key={h} className={s.th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {shippedOrders.length === 0 ? (
+                    <tr><td colSpan={9} className={s.tdEmpty}>沒有已出貨訂單</td></tr>
+                  ) : shippedOrders.map(o => (
+                    <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
+                      <td className={s.tdOrderNo}>{o.order_no}</td>
+                      <td className={s.tdShippedDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</td>
+                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
+                      <td className={s.tdAddress}>{o.address || '門市自取'}</td>
+                      <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
+                      <td className={s.tdNote} title={o.note ?? ''}>{o.note || '—'}</td>
+                      <td className={s.tdShipMethodCell}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
+                      <td className={s.tdActions}><button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} className={s.btnDetail}>詳細</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Mobile card list */}
+              <div className={s.cardList}>
+                {shippedOrders.length === 0 ? (
+                  <div className={s.tdEmpty}>沒有已出貨訂單</div>
+                ) : shippedOrders.map(o => (
+                  <div key={o.id} className={s.shipCard} onClick={() => setSelectedOrder(o)}>
+                    <div className={s.shipCardTop}>
+                      <span className={s.shipCardOrderNo}>{o.order_no}</span>
+                      <span className={s.shipCardDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</span>
+                    </div>
+                    <div className={s.shipCardRecipient}>{o.buyer_name} ・ {o.buyer_phone}</div>
+                    <div className={s.shipCardAddress}>{o.address || '門市自取'}</div>
+                    <div className={s.shipCardProduct}>{productSummary(o.order_items)}</div>
+                    {o.note && <div className={s.shipCardNote}>備註：{o.note}</div>}
+                    <div className={s.shipCardRow}>
+                      <span className={s.shipCardMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
+                      <button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} className={s.btnDetail}>詳細</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -575,6 +848,31 @@ export default function AdminOrdersPage() {
                 className={s.btnModalConfirm}
               >
                 {cancelLoading ? '處理中...' : '確認取消'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 批次出貨確認 Modal */}
+      {shipConfirmModal && (
+        <div className={s.modalOverlay} onClick={() => !shipProcessing && setShipConfirmModal(false)}>
+          <div className={s.modalBox} onClick={e => e.stopPropagation()}>
+            <div className={s.modalTitle}>確認批次出貨</div>
+            <div className={s.modalBody}>
+              即將標記以下 <strong>{shipSelected.size}</strong> 筆訂單為「已出貨」，系統將自動扣除庫存。
+            </div>
+            <div className={s.shipModalBody}>
+              {shipOrders.filter(o => shipSelected.has(o.id)).map(o => (
+                <div key={o.id} className={s.shipModalItem}>
+                  <span className={s.shipModalOrderNo}>{o.order_no}</span>
+                  <span className={s.shipModalBuyer}>{o.buyer_name}</span>
+                </div>
+              ))}
+            </div>
+            <div className={s.modalActions}>
+              <button onClick={() => setShipConfirmModal(false)} disabled={shipProcessing} className={s.btnModalBack}>返回</button>
+              <button onClick={batchMarkShipped} disabled={shipProcessing} className={s.btnModalShip}>
+                {shipProcessing ? '處理中...' : '確認出貨'}
               </button>
             </div>
           </div>

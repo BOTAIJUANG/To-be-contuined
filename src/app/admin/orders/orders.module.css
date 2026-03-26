@@ -57,137 +57,223 @@
   border-radius: 999px;
 }
 
-/* ── Filter panel ── */
+/* ── Filter panel (toolbar feel) ── */
 .filterPanel {
-  background: #f8f5ef;
+  background: #faf7f3;
   border: 1px solid #ece4d8;
-  border-radius: 18px;
-  padding: 18px 20px;
+  border-radius: 12px;
+  padding: 16px 18px;
   margin-bottom: 20px;
-  box-shadow: 0 8px 24px rgba(55, 40, 28, 0.03);
 }
 @media (min-width: 640px) {
-  .filterPanel { padding: 20px 24px; }
+  .filterPanel { padding: 18px 22px; }
 }
 
-.filterRow {
+/* ── Search Bar (Row 1) ── */
+.searchBar {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
   margin-bottom: 12px;
 }
 @media (min-width: 640px) {
-  .filterRow {
-    grid-template-columns: 1fr auto auto auto;
-    gap: 10px;
-    align-items: center;
-  }
-}
-@media (min-width: 1280px) {
-  .filterRow { gap: 12px; }
-}
-
-.filterRowBottom {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-@media (min-width: 640px) {
-  .filterRowBottom {
-    grid-template-columns: repeat(3, 1fr) auto auto auto;
-    gap: 10px;
+  .searchBar {
+    grid-template-columns: 1fr auto;
+    grid-auto-flow: dense;
     align-items: center;
   }
 }
 @media (min-width: 1024px) {
-  .filterRowBottom {
-    grid-template-columns: auto auto auto auto auto auto;
+  .searchBar {
+    grid-template-columns: 1.6fr auto auto auto auto;
+    grid-auto-flow: row;
+    gap: 14px;
+  }
+}
+
+.searchDates {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+@media (min-width: 640px) {
+  .searchDates { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (min-width: 1024px) {
+  .searchDates { grid-column: auto; grid-row: auto; }
+}
+
+.searchDateInput {
+  composes: select;
+  flex: 1;
+  min-width: 0;
+}
+
+.dateSep {
+  color: #8b7d70;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.searchActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Filter Toggle (mobile only) ── */
+.filterExpandBtn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed #ddd1c2;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #8b7d70;
+  cursor: pointer;
+  margin-bottom: 12px;
+  min-height: 44px;
+  transition: all 0.2s ease;
+}
+@media (hover: hover) {
+  .filterExpandBtn:hover {
+    background: #f5eee6;
+    color: #5a3d31;
+    border-color: #c9bfb2;
+  }
+}
+@media (min-width: 640px) {
+  .filterExpandBtn { display: none; }
+}
+
+/* ── Filter Bar (Row 2) ── */
+.filterBar {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.filterBarOpen {
+  display: flex;
+}
+@media (min-width: 640px) {
+  .filterBar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 10px;
   }
 }
 
-.dateSep {
-  align-self: center;
-  color: var(--text-light);
-  display: none;
-}
-@media (min-width: 640px) {
-  .dateSep { display: inline; }
+.sortSelect {
+  composes: select;
+  color: #8b7d70;
 }
 
-.filterActions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
+/* Fill grid cells */
+.searchBar input,
+.searchBar select {
   width: 100%;
 }
-@media (min-width: 640px) {
-  .filterActions {
-    margin-left: auto;
-    margin-top: 0;
-    width: auto;
-  }
+
+/* ── Result Bar (Row 3) ── */
+.resultBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
 }
 
-.orderCount {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--text-light);
+.resultCount {
+  font-size: 13px;
+  color: #8b7d70;
+  white-space: nowrap;
 }
-.orderCountNum {
-  color: var(--text-dark);
-  font-weight: 600;
+.resultCountNum {
+  color: #2b211b;
+  font-weight: 700;
+}
+
+.filterChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #f0ebe5;
+  color: #6b4f3f;
+  line-height: 1;
+}
+
+.chipRemove {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  color: #8b7d70;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+@media (hover: hover) {
+  .chipRemove:hover { opacity: 1; }
 }
 
 /* ── Shared form controls ── */
 .input {
   padding: 0 14px;
-  border: 1px solid #e7ddd0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #e5ded7;
+  border-radius: 10px;
+  background: #fff;
   font-size: 13px;
   color: #2b211b;
   outline: none;
   width: 100%;
-  min-height: 44px;
+  height: 44px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .input:focus {
   border-color: #bda58f;
-  box-shadow: 0 0 0 3px rgba(189, 165, 143, 0.14);
-  background: #fffdf9;
+  box-shadow: 0 0 0 3px rgba(189, 165, 143, 0.12);
 }
 @media (min-width: 640px) {
   .input {
     width: auto;
     min-width: 240px;
-    min-height: 42px;
   }
 }
 
 .select {
-  padding: 0 14px;
-  border: 1px solid #e7ddd0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 10px;
+  border: 1px solid #e5ded7;
+  border-radius: 8px;
+  background: #fff;
   font-size: 12px;
   color: #2b211b;
   outline: none;
   width: 100%;
-  min-height: 44px;
+  height: 44px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .select:focus {
   border-color: #bda58f;
-  box-shadow: 0 0 0 3px rgba(189, 165, 143, 0.14);
-  background: #fffdf9;
+  box-shadow: 0 0 0 3px rgba(189, 165, 143, 0.12);
 }
 @media (min-width: 640px) {
   .select {
     width: auto;
-    min-height: 42px;
+    height: 36px;
   }
 }
 
@@ -199,58 +285,53 @@
   composes: select;
 }
 @media (min-width: 640px) {
-  .amountInput { width: 100px; }
+  .amountInput { width: 110px; }
 }
 
 /* ── Buttons ── */
 .btnClear {
-  height: 42px;
-  padding: 0 18px;
+  padding: 0 14px;
   background: transparent;
-  color: #7c6c60;
-  border: 1px solid #ddd1c2;
-  border-radius: 12px;
+  color: #8b7d70;
+  border: 1px solid #ddd;
+  border-radius: 8px;
   font-size: 12px;
   cursor: pointer;
-  min-height: 44px;
+  height: 44px;
   flex: 1;
   transition: all 0.2s ease;
 }
 @media (min-width: 640px) {
-  .btnClear { flex: none; min-height: auto; }
+  .btnClear { flex: none; height: 36px; }
 }
 @media (hover: hover) {
   .btnClear:hover {
-    background: #f5eee6;
-    color: #2b211b;
+    background: #f0ebe5;
+    color: #5a3d31;
   }
 }
 
 .btnSearch {
-  height: 42px;
-  padding: 0 18px;
-  background: #5a3d31;
-  color: #fffaf6;
+  padding: 0 20px;
+  background: #6b4f3f;
+  color: #fff;
   border: none;
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: "Montserrat", sans-serif;
-  letter-spacing: 0.08em;
-  min-height: 44px;
+  font-family: "Noto Sans TC", sans-serif;
+  letter-spacing: 0.06em;
+  height: 44px;
   flex: 1;
-  box-shadow: 0 8px 18px rgba(90, 61, 49, 0.14);
   transition: all 0.2s ease;
 }
 @media (min-width: 640px) {
-  .btnSearch { flex: none; min-height: auto; }
+  .btnSearch { flex: none; height: 36px; }
 }
 @media (hover: hover) {
   .btnSearch:hover {
-    background: #4a3429;
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(90, 61, 49, 0.2);
+    background: #5a3d31;
   }
 }
 
@@ -990,4 +1071,224 @@
 }
 .rankNormal {
   color: #888580;
+}
+
+/* ── Shiplist v2 (pending shipment) ── */
+.shipToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (min-width: 640px) {
+  .shipToolbar {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+}
+
+.shipSearchInput {
+  composes: input;
+}
+@media (min-width: 640px) {
+  .shipSearchInput { flex: 1; min-width: 200px; }
+}
+
+.shipSortSelect {
+  composes: select;
+  color: #8b7d70;
+}
+
+.batchBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #f5ede7;
+  border: 1px solid #e4d2c4;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.batchCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #2b211b;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #6b4f3f;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.batchCount {
+  font-size: 13px;
+  color: #8b7d70;
+  white-space: nowrap;
+}
+
+.batchActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btnExport {
+  padding: 0 14px;
+  height: 34px;
+  background: #fff;
+  border: 1px solid #e5ded7;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #6b4f3f;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+@media (hover: hover) {
+  .btnExport:hover {
+    background: #f5eee6;
+    border-color: #d1c4b5;
+  }
+}
+
+.btnShipBatch {
+  padding: 0 16px;
+  height: 34px;
+  background: #6b4f3f;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.btnShipBatch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (hover: hover) {
+  .btnShipBatch:hover:not(:disabled) {
+    background: #5a3d31;
+  }
+}
+
+.thCheck {
+  composes: th;
+  width: 40px;
+  text-align: center;
+}
+.tdCheck {
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.tdProduct {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-mid);
+  max-width: 200px;
+}
+.tdNote {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-light);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tdQtyCell {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-mid);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.shipCardProduct {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-bottom: 4px;
+}
+.shipCardNote {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+.shipCardActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shipCardCheckWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Shipped tab ── */
+.tdShippedDate {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+
+/* Ship confirm modal */
+.shipModalBody {
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  border: 1px solid #f0e8dc;
+  border-radius: 10px;
+  padding: 4px 0;
+}
+.shipModalItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid #f0e8dc;
+  font-size: 13px;
+  color: var(--text-mid);
+}
+.shipModalItem:last-child { border-bottom: none; }
+.shipModalOrderNo {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 12px;
+}
+.shipModalBuyer {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.btnModalShip {
+  composes: btnModalConfirm;
+  background: #6b4f3f;
+  box-shadow: 0 6px 14px rgba(107, 79, 63, 0.15);
+}
+@media (hover: hover) {
+  .btnModalShip:hover:not(:disabled) {
+    background: #5a3d31;
+    transform: translateY(-1px);
+  }
 }
