@@ -41,7 +41,7 @@ const SORT_OPTIONS = [
 ];
 const SHIP_SORT_OPTIONS = [
   { value: 'oldest', label: '最舊訂單優先' }, { value: 'newest', label: '最新訂單優先' },
-  { value: 'ship_date_asc', label: '到貨日最早' }, { value: 'ship_date_desc', label: '到貨日最晚' },
+  { value: 'ship_date_asc', label: '指定日期最早' }, { value: 'ship_date_desc', label: '指定日期最晚' },
 ];
 const SHIPPED_SORT_OPTIONS = [
   { value: 'shipped_newest', label: '最新出貨優先' }, { value: 'shipped_oldest', label: '最舊出貨優先' },
@@ -222,10 +222,12 @@ export default function AdminOrdersPage() {
   // ── CSV 匯出 ──
   const exportCSV = (list: any[], filename: string) => {
     const BOM = '\uFEFF';
-    const headers = ['訂單編號', '下單日期', '收件人', '電話', '地址', '配送方式', '指定出貨日', '商品名稱', '數量', '單價', '小計', '備註'];
+    const headers = ['訂單編號', '下單日期', '收件人', '電話', '地址', '配送方式', '指定出貨日', '指定到店日', '商品名稱', '數量', '單價', '小計', '備註'];
     const rows = list.flatMap(o => (o.order_items ?? []).map((item: any) => [
       o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'), o.buyer_name, o.buyer_phone,
-      o.address || '門市自取', SHIP_LABEL[o.ship_method] ?? o.ship_method, o.ship_date ?? '',
+      o.address || (o.ship_method === 'store' ? '門市自取' : '—'), SHIP_LABEL[o.ship_method] ?? o.ship_method,
+      o.ship_method !== 'store' ? (o.ship_date ?? '') : '',
+      o.ship_method === 'store' ? (o.ship_date ?? '') : '',
       item.name, item.qty, item.price, item.price * item.qty, o.note ?? '',
     ]));
     const csv = BOM + [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -570,7 +572,7 @@ export default function AdminOrdersPage() {
               <table className={s.table}>
                 <thead><tr>
                   <th className={s.thCheck}><input type="checkbox" className={s.checkbox} checked={shipOrders.length > 0 && shipSelected.size === shipOrders.length} onChange={toggleShipSelectAll} /></th>
-                  {['訂單編號', '日期', '收件人', '地址', '商品摘要', '數量', '備註', '配送', '到貨日', ''].map(h => <th key={h} className={s.th}>{h}</th>)}
+                  {['訂單編號', '日期', '收件人', '地址', '商品摘要', '數量', '備註', '配送', '指定日期', ''].map(h => <th key={h} className={s.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {shipOrders.length === 0 ? (
@@ -581,12 +583,12 @@ export default function AdminOrdersPage() {
                       <td className={s.tdOrderNo}>{o.order_no}</td>
                       <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
                       <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
-                      <td className={s.tdAddress}>{o.address || '門市自取'}</td>
+                      <td className={s.tdAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</td>
                       <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
                       <td className={s.tdQtyCell}>{totalQty(o.order_items)}</td>
                       <td className={s.tdNote} title={o.note ?? ''}>{o.note || '—'}</td>
                       <td className={s.tdShipMethodCell}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
-                      <td className={s.tdShipDate}>{o.ship_date ?? '—'}</td>
+                      <td className={s.tdShipDate}>{o.ship_date ? `${o.ship_method === 'store' ? '到店' : '出貨'} ${o.ship_date}` : '—'}</td>
                       <td className={s.tdActions}><button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} className={s.btnDetail}>詳細</button></td>
                     </tr>
                   ))}
@@ -604,12 +606,12 @@ export default function AdminOrdersPage() {
                       <span className={s.shipCardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</span>
                     </div>
                     <div className={s.shipCardRecipient}>{o.buyer_name} ・ {o.buyer_phone}</div>
-                    <div className={s.shipCardAddress}>{o.address || '門市自取'}</div>
+                    <div className={s.shipCardAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</div>
                     <div className={s.shipCardProduct}>{productSummary(o.order_items)}（共 {totalQty(o.order_items)} 件）</div>
                     {o.note && <div className={s.shipCardNote}>備註：{o.note}</div>}
                     <div className={s.shipCardRow}>
                       <span className={s.shipCardMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
-                      <span className={s.shipCardDate}>到貨日：{o.ship_date ?? '—'}</span>
+                      <span className={s.shipCardDate}>{o.ship_method === 'store' ? '到店日' : '出貨日'}：{o.ship_date ?? '—'}</span>
                     </div>
                     <div className={s.shipCardActions} onClick={e => e.stopPropagation()}>
                       <div className={s.shipCardCheckWrap}>
@@ -649,7 +651,7 @@ export default function AdminOrdersPage() {
                       <td className={s.tdShippedDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</td>
                       <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
                       <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
-                      <td className={s.tdAddress}>{o.address || '門市自取'}</td>
+                      <td className={s.tdAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</td>
                       <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
                       <td className={s.tdNote} title={o.note ?? ''}>{o.note || '—'}</td>
                       <td className={s.tdShipMethodCell}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
@@ -670,7 +672,7 @@ export default function AdminOrdersPage() {
                       <span className={s.shipCardDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</span>
                     </div>
                     <div className={s.shipCardRecipient}>{o.buyer_name} ・ {o.buyer_phone}</div>
-                    <div className={s.shipCardAddress}>{o.address || '門市自取'}</div>
+                    <div className={s.shipCardAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</div>
                     <div className={s.shipCardProduct}>{productSummary(o.order_items)}</div>
                     {o.note && <div className={s.shipCardNote}>備註：{o.note}</div>}
                     <div className={s.shipCardRow}>

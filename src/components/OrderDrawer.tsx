@@ -96,7 +96,7 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                 {[
                   { label: '配送方式', value: SHIP_LABEL[order.ship_method] ?? order.ship_method },
                   { label: '收件地址', value: order.address || '—' },
-                  { label: '指定出貨日', value: order.ship_date || '—' },
+                  { label: order.ship_method === 'store' ? '指定到店日' : '指定出貨日', value: order.ship_date || '—' },
                   { label: '物流業者', value: order.carrier || '—' },
                   { label: '追蹤號碼', value: order.tracking_no || '—' },
                   { label: '實際出貨', value: order.shipped_at ? new Date(order.shipped_at).toLocaleDateString('zh-TW') : '—' },

@@ -420,9 +420,10 @@ export async function POST(req: NextRequest) {
 
   // ── 9. 寫入訂單到資料庫 ─────────────────────────
   const orderNo = generateOrderNo();
-  const fullAddress = ['home_normal', 'home_cold'].includes(body.ship_method)
+  const isHome = ['home', 'home_normal', 'home_cold'].includes(body.ship_method);
+  const fullAddress = isHome
     ? `${body.city ?? ''}${body.district ?? ''}${body.address ?? ''}`
-    : null;
+    : body.ship_method === 'store' ? null : (body.address ?? null);
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
