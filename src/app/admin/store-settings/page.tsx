@@ -35,9 +35,6 @@ export default function AdminStoreSettingsPage() {
   const [facebook, setFacebook] = useState('');
   const [lineId, setLineId] = useState('');
   // 配送設定
-  const [shipHome, setShipHome] = useState(true);
-  const [shipCvs711, setShipCvs711] = useState(true);
-  const [shipStore, setShipStore] = useState(true);
   const [feeHome, setFeeHome] = useState(100);
   const [feeHomeOuterIsland, setFeeHomeOuterIsland] = useState(250);
   const [feeCvs711, setFeeCvs711] = useState(60);
@@ -95,9 +92,6 @@ export default function AdminStoreSettingsPage() {
         setInstagram(data.instagram_url ?? '');
         setFacebook(data.facebook_url ?? '');
         setLineId(data.line_id ?? '');
-        setShipHome(data.ship_home ?? true);
-        setShipCvs711(data.ship_cvs_711 ?? true);
-        setShipStore(data.ship_store ?? true);
         setFeeHome(data.fee_home ?? 100);
         setFeeHomeOuterIsland(data.fee_home_outer_island ?? 250);
         setFeeCvs711(data.fee_cvs_711 ?? 60);
@@ -162,7 +156,6 @@ export default function AdminStoreSettingsPage() {
     await supabase.from('store_settings').upsert({
       id: 1, name, description, email, phone, address,
       instagram_url: instagram, facebook_url: facebook, line_id: lineId,
-      ship_home: shipHome, ship_cvs_711: shipCvs711, ship_store: shipStore,
       fee_home: feeHome, fee_home_outer_island: feeHomeOuterIsland,
       fee_cvs_711: feeCvs711, fee_store: feeStore,
       free_ship_mainland_amount: freeShipMainland, free_ship_outer_island_amount: freeShipOuterIsland,
@@ -246,19 +239,7 @@ export default function AdminStoreSettingsPage() {
       {/* ════ 配送設定 ════ */}
       {tab === 'shipping' && (
         <div className={p.formContainerMid}>
-          <div className={s.sectionTitleBordered}>配送方式開關</div>
-          {[
-            { label: '一般宅配', val: shipHome, set: setShipHome },
-            { label: '7-11 超商取貨', val: shipCvs711, set: setShipCvs711 },
-            { label: '門市自取', val: shipStore, set: setShipStore },
-          ].map(({ label, val, set }) => (
-            <div key={label} className={p.toggleRow}>
-              <span className={p.toggleRowLabel}>{label}</span>
-              <Toggle val={val} onChange={() => set(!val)} />
-            </div>
-          ))}
-
-          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>運費設定</div>
+          <div className={s.sectionTitleBordered}>運費設定</div>
           {[
             { label: '宅配運費（本島）', val: feeHome, set: setFeeHome },
             { label: '宅配運費（離島）', val: feeHomeOuterIsland, set: setFeeHomeOuterIsland },

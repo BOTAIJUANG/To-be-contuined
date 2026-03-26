@@ -66,7 +66,23 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   })();
 
   const specs    = (product.product_specs   ?? []) as { label: string; value: string }[];
-  const variants = (product.product_variants ?? []).filter((v: any) => v.is_available) as { id: number; name: string; price_diff: number }[];
+  const rawVariants = (product.product_variants ?? []).filter((v: any) => v.is_available) as { id: number; name: string; price_diff: number; stock: number }[];
+
+  // 載入各規格的庫存量
+  let variantStockMap: Record<number, number> = {};
+  if (rawVariants.length > 0) {
+    const { data: invData } = await supabase
+      .from('inventory')
+      .select('variant_id, stock, reserved')
+      .eq('product_id', product.id)
+      .in('variant_id', rawVariants.map(v => v.id));
+    if (invData) {
+      invData.forEach((inv: any) => {
+        variantStockMap[inv.variant_id] = Math.max(0, (inv.stock ?? 0) - (inv.reserved ?? 0));
+      });
+    }
+  }
+  const variants = rawVariants;
 
   return (
     <>
@@ -169,6 +185,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   id:    v.id,
                   name:  v.name,
                   price: v.price ?? (product.price + (v.price_diff ?? 0)),
+                  stock: variantStockMap[v.id] ?? null,
                 })),
             }}
           />

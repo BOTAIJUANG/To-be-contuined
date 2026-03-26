@@ -72,6 +72,11 @@
   background: var(--text-dark);
   color: var(--bg);
 }
+.variantSoldOut {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
 .variantPrice {
   font-size: 11px;
   margin-left: 6px;

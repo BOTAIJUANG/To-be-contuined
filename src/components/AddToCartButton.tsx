@@ -7,7 +7,7 @@ import { useCart } from '@/context/CartContext';
 import s from './AddToCartButton.module.css';
 
 interface Batch { id: number; name: string; ship_date: string; ends_at?: string; limit_qty: number; }
-interface Variant { id: number; name: string; price: number; }
+interface Variant { id: number; name: string; price: number; stock?: number | null; }
 
 interface AddToCartButtonProps {
   product: {
@@ -25,11 +25,15 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(product.preorderBatches?.[0] ?? null);
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(product.variants?.[0] ?? null);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
+    // 預設選第一個有庫存的規格
+    product.variants?.find(v => v.stock === null || v.stock === undefined || v.stock > 0) ?? product.variants?.[0] ?? null
+  );
 
   const hasVariants  = (product.variants?.length ?? 0) > 0;
   const displayPrice = hasVariants ? (selectedVariant?.price ?? product.price) : product.price;
   const totalPrice   = displayPrice * qty;
+  const variantSoldOut = hasVariants && selectedVariant?.stock !== null && selectedVariant?.stock !== undefined && selectedVariant.stock <= 0;
   const isPreorder   = product.isPreorder ?? false;
   const batches      = product.preorderBatches ?? [];
 
@@ -70,18 +74,22 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         <div className={s.variantWrap}>
           <div className={s.sectionLabel}>{product.variantLabel ?? '規格'}</div>
           <div className={s.variantList}>
-            {product.variants!.map(v => (
-              <button
-                key={v.id}
-                className={`${s.variantBtn} ${selectedVariant?.id === v.id ? s.selected : ''}`}
-                onClick={() => setSelectedVariant(v)}
-              >
-                {v.name}
-                {v.price !== product.price && (
-                  <span className={s.variantPrice}>NT$ {v.price.toLocaleString()}</span>
-                )}
-              </button>
-            ))}
+            {product.variants!.map(v => {
+              const outOfStock = v.stock !== null && v.stock !== undefined && v.stock <= 0;
+              return (
+                <button
+                  key={v.id}
+                  className={`${s.variantBtn} ${selectedVariant?.id === v.id ? s.selected : ''} ${outOfStock ? s.variantSoldOut : ''}`}
+                  onClick={() => !outOfStock && setSelectedVariant(v)}
+                  disabled={outOfStock}
+                >
+                  {v.name}{outOfStock ? '（售完）' : ''}
+                  {!outOfStock && v.price !== product.price && (
+                    <span className={s.variantPrice}>NT$ {v.price.toLocaleString()}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -120,7 +128,10 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       <div className={s.qtyWrap}>
         <button className={s.qtyBtn} onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
         <span className={s.qtyValue}>{qty}</span>
-        <button className={s.qtyBtn} onClick={() => setQty(q => q + 1)}>+</button>
+        <button className={s.qtyBtn} onClick={() => {
+          const maxStock = hasVariants && selectedVariant?.stock != null ? selectedVariant.stock : Infinity;
+          setQty(q => Math.min(q + 1, maxStock));
+        }}>+</button>
       </div>
 
       {/* 即時金額 */}
@@ -135,7 +146,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         <button
           className={`${s.addBtn} ${added ? s.added : ''}`}
           onClick={handleAdd}
-          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant)}
+          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant) || variantSoldOut}
         >
           {added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
         </button>
