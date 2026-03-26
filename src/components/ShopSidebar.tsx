@@ -17,7 +17,7 @@ interface ShopSidebarProps {
 
 export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps) {
   const [filterOpen,  setFilterOpen]  = useState(false);
-  const [openSlugs,   setOpenSlugs]   = useState<string[]>(() => ['promotions', ...categories.map(c => c.slug)]);
+  const [openSlugs,   setOpenSlugs]   = useState<string[]>([]);
   const [productMap,  setProductMap]   = useState<Record<number, Product[]>>({});
   const [promoProducts, setPromoProducts] = useState<Product[]>([]);
   const [limit,       setLimit]        = useState(3);
@@ -40,10 +40,11 @@ export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps
       }
 
       // 取得有活動的商品（虛擬「促銷活動」分類用）
+      // volume / gift 用 promotion_products，bundle 用 promotion_bundle_items
       const now = new Date().toISOString();
       const { data: promos } = await supabase
         .from('promotions')
-        .select('id, is_active, start_at, end_at, promotion_products(product_id)')
+        .select('id, type, is_active, start_at, end_at, promotion_products(product_id), promotion_bundle_items(product_id)')
         .eq('is_active', true);
 
       if (promos && products) {
@@ -51,7 +52,10 @@ export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps
         for (const p of promos) {
           if (p.start_at && new Date(p.start_at) > new Date(now)) continue;
           if (p.end_at && new Date(p.end_at) < new Date(now)) continue;
+          // volume / gift → promotion_products
           ((p as any).promotion_products ?? []).forEach((pp: any) => promoProductIds.add(pp.product_id));
+          // bundle → promotion_bundle_items
+          ((p as any).promotion_bundle_items ?? []).forEach((bi: any) => promoProductIds.add(bi.product_id));
         }
         const promoProds = products
           .filter((p: any) => promoProductIds.has(p.id))

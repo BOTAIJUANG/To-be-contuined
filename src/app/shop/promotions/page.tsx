@@ -23,9 +23,10 @@ async function getPromotionProducts(): Promise<Product[]> {
   const now = new Date().toISOString();
 
   // 取得所有啟用中的活動及其關聯商品
+  // volume / gift 用 promotion_products，bundle 用 promotion_bundle_items
   const { data: promos } = await supabase
     .from('promotions')
-    .select('id, is_active, start_at, end_at, promotion_products(product_id)')
+    .select('id, type, is_active, start_at, end_at, promotion_products(product_id), promotion_bundle_items(product_id)')
     .eq('is_active', true);
 
   if (!promos) return [];
@@ -34,7 +35,10 @@ async function getPromotionProducts(): Promise<Product[]> {
   for (const p of promos) {
     if (p.start_at && new Date(p.start_at) > new Date(now)) continue;
     if (p.end_at && new Date(p.end_at) < new Date(now)) continue;
+    // volume / gift → promotion_products
     ((p as any).promotion_products ?? []).forEach((pp: any) => productIds.add(pp.product_id));
+    // bundle → promotion_bundle_items
+    ((p as any).promotion_bundle_items ?? []).forEach((bi: any) => productIds.add(bi.product_id));
   }
 
   if (productIds.size === 0) return [];
