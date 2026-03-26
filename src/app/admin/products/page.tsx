@@ -158,11 +158,13 @@ export default function AdminProductsPage() {
       const valid = specs.filter(sp => sp.label && sp.value);
       if (valid.length > 0) await supabase.from('product_specs').insert(valid.map((sp, i) => ({ product_id: productId, label: sp.label, value: sp.value, sort_order: i+1 })));
 
-      await supabase.from('product_variants').delete().eq('product_id', productId);
+      // ── 規格：逐筆 update/insert/delete，保留 variant ID 不斷鏈 ──
       if (hasVariants && variants.length > 0) {
         const validVariants = variants.filter(v => v.name);
-        if (validVariants.length > 0) {
-          await supabase.from('product_variants').insert(validVariants.map((v, i) => ({
+        const keepIds: number[] = [];
+        for (let i = 0; i < validVariants.length; i++) {
+          const v = validVariants[i];
+          const row = {
             product_id:   productId,
             name:         v.name,
             price:        Number(v.price) || form.price,
@@ -171,8 +173,30 @@ export default function AdminProductsPage() {
             stock:        Number(v.stock) || 0,
             is_available: v.is_available,
             sort_order:   i + 1,
-          })));
+          };
+          if (v.id) {
+            // 既有規格 → update
+            await supabase.from('product_variants').update(row).eq('id', v.id);
+            keepIds.push(v.id);
+          } else {
+            // 新規格 → insert
+            const { data: inserted } = await supabase.from('product_variants').insert(row).select('id').single();
+            if (inserted) keepIds.push(inserted.id);
+          }
         }
+        // 刪掉被移除的規格（表單裡已不存在的）
+        const { data: existingVariants } = await supabase
+          .from('product_variants').select('id').eq('product_id', productId);
+        for (const ev of (existingVariants ?? [])) {
+          if (!keepIds.includes(ev.id)) {
+            await supabase.from('product_variants').delete().eq('id', ev.id);
+            // 同步刪除對應的 inventory
+            await supabase.from('inventory').delete().eq('product_id', productId).eq('variant_id', ev.id);
+          }
+        }
+      } else {
+        // 沒有規格了 → 刪除所有 variants
+        await supabase.from('product_variants').delete().eq('product_id', productId);
       }
 
       if (form.stock_mode === 'date_mode' && !form.is_preorder) {
