@@ -101,7 +101,7 @@ export default function CheckoutPage() {
     })),
     [items]
   );
-  const { promoResult } = usePromotions(cartItemsForCalc);
+  const { promoResult, promotions: loadedPromos } = usePromotions(cartItemsForCalc);
   const promoDiscount = promoResult.total_discount;
 
   // Step 2 欄位
@@ -226,9 +226,33 @@ export default function CheckoutPage() {
     if (!coupon.trim()) return;
     const { data, error } = await supabase.from('coupons').select('*').eq('code', coupon.trim().toUpperCase()).eq('is_active', true).single();
     if (error || !data) { setDiscount(0); setCouponMsg('折扣碼無效'); return; }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) { setCouponMsg('折扣碼已過期'); return; }
-    if (data.min_amount > 0 && totalPrice < data.min_amount) { setCouponMsg(`需消費滿 NT$${data.min_amount} 才能使用`); return; }
-    if (data.max_uses > 0 && data.used_count >= data.max_uses) { setCouponMsg('折扣碼已達使用上限'); return; }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) { setDiscount(0); setCouponMsg('折扣碼已過期'); return; }
+    if (data.min_amount > 0 && totalPrice < data.min_amount) { setDiscount(0); setCouponMsg(`需消費滿 NT$${data.min_amount} 才能使用`); return; }
+    if (data.max_uses > 0 && data.used_count >= data.max_uses) { setDiscount(0); setCouponMsg('折扣碼已達使用上限'); return; }
+
+    // user_scope 驗證
+    const scope = data.user_scope ?? 'all';
+    if (scope === 'member_only' && !memberId) { setDiscount(0); setCouponMsg('此折扣碼限會員使用，請先登入'); return; }
+    if (scope === 'guest_only' && memberId) { setDiscount(0); setCouponMsg('此折扣碼限訪客使用'); return; }
+
+    // stackable 併用檢查：折扣碼不可併用 + 已有活動折扣
+    if (!data.stackable && promoDiscount > 0) {
+      setDiscount(0);
+      setCouponMsg('此折扣碼無法與商品優惠活動併用');
+      return;
+    }
+    // 活動側不可併用：有任何 non-stackable 活動正在套用
+    if (promoDiscount > 0) {
+      const hasNonStackablePromo = promoResult.discounts.some(d =>
+        loadedPromos.find(p => p.id === d.promotion_id && !p.stackable)
+      );
+      if (hasNonStackablePromo) {
+        setDiscount(0);
+        setCouponMsg('目前套用的商品優惠不允許與折扣碼併用');
+        return;
+      }
+    }
+
     const amt = data.type === 'percent' ? Math.floor(totalPrice * data.value / 100) : data.value;
     setDiscount(amt);
     setCouponMsg(`折扣碼已套用，折抵 NT$${amt}`);

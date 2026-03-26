@@ -232,6 +232,7 @@ export async function POST(req: NextRequest) {
   // ── 7. 在後端驗證並原子性扣除折扣碼額度 ─────────
   let discount = 0;
   let couponClaimedId: number | null = null;
+  let couponStackable = true; // 折扣碼是否可併用
   if (body.coupon_code) {
     const { data: coupon } = await supabaseAdmin
       .from('coupons')
@@ -245,7 +246,14 @@ export async function POST(req: NextRequest) {
       const notExpired = !coupon.expires_at || new Date(coupon.expires_at) > now;
       const meetsMin   = !coupon.min_amount || subtotal >= coupon.min_amount;
 
-      if (notExpired && meetsMin) {
+      // user_scope 驗證
+      const scope = coupon.user_scope ?? 'all';
+      const scopeOk = scope === 'all'
+        || (scope === 'member_only' && memberId)
+        || (scope === 'guest_only' && !memberId);
+
+      if (notExpired && meetsMin && scopeOk) {
+        couponStackable = coupon.stackable ?? true;
         discount = coupon.type === 'percent'
           ? Math.floor(subtotal * coupon.value / 100)
           : coupon.value;
@@ -275,6 +283,7 @@ export async function POST(req: NextRequest) {
   let promoDiscount = 0;
   let appliedPromoIds: number[] = [];
   let giftItems: { product_id: number; qty: number; name: string }[] = [];
+  let mappedPromos: Promotion[] = [];
 
   {
     // 載入所有啟用中的活動（含關聯資料）
@@ -301,6 +310,7 @@ export async function POST(req: NextRequest) {
         volume_tiers: p.promotion_volume_tiers?.map((t: any) => ({ min_qty: t.min_qty, price: t.price })) ?? [],
         bundle_items: p.promotion_bundle_items?.map((bi: any) => ({ product_id: bi.product_id, qty: bi.qty })) ?? [],
       }));
+      mappedPromos = mapped;
 
       // 用非贈品、非兌換品的購物車商品來計算優惠
       const calcItems: CartItemForCalc[] = body.items
@@ -338,6 +348,35 @@ export async function POST(req: NextRequest) {
           qty: g.qty,
           name: giftNameMap.get(g.product_id) ?? `贈品 #${g.product_id}`,
         }));
+      }
+    }
+  }
+
+  // ── 7.8 stackable 互斥邏輯 ──────────────────────
+  // 折扣碼不可併用 或 有活動不可併用 → 只保留金額較大的一方
+  if (discount > 0 && promoDiscount > 0) {
+    const hasNonStackablePromo = appliedPromoIds.some(pid => {
+      const p = mappedPromos.find(pr => pr.id === pid);
+      return p && !p.stackable;
+    });
+    if (!couponStackable || hasNonStackablePromo) {
+      if (discount >= promoDiscount) {
+        promoDiscount = 0;
+        appliedPromoIds = [];
+      } else {
+        // 退回折扣碼使用次數（因為活動折扣較大，折扣碼不生效）
+        if (couponClaimedId) {
+          const { data: cur } = await supabaseAdmin
+            .from('coupons').select('used_count').eq('id', couponClaimedId).single();
+          if (cur && cur.used_count > 0) {
+            await supabaseAdmin
+              .from('coupons')
+              .update({ used_count: cur.used_count - 1 })
+              .eq('id', couponClaimedId);
+          }
+        }
+        discount = 0;
+        couponClaimedId = null;
       }
     }
   }

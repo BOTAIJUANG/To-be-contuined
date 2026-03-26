@@ -14,12 +14,16 @@ interface Coupon {
   value: number; min_amount: number;
   max_uses: number; used_count: number;
   expires_at: string | null; is_active: boolean;
+  user_scope: string; stackable: boolean;
 }
+
+const SCOPE_LABEL: Record<string, string> = { all: '所有人', member_only: '限會員', guest_only: '限訪客' };
 
 const EMPTY_FORM = {
   code: '', type: 'percent', value: 10,
   min_amount: 0, max_uses: 0,
   expires_at: '', is_active: true,
+  user_scope: 'all', stackable: false,
 };
 
 export default function AdminCouponsPage() {
@@ -46,6 +50,8 @@ export default function AdminCouponsPage() {
       min_amount: c.min_amount, max_uses: c.max_uses,
       expires_at: c.expires_at ? c.expires_at.split('T')[0] : '',
       is_active: c.is_active,
+      user_scope: c.user_scope ?? 'all',
+      stackable: c.stackable ?? false,
     });
     setEditingId(c.id);
     setShowForm(true);
@@ -121,10 +127,26 @@ export default function AdminCouponsPage() {
               <input type="date" value={form.expires_at} onChange={e => setForm({ ...form, expires_at: e.target.value })} className={s.input} />
             </div>
           </div>
-          <label className={`${s.checkLabel} ${s.mb20}`}>
-            <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className={s.checkbox} />
-            啟用此折扣碼
-          </label>
+          <div className={`${s.grid3} ${s.mb20}`}>
+            <div>
+              <label className={s.label}>適用對象</label>
+              <select value={form.user_scope} onChange={e => setForm({ ...form, user_scope: e.target.value })} className={s.select}>
+                <option value="all">所有人可用</option>
+                <option value="member_only">限會員</option>
+                <option value="guest_only">限訪客</option>
+              </select>
+            </div>
+          </div>
+          <div className={`${s.flex} ${s.gap24} ${s.mb20}`}>
+            <label className={s.checkLabel}>
+              <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className={s.checkbox} />
+              啟用此折扣碼
+            </label>
+            <label className={s.checkLabel}>
+              <input type="checkbox" checked={form.stackable} onChange={e => setForm({ ...form, stackable: e.target.checked })} className={s.checkbox} />
+              可與商品優惠併用
+            </label>
+          </div>
           <div className={s.btnActions}>
             <button onClick={handleSave} disabled={saving} className={s.btnSave}>
               {saving ? '儲存中...' : '儲存'}
@@ -155,6 +177,14 @@ export default function AdminCouponsPage() {
                   <span className={s.cardValue}>{c.type === 'percent' ? `${c.value}% off` : `NT$ ${c.value}`}</span>
                 </div>
                 <div className={s.cardRow}>
+                  <span className={s.cardLabel}>對象</span>
+                  <span className={s.cardValue}>{SCOPE_LABEL[(c as any).user_scope] ?? '所有人'}</span>
+                </div>
+                <div className={s.cardRow}>
+                  <span className={s.cardLabel}>併用</span>
+                  <span className={s.cardValue}>{(c as any).stackable ? '可併用' : '不可'}</span>
+                </div>
+                <div className={s.cardRow}>
                   <span className={s.cardLabel}>使用次數</span>
                   <span className={s.cardValue}>{c.used_count} / {c.max_uses > 0 ? c.max_uses : '∞'}</span>
                 </div>
@@ -173,7 +203,7 @@ export default function AdminCouponsPage() {
           <table className={s.table}>
             <thead>
               <tr>
-                {['折扣碼', '類型', '折扣', '門檻', '使用次數', '到期日', '啟用', '操作'].map(h => (
+                {['折扣碼', '類型', '折扣', '門檻', '對象', '併用', '使用次數', '到期日', '啟用', '操作'].map(h => (
                   <th key={h} className={s.th}>{h}</th>
                 ))}
               </tr>
@@ -185,6 +215,8 @@ export default function AdminCouponsPage() {
                   <td className={`${s.td} ${cx.tdMuted}`}>{c.type === 'percent' ? '百分比' : '固定金額'}</td>
                   <td className={s.td}>{c.type === 'percent' ? `${c.value}% off` : `NT$ ${c.value}`}</td>
                   <td className={`${s.td} ${cx.tdMuted}`}>{c.min_amount > 0 ? `NT$ ${c.min_amount}` : '無'}</td>
+                  <td className={`${s.td} ${cx.tdMuted}`}>{SCOPE_LABEL[(c as any).user_scope] ?? '所有人'}</td>
+                  <td className={`${s.td} ${cx.tdMuted}`}>{(c as any).stackable ? '可併用' : '不可'}</td>
                   <td className={`${s.td} ${cx.tdMuted}`}>{c.used_count} / {c.max_uses > 0 ? c.max_uses : '∞'}</td>
                   <td className={`${s.td} ${cx.tdLight}`}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-TW') : '永不過期'}</td>
                   <td className={s.td}>

@@ -213,10 +213,15 @@
 }
 
 .checkbox {
+  -webkit-appearance: checkbox;
+  appearance: auto;
   accent-color: var(--text-dark);
   cursor: pointer;
   width: 18px;
   height: 18px;
+  min-height: unset;
+  padding: 0;
+  border: none;
 }
 
 /* ── Table wrapper → card list on mobile ── */
@@ -244,7 +249,7 @@
   letter-spacing: 0.25em;
   color: var(--text-light);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid #d5d0c8;
   white-space: nowrap;
 }
 
@@ -260,7 +265,7 @@
 }
 
 .tr {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid #d5d0c8;
 }
 
 .emptyRow {
