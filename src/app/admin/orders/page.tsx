@@ -174,7 +174,7 @@ export default function AdminOrdersPage() {
 
     const { data } = await supabase.from('orders')
       .select('*, order_items(name, qty, price, product_id, variant_id)')
-      .eq('pay_status', 'paid').eq('status', 'processing').is('shipped_at', null)
+      .eq('pay_status', 'paid').eq('status', 'processing')
       .order(orderBy, { ascending });
     let list = data ?? [];
     if (shipKeyword) {
@@ -208,7 +208,7 @@ export default function AdminOrdersPage() {
     const ascending = shippedSort === 'shipped_oldest';
     const { data } = await supabase.from('orders')
       .select('*, order_items(name, qty, price)')
-      .not('shipped_at', 'is', null)
+      .in('status', ['shipped', 'done'])
       .order('shipped_at', { ascending });
     let list = data ?? [];
     if (shippedKeyword) {
