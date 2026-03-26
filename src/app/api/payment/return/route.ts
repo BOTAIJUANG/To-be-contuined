@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
           pay_status:     'paid',
           ecpay_trade_no: tradeNo,
           paid_at:        paymentDate,
-          updated_at:     new Date().toISOString(),
         })
         .eq('id', order.id);
 

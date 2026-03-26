@@ -86,15 +86,19 @@ export async function POST(req: NextRequest) {
   // ── 5. 更新訂單付款狀態 ──────────────────────────
   if (rtnCode === '1') {
     // 付款成功！
-    await supabaseAdmin
+    const { error: updateErr } = await supabaseAdmin
       .from('orders')
       .update({
         pay_status:     'paid',
         ecpay_trade_no: tradeNo,        // 記錄綠界交易編號（對帳用）
         paid_at:        paymentDate,     // 記錄付款時間
-        updated_at:     new Date().toISOString(),
       })
       .eq('id', order.id);
+
+    if (updateErr) {
+      console.error('訂單付款狀態更新失敗:', updateErr);
+      return new NextResponse('0|DB update error', { status: 200 });
+    }
 
     // 付款成功後自動集章（如果有會員帳號）
     // 用共用函式，內建防重複機制（避免 webhook 和 return 同時集章）
@@ -109,12 +113,10 @@ export async function POST(req: NextRequest) {
       .from('orders')
       .update({
         pay_status: 'failed',
-        pay_note:   `${rtnCode}: ${rtnMsg}`,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', order.id);
 
-    console.log(`訂單 ${order.order_no} 付款失敗: ${rtnMsg}`);
+    console.log(`訂單 ${order.order_no} 付款失敗: ${rtnCode} ${rtnMsg}`);
   }
 
   // ── 6. 回傳 "1|OK" 給綠界 ─────────────────────────
