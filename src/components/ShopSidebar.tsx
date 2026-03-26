@@ -17,8 +17,9 @@ interface ShopSidebarProps {
 
 export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps) {
   const [filterOpen,  setFilterOpen]  = useState(false);
-  const [openSlugs,   setOpenSlugs]   = useState<string[]>(() => categories.map(c => c.slug));
+  const [openSlugs,   setOpenSlugs]   = useState<string[]>(() => ['promotions', ...categories.map(c => c.slug)]);
   const [productMap,  setProductMap]   = useState<Record<number, Product[]>>({});
+  const [promoProducts, setPromoProducts] = useState<Product[]>([]);
   const [limit,       setLimit]        = useState(3);
 
   useEffect(() => {
@@ -37,6 +38,26 @@ export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps
         });
         setProductMap(map);
       }
+
+      // 取得有活動的商品（虛擬「促銷活動」分類用）
+      const now = new Date().toISOString();
+      const { data: promos } = await supabase
+        .from('promotions')
+        .select('id, is_active, start_at, end_at, promotion_products(product_id)')
+        .eq('is_active', true);
+
+      if (promos && products) {
+        const promoProductIds = new Set<number>();
+        for (const p of promos) {
+          if (p.start_at && new Date(p.start_at) > new Date(now)) continue;
+          if (p.end_at && new Date(p.end_at) < new Date(now)) continue;
+          ((p as any).promotion_products ?? []).forEach((pp: any) => promoProductIds.add(pp.product_id));
+        }
+        const promoProds = products
+          .filter((p: any) => promoProductIds.has(p.id))
+          .map((p: any) => ({ id: p.id, name: p.name, slug: p.slug }));
+        setPromoProducts(promoProds);
+      }
     };
     load();
   }, [categories]);
@@ -44,6 +65,13 @@ export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps
   const toggle = (slug: string) => {
     setOpenSlugs(prev => prev.includes(slug) ? prev.filter(x => x !== slug) : [...prev, slug]);
   };
+
+  /* 虛擬促銷活動分類 */
+  const promoSlug    = 'promotions';
+  const promoOpen    = openSlugs.includes(promoSlug);
+  const promoActive  = activeSlug === promoSlug;
+  const promoShown   = promoProducts.slice(0, limit);
+  const promoHasMore = promoProducts.length > limit;
 
   return (
     <aside className={s.sidebar}>
@@ -56,6 +84,38 @@ export default function ShopSidebar({ categories, activeSlug }: ShopSidebarProps
 
       {/* 分類列表 */}
       <div className={`${s.catList} ${filterOpen ? s.open : ''}`}>
+        {/* 虛擬「促銷活動」分類 — 置頂 */}
+        {promoProducts.length > 0 && (
+          <div className={s.catItem}>
+            <button
+              className={`${s.catHeader} ${promoActive ? s.active : ''}`}
+              onClick={() => toggle(promoSlug)}
+            >
+              <span>促銷活動</span>
+              <span className={`${s.catChevron} ${promoOpen ? s.open : ''}`}>⌄</span>
+            </button>
+
+            {promoOpen && (
+              <div className={s.catBody}>
+                {promoShown.map(p => (
+                  <Link key={p.id} href={`/product/${p.slug}`} className={s.prodLink}>
+                    {p.name}
+                  </Link>
+                ))}
+                <Link
+                  href="/shop/promotions"
+                  className={`${s.viewAll} ${promoActive ? s.active : ''}`}
+                >
+                  {promoHasMore ? `查看全部（${promoProducts.length} 件）→` : promoProducts.length > 0 ? '查看全部 →' : '查看全部'}
+                </Link>
+                {promoActive && (
+                  <Link href="/shop" className={s.backAll}>← 所有商品</Link>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {categories.map(cat => {
           const isOpen   = openSlugs.includes(cat.slug);
           const isActive = cat.slug === activeSlug;
