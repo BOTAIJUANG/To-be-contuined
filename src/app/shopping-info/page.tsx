@@ -31,7 +31,8 @@ export default function ShoppingInfoPage() {
   return (
     <>
       <div className={s.container}>
-        <h2 className={s.title}>SHOPPING INFO</h2>
+        <h2 className={s.title}>購物說明</h2>
+        <p className={s.subtitle}>Shopping Info</p>
 
         {loading ? (
           <p className={s.loading}>載入中...</p>

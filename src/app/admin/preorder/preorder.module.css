@@ -1,64 +1,72 @@
 /* preorder – page-specific (mobile-first) */
 
+/* ── 商品卡片 ── */
 .productCard {
-  background: #fff;
-  border: 1px solid var(--line);
+  background: #f8f5ef;
+  border: 1px solid #ece4d8;
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .productHeader {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
+  padding: 18px 20px;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 @media (min-width: 640px) {
   .productHeader {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 18px 24px;
   }
+}
+@media (hover: hover) {
+  .productHeader:hover { background: rgba(107, 74, 58, 0.02); }
 }
 
 .productInfo {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .productThumb {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .productName {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b211b;
   margin-bottom: 4px;
 }
 
 .productSub {
-  font-size: 11px;
-  color: var(--text-light);
+  font-size: 12px;
+  color: #8b7d70;
 }
 
 .expandContent {
-  border-top: 1px solid var(--line);
-  padding: 16px;
+  border-top: 1px solid #ece4d8;
+  padding: 18px 20px;
 }
 @media (min-width: 640px) {
-  .expandContent { padding: 16px 20px; }
+  .expandContent { padding: 20px 24px; }
 }
 
 .variantHeader {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 @media (min-width: 640px) {
   .variantHeader {
@@ -69,22 +77,37 @@
 }
 
 .variantName {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-dark);
+  font-size: 14px;
+  font-weight: 600;
+  color: #2b211b;
 }
 
+/* ── 批次卡片（主次分層）── */
 .batchCard {
-  padding: 14px 16px;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background: #fbf8f4;
+  border: 1px solid #ece4d8;
+  border-radius: 18px;
+  padding: 18px 20px;
+  transition: all 0.2s ease;
+}
+
+.batchCardActive {
+  composes: batchCard;
+  border-color: #c7a97d;
+  background: #f7f2ea;
+  box-shadow: 0 10px 28px rgba(120, 90, 60, 0.08);
+}
+
+.batchCardDraft {
+  composes: batchCard;
+  opacity: 0.7;
 }
 
 .batchTop {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 @media (min-width: 640px) {
   .batchTop {
@@ -94,45 +117,167 @@
   }
 }
 
+.batchTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .batchName {
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b211b;
+}
+
+/* ── 狀態 badge（品牌化）── */
+.badgeOpen {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-dark);
-  margin-right: 12px;
+  line-height: 1;
+  background: #e9f3ec;
+  color: #4e7c5c;
+  border: 1px solid #cfe2d4;
+}
+
+.badgeDraft {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  background: #f2ece6;
+  color: #7d6d60;
+  border: 1px solid #e3d7c8;
+}
+
+.badgeClosed {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  background: #f0ebe5;
+  color: #6d6058;
+  border: 1px solid #ddd2c6;
+}
+
+.badgeSoldOut {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  background: #fcf1ef;
+  color: #b55245;
+  border: 1px solid #e8b5a8;
 }
 
 .batchMeta {
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: var(--text-mid);
+  color: #8b7d70;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 @media (min-width: 640px) {
   .batchMeta { gap: 20px; }
+}
+
+/* ── 進度條 ── */
+.batchProgress {
+  margin-top: 12px;
+}
+
+.progressBar {
+  height: 6px;
+  background: #ece4d8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
 }
 
 .progressWrap {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 12px;
 }
 
 .progressText {
   font-size: 12px;
-  color: var(--text-mid);
+  color: #8b7d70;
   white-space: nowrap;
 }
 
-.preorderNote {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: var(--surface);
-  font-size: 12px;
-  color: var(--text-mid);
+/* ── 操作區 ── */
+.batchActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
+.actionBtn {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5dbcf;
+  background: transparent;
+  color: #7a6a5d;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.2s ease;
+}
+@media (min-width: 768px) {
+  .actionBtn { min-height: unset; }
+}
+@media (hover: hover) {
+  .actionBtn:hover {
+    background: #f5eee6;
+    color: #2b211b;
+  }
+}
+
+.deleteBtn {
+  composes: actionBtn;
+  color: #b55245;
+  border-color: #e4b7b0;
+}
+@media (hover: hover) {
+  .deleteBtn:hover {
+    background: #fcf1ef;
+    color: #b55245;
+  }
+}
+
+.preorderNote {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: #fbf8f4;
+  border: 1px solid #ece4d8;
+  border-radius: 14px;
+  font-size: 12px;
+  color: #8b7d70;
+}
+
+/* ── 狀態按鈕 (modal) ── */
 .statusBtns {
   display: flex;
   gap: 8px;
@@ -146,7 +291,8 @@
   cursor: pointer;
   font-family: "Montserrat", sans-serif;
   letter-spacing: 0.1em;
-  transition: all 0.2s;
+  border-radius: 12px;
+  transition: all 0.2s ease;
   min-height: 44px;
 }
 @media (min-width: 768px) {
@@ -155,53 +301,76 @@
 
 .statusHint {
   font-size: 11px;
-  color: var(--text-light);
-  margin-top: 6px;
+  color: #8b7d70;
+  margin-top: 8px;
 }
 
 .statusActive {
-  color: #2ab85a;
+  color: #4e7c5c;
+  font-weight: 600;
 }
 .statusInactive {
-  color: var(--text-light);
+  color: #8b7d70;
 }
-.btnSmallPrimary {
-  padding: 6px 14px;
-  font-size: 11px;
+
+/* ── 新增批次按鈕 ── */
+.btnAddBatch {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #6b4a3a;
+  color: #fffaf6;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(107, 74, 58, 0.18);
+  transition: all 0.2s ease;
 }
-.btnSmallPad {
-  padding: 5px 12px;
-  font-size: 11px;
+@media (hover: hover) {
+  .btnAddBatch:hover {
+    background: #5a3d31;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(107, 74, 58, 0.24);
+  }
 }
+
 .toggleIcon {
   font-size: 12px;
-  color: var(--text-light);
+  color: #8b7d70;
+  transition: color 0.2s ease;
 }
 .variantSection {
   margin-bottom: 20px;
 }
 .inputMaxWidth {
-  max-width: 200px;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .inputMaxWidth { width: auto; max-width: 200px; }
 }
 .inputSmallWidth {
-  width: 100px;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .inputSmallWidth { width: 100px; }
 }
 .unitLabel {
   font-size: 12px;
-  color: var(--text-light);
+  color: #8b7d70;
 }
 .btnSmallAction {
   padding: 4px 10px;
 }
 .batchShipDate {
-  color: var(--text-dark);
+  color: #2b211b;
+  font-weight: 600;
 }
 .emptyBatch {
   font-size: 12px;
-  color: var(--text-light);
+  color: #8b7d70;
   padding: 12px 0;
 }
 .batchListGrid {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }

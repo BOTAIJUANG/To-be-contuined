@@ -4,7 +4,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(31, 25, 22, 0.35);
   z-index: 300;
   opacity: 0;
   pointer-events: none;
@@ -22,13 +22,13 @@
   right: 0;
   bottom: 0;
   width: 100%;
-  background: var(--bg);
+  background: #f7f3ee;
   z-index: 301;
   transform: translateX(100%);
   transition: transform 0.35s var(--ease);
   display: flex;
   flex-direction: column;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  box-shadow: -8px 0 32px rgba(31, 25, 22, 0.15);
 }
 .drawerOpen {
   transform: translateX(0);
@@ -44,30 +44,43 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px var(--gutter, 16px);
-  border-bottom: 1px solid var(--line);
-  background: #fff;
+  align-items: flex-start;
+  padding: 20px var(--gutter, 16px);
+  border-bottom: 1px solid #ece4d8;
+  background: #f7f3ee;
   flex-shrink: 0;
 }
 @media (min-width: 640px) {
-  .header { padding: 20px 24px; }
-}
-
-.headerLabel {
-  font-family: "Montserrat", sans-serif;
-  font-size: 9px;
-  letter-spacing: 0.3em;
-  color: var(--text-light);
-  text-transform: uppercase;
-  margin-bottom: 4px;
+  .header { padding: 24px; }
 }
 
 .headerOrderNo {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--text-dark);
+  color: #2b211b;
   font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.04em;
+}
+@media (min-width: 400px) {
+  .headerOrderNo { font-size: 20px; }
+}
+
+.headerBadges {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.headerTotal {
+  margin-top: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #b55245;
+  font-family: "Montserrat", sans-serif;
+}
+@media (min-width: 400px) {
+  .headerTotal { font-size: 22px; }
 }
 
 .closeBtn {
@@ -75,13 +88,18 @@
   border: none;
   font-size: 22px;
   cursor: pointer;
-  color: var(--text-light);
+  color: #8b7d70;
   padding: 4px 8px;
   min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 12px;
+  transition: background 0.2s ease;
+}
+@media (hover: hover) {
+  .closeBtn:hover { background: rgba(0, 0, 0, 0.04); }
 }
 
 /* 可捲動內容 */
@@ -92,61 +110,62 @@
   padding: 16px var(--gutter, 16px);
 }
 @media (min-width: 640px) {
-  .body { padding: 24px; }
+  .body { padding: 20px 24px; }
 }
 
-/* 狀態徽章 */
-.badges {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
+/* 狀態 badge */
 .badge {
-  font-size: 11px;
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
   font-family: "Montserrat", sans-serif;
-  letter-spacing: 0.1em;
-  white-space: nowrap;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  border: 1px solid transparent;
 }
 
-/* 資訊區塊 */
+/* 資訊區塊 — 卡片式 */
 .section {
-  background: #fff;
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  background: #fbf8f4;
+  border: 1px solid #ece4d8;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
 }
 @media (min-width: 640px) {
-  .section { padding: 16px 20px; }
+  .section { padding: 18px 20px; }
 }
 
 .sectionTitle {
-  font-family: "Montserrat", sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.25em;
-  color: var(--text-light);
-  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: #8b7d70;
   margin-bottom: 12px;
+  font-weight: 600;
 }
 
-/* 資訊列 */
+/* 資訊列 — 無底線 */
 .row {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 5px 0;
   font-size: 13px;
   gap: 12px;
 }
 
 .rowLabel {
-  color: var(--text-light);
+  color: #8b7d70;
   flex-shrink: 0;
+  font-size: 13px;
 }
 
 .rowValue {
-  color: var(--text-dark);
+  color: #2b211b;
+  font-weight: 500;
+  font-size: 14px;
   text-align: right;
   word-break: break-word;
   max-width: 60%;
@@ -160,18 +179,17 @@
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid var(--line);
   font-size: 13px;
   gap: 12px;
 }
 
 .productName {
-  color: var(--text-dark);
+  color: #2b211b;
   word-break: break-word;
 }
 
 .productPrice {
-  color: #555250;
+  color: #7a6a5d;
   flex-shrink: 0;
 }
 
@@ -179,31 +197,38 @@
 .subtotalRow {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 6px 0;
   font-size: 12px;
-  color: var(--text-light);
+  color: #8b7d70;
 }
 
-/* 應付金額 */
+/* 總金額 — 強調 */
 .totalRow {
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-dark);
-  border-top: 2px solid var(--line);
-  margin-top: 4px;
+  align-items: center;
+  padding: 12px 0 0;
+  border-top: 1px solid #e8dfd3;
+  margin-top: 8px;
+}
+
+.totalLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2b211b;
 }
 
 .totalPrice {
-  color: var(--price);
+  font-size: 18px;
+  font-weight: 700;
+  color: #b55245;
+  font-family: "Montserrat", sans-serif;
 }
 
 /* 快速操作 */
 .actionsWrap {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -213,49 +238,60 @@
 
 .actionLabel {
   font-size: 11px;
-  color: var(--text-light);
+  color: #8b7d70;
   display: block;
   margin-bottom: 6px;
 }
 
 .select {
-  padding: 5px 8px;
-  border: 1px solid var(--line);
-  background: #fff;
+  padding: 8px 12px;
+  border: 1px solid #e7ddd0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
   font-size: 12px;
   outline: none;
   cursor: pointer;
   min-height: 44px;
+  transition: border-color 0.2s ease;
+}
+.select:focus {
+  border-color: #bda58f;
 }
 @media (min-width: 640px) {
   .select { min-height: auto; }
 }
 
 .statusFixed {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 6px 14px;
   font-size: 12px;
-  color: var(--text-light);
-  border: 1px solid var(--line);
+  color: #8b7d70;
+  border: 1px solid #e7ddd0;
+  border-radius: 999px;
   font-family: "Montserrat", sans-serif;
+  font-weight: 600;
 }
 
 .payStatusBadge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 6px 14px;
   font-size: 12px;
   font-family: "Montserrat", sans-serif;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
+  border-radius: 999px;
+  font-weight: 600;
 }
 
 .tradeInfo {
   font-size: 11px;
-  color: var(--text-light);
-  margin-top: 6px;
+  color: #8b7d70;
+  margin-top: 8px;
 }
 
 .tradeInfoSub {
   font-size: 11px;
-  color: var(--text-light);
+  color: #8b7d70;
   margin-top: 2px;
 }

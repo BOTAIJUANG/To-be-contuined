@@ -18,12 +18,13 @@
 .imageWrap {
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
-  transition: box-shadow 0.7s var(--ease-slow);
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(43, 33, 27, 0.08);
+  transition: box-shadow 0.5s ease;
 }
 @media (hover: hover) {
   .wrapper:hover .imageWrap {
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.11);
+    box-shadow: 0 14px 36px rgba(43, 33, 27, 0.12);
   }
 }
 
@@ -31,6 +32,7 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   overflow: hidden;
+  background: var(--surface);
 }
 
 .image {
@@ -38,11 +40,13 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  filter: saturate(0.95);
-  transition: transform 1.2s var(--ease-slow);
+  transition: transform 0.45s ease, filter 0.45s ease;
 }
 @media (hover: hover) {
-  .wrapper:hover .image { transform: scale(1.06); }
+  .wrapper:hover .image {
+    transform: scale(1.03);
+    filter: saturate(1.02);
+  }
 }
 
 .placeholder {
@@ -52,29 +56,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 1.2s var(--ease-slow);
+  transition: transform 0.45s ease;
 }
 @media (hover: hover) {
-  .wrapper:hover .placeholder { transform: scale(1.06); }
+  .wrapper:hover .placeholder { transform: scale(1.03); }
 }
 
 /* 左上角標籤 */
 .badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 10px;
+  left: 10px;
   color: #fff;
   font-family: "Noto Sans TC", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   padding: 4px 10px;
+  border-radius: 8px;
   z-index: 1;
 }
 @media (min-width: 768px) {
   .badge {
-    top: 12px;
-    left: 12px;
+    top: 14px;
+    left: 14px;
     font-size: 12px;
     letter-spacing: 0.15em;
     padding: 5px 12px;
@@ -91,26 +96,33 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  background: rgba(247, 244, 239, 0.55);
-  transition: opacity 0.5s;
+  background: rgba(255, 250, 245, 0.45);
+  transition: opacity 0.3s ease;
 }
 @media (hover: hover) {
   .hoverOverlay { display: flex; }
   .wrapper:hover .hoverOverlay { opacity: 1; }
 }
 .viewLabel {
-  background: var(--bg);
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  padding: 8px 18px;
-  font-family: "Montserrat", sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--text-mid);
+  background: #fffaf6;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: #4a3429;
+  box-shadow: 0 4px 14px rgba(74, 52, 41, 0.1);
+  transform: translateY(10px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
-@media (min-width: 768px) {
-  .viewLabel { padding: 10px 22px; font-size: 11px; }
+@media (hover: hover) {
+  .wrapper:hover .viewLabel {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* 文字區塊 */

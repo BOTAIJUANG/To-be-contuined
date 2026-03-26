@@ -5,12 +5,12 @@
   padding: 14px 24px;
   background: var(--surface);
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
+  letter-spacing: 0.18em;
   color: var(--text-light);
-  font-family: "Montserrat", sans-serif;
+  font-family: "Noto Sans TC", sans-serif;
+  border-radius: 14px;
 }
 
 /* 無批次 */
@@ -24,15 +24,16 @@
 }
 .disabledBtn {
   width: 100%;
+  min-height: 52px;
   padding: 14px 24px;
   background: var(--line);
   color: var(--text-light);
-  border: none;
-  font-family: "Montserrat", sans-serif;
-  font-size: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
+  letter-spacing: 0.18em;
   cursor: not-allowed;
 }
 
@@ -57,20 +58,28 @@
 }
 .variantBtn {
   padding: 10px 16px;
-  border: 1.5px solid var(--line);
-  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
   color: var(--text-mid);
   font-size: 13px;
   font-family: "Noto Sans TC", sans-serif;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 @media (min-width: 768px) {
   .variantBtn { padding: 8px 20px; }
 }
+@media (hover: hover) {
+  .variantBtn:hover:not(:disabled) {
+    border-color: #BFA893;
+    background: #F8F2EA;
+    color: var(--text-dark);
+  }
+}
 .variantBtn.selected {
-  border-color: var(--text-dark);
-  background: var(--text-dark);
-  color: var(--bg);
+  border-color: var(--btn);
+  background: var(--btn);
+  color: #fffaf6;
 }
 .variantSoldOut {
   opacity: 0.4;
@@ -93,54 +102,62 @@
 }
 .batchItem {
   padding: 12px 14px;
-  border: 1.5px solid var(--line);
-  background: #fff;
+  border: 1px solid #E6D9CC;
+  border-radius: 12px;
+  background: #FDFBF8;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+}
+@media (hover: hover) {
+  .batchItem:hover {
+    border-color: #BFA893;
+    background: #F8F2EA;
+  }
 }
 .batchItem.selected {
-  border-color: var(--text-dark);
-  background: var(--bg);
+  border-color: #BFA893;
+  background: #F8F3EC;
 }
 .batchRadio {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  border: 2px solid var(--line);
+  border: 1.5px solid #D0C4B6;
   background: transparent;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 .batchRadio.selected {
-  border-color: var(--text-dark);
-  background: var(--text-dark);
+  border-color: var(--btn);
+  background: var(--btn);
 }
 .batchDot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #fff;
+  background: #fffaf6;
 }
 .batchDate {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: #4A3429;
+  letter-spacing: 0.02em;
 }
 .batchMeta {
   font-size: 11px;
-  color: var(--text-light);
+  color: #A89888;
 }
 .batchInfo {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #e8f0fb;
+  margin-top: 6px;
   font-size: 11px;
-  color: #2a5a8c;
+  color: #A89888;
+  padding-left: 2px;
 }
 
 /* 數量選擇器 */
@@ -149,11 +166,15 @@
   align-items: center;
   margin-bottom: 16px;
   border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
   width: fit-content;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 10px rgba(43, 33, 27, 0.04);
 }
 .qtyBtn {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   background: transparent;
   border: none;
   font-size: 18px;
@@ -161,17 +182,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s ease;
+}
+@media (hover: hover) {
+  .qtyBtn:hover { background: #F2EAE1; }
 }
 .qtyValue {
-  width: 52px;
+  width: 54px;
   text-align: center;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-dark);
   font-family: "Montserrat", sans-serif;
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
-  height: 44px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,22 +232,32 @@
   color: var(--text-light);
 }
 
-/* 加入購物車按鈕 — 手機 sticky */
+/* 加入購物車按鈕 */
 .addBtn {
   width: 100%;
+  min-height: 52px;
   padding: 14px 24px;
-  background: var(--text-dark);
-  color: var(--bg);
-  border: none;
-  font-family: "Montserrat", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  transition: background 0.3s;
+  background: var(--btn);
+  color: #fffaf6;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+  box-shadow: 0 8px 18px rgba(107, 74, 58, 0.18);
+}
+@media (hover: hover) {
+  .addBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: #5A3D31;
+    box-shadow: 0 12px 24px rgba(107, 74, 58, 0.22);
+  }
 }
 .addBtn.added {
-  background: var(--accent);
+  background: #8FA58A;
+  box-shadow: 0 8px 18px rgba(143, 165, 138, 0.2);
 }
 .addBtn:disabled {
   opacity: 0.5;

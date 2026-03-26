@@ -6,69 +6,86 @@
   margin: 0 auto;
   padding: 40px var(--gutter);
 }
-
 @media (min-width: 768px) {
-  .container {
-    padding: 56px var(--gutter);
-  }
+  .container { padding: 56px var(--gutter); }
 }
-
 @media (min-width: 1024px) {
-  .container {
-    padding: 72px var(--gutter);
-  }
+  .container { padding: 72px var(--gutter); }
 }
 
+/* 主標題 */
 .title {
   font-family: "Noto Sans TC", sans-serif;
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: 0.28em;
-  color: var(--text-dark);
-  margin: 0 0 32px;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  color: #2f241e;
+  margin: 0 0 6px;
+  line-height: 1.3;
+}
+@media (min-width: 768px) {
+  .title { font-size: 24px; }
 }
 
+/* 英文副標 */
+.subtitle {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: #a89888;
+  margin: 0 0 36px;
+}
 @media (min-width: 768px) {
-  .title {
-    font-size: 19px;
-    margin: 0 0 48px;
-  }
+  .subtitle { margin-bottom: 48px; }
 }
 
 .loading {
-  color: var(--text-light);
+  color: #a89888;
   font-size: 13px;
 }
 
+/* 每個 FAQ 區塊 */
 .faqItem {
-  padding: 20px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 24px 0;
+  border-bottom: 1px solid #e8dfd5;
 }
-
 @media (min-width: 768px) {
   .faqItem {
-    padding: 28px 0;
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 28px;
+    padding: 32px 0;
   }
 }
 
+/* 問題標題 */
 .question {
   font-family: "Noto Sans TC", sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
-  letter-spacing: 0.15em;
-  color: var(--text-dark);
-  margin: 0 0 12px;
+  letter-spacing: 0.08em;
+  color: #2f241e;
+  margin: 0 0 10px;
+}
+@media (min-width: 768px) {
+  .question {
+    margin: 0;
+    padding-top: 2px;
+  }
 }
 
+/* 回答內容 */
 .answer {
-  font-size: 13px;
-  color: var(--text-mid);
-  line-height: 2.2;
+  font-size: 14px;
+  color: #7b6d61;
+  line-height: 1.85;
   font-weight: 300;
   white-space: pre-line;
+  max-width: 640px;
 }
 
 .empty {
-  color: var(--text-light);
+  color: #a89888;
   font-size: 13px;
 }

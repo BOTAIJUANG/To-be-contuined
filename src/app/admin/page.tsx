@@ -11,11 +11,10 @@ const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped:
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
 
 // 可點擊的數字元件
-const ClickableNum = ({ value, onClick, color }: { value: number; onClick: () => void; color?: string }) => (
+const ClickableNum = ({ value, onClick }: { value: number; onClick: () => void }) => (
   <span
     onClick={onClick}
-    className={s.clickNum}
-    style={{ color: color ?? 'var(--text-dark)' }}
+    className={`${s.clickNum} ${s.alertHighlight}`}
   >
     {value}
   </span>
@@ -110,11 +109,14 @@ export default function AdminDashboardPage() {
       {/* ── 訂單待處理提醒 ── */}
       {(stats.pendingPayment > 0 || stats.paidNotShipped > 0) && (
         <div className={s.alertOrder}>
-          您有{' '}
-          <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders')} color="#c0392b" />{' '}
-          筆待核款訂單，{' '}
-          <ClickableNum value={stats.paidNotShipped} onClick={() => router.push('/admin/orders')} color="#c0392b" />{' '}
-          筆完成付款未出貨，請盡快處理。
+          <div className={s.alertTitle}>待處理訂單</div>
+          <div className={s.alertText}>
+            待核款{' '}
+            <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders')} />{' '}
+            筆，未出貨{' '}
+            <ClickableNum value={stats.paidNotShipped} onClick={() => router.push('/admin/orders')} />{' '}
+            筆
+          </div>
         </div>
       )}
 
@@ -133,7 +135,7 @@ export default function AdminDashboardPage() {
                   >
                     {item.products?.name}{item.variant_name ? ` · ${item.variant_name}` : ''}
                   </span>
-                  <span>已低於安全庫存（剩餘 {available} 件，安全庫存 {item.safety_stock} 件）</span>
+                  <span>：剩餘 <span className={s.alertHighlight}>{available}</span> 件，安全庫存 {item.safety_stock} 件</span>
                 </div>
               );
             })}
@@ -154,7 +156,7 @@ export default function AdminDashboardPage() {
                 >
                   {ing.name}
                 </span>
-                <span>已低於安全庫存（剩餘 {ing.stock} {ing.unit}，安全庫存 {ing.safety_stock} {ing.unit}）</span>
+                <span>：剩餘 <span className={s.alertHighlight}>{ing.stock}</span> {ing.unit}，安全庫存 {ing.safety_stock} {ing.unit}</span>
               </div>
             ))}
           </div>

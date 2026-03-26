@@ -1,23 +1,26 @@
 /* ── HomeHero CTA 按鈕 (mobile-first) ── */
 
 .btn {
-  padding: 12px 32px;
-  border: 1px solid rgba(0, 0, 0, 0.18);
-  background: transparent;
-  font-family: "Montserrat", sans-serif;
-  font-size: 11px;
+  padding: 14px 28px;
+  background: var(--btn);
+  color: #fffaf6;
+  border-radius: 999px;
+  border: none;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--text-dark);
-  transition: background 0.3s, color 0.3s;
+  letter-spacing: 0.15em;
+  box-shadow: 0 10px 25px rgba(107, 74, 58, 0.2);
+  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
 }
 @media (min-width: 768px) {
-  .btn { padding: 12px 44px; font-size: 12px; letter-spacing: 0.35em; }
+  .btn { padding: 15px 36px; font-size: 14px; }
 }
 @media (hover: hover) {
   .btn:hover {
-    background: var(--text-dark);
-    color: var(--bg);
+    transform: translateY(-2px);
+    background: #5A3D31;
+    box-shadow: 0 14px 30px rgba(107, 74, 58, 0.25);
   }
 }

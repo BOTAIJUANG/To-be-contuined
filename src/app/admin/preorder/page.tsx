@@ -19,14 +19,14 @@ const numVal = (v: number) => v === 0 ? '' : String(v);
 const EMPTY_BATCH = { name: '', starts_at: '', ends_at: '', ship_date: '', limit_qty: 0, status: 'draft' as string, note: '' };
 
 const STATUS_OPTIONS = [
-  { value: 'draft',    label: '草稿',  color: '#888580' },
-  { value: 'active',   label: '開放中', color: '#2ab85a' },
-  { value: 'closed',   label: '關閉',  color: '#555250' },
-  { value: 'sold_out', label: '售完',  color: '#c0392b' },
+  { value: 'draft',    label: '草稿',  color: '#7d6d60', badgeCls: 'badgeDraft' },
+  { value: 'active',   label: '開放中', color: '#4e7c5c', badgeCls: 'badgeOpen' },
+  { value: 'closed',   label: '關閉',  color: '#6d6058', badgeCls: 'badgeClosed' },
+  { value: 'sold_out', label: '售完',  color: '#b55245', badgeCls: 'badgeSoldOut' },
 ];
 
 const Toggle = ({ val, onChange }: { val: boolean; onChange: () => void }) => (
-  <div onClick={onChange} className={s.toggle} style={{ background: val ? 'var(--text-dark)' : 'var(--line)' }}>
+  <div onClick={onChange} className={s.toggle} style={{ background: val ? '#6b4a3a' : '#ddd2c6' }}>
     <div className={s.toggleDot} style={{ left: val ? '21px' : '3px' }} />
   </div>
 );
@@ -156,12 +156,12 @@ export default function AdminPreorderPage() {
   const getBatchStatus = (batch: any) => {
     const st = batch.status ?? (batch.is_active ? 'active' : 'closed');
     const opt = STATUS_OPTIONS.find(o => o.value === st);
-    if (opt) return { label: opt.label, color: opt.color };
+    if (opt) return { label: opt.label, color: opt.color, badgeCls: opt.badgeCls };
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (batch.starts_at && batch.starts_at > today) return { label: '未開始', color: '#b87a2a' };
-    if (batch.ends_at   && batch.ends_at   < today) return { label: '已結束', color: '#888580' };
-    return { label: '接單中', color: '#2ab85a' };
+    if (batch.starts_at && batch.starts_at > today) return { label: '未開始', color: '#7d6d60', badgeCls: 'badgeDraft' };
+    if (batch.ends_at   && batch.ends_at   < today) return { label: '已結束', color: '#6d6058', badgeCls: 'badgeClosed' };
+    return { label: '接單中', color: '#4e7c5c', badgeCls: 'badgeOpen' };
   };
 
   if (loading) return <p className={s.loadingText}>載入中...</p>;
@@ -206,7 +206,7 @@ export default function AdminPreorderPage() {
                       <div className={p.productSub}>
                         {hasVariants ? `${product.product_variants.length} 個規格` : '無規格'}
                         {' · '}
-                        {getBatchesFor(product.id).filter(b => getBatchStatus(b).label === '接單中').length > 0
+                        {getBatchesFor(product.id).some(b => { const st = getBatchStatus(b).label; return st === '開放中' || st === '接單中'; })
                           ? <span className={p.statusActive}>接單中</span>
                           : <span className={p.statusInactive}>未開放</span>}
                       </div>
@@ -214,7 +214,7 @@ export default function AdminPreorderPage() {
                   </div>
                   <div className={`${s.flex} ${s.itemsCenter} ${s.gap12}`}>
                     {!hasVariants && (
-                      <button onClick={e => { e.stopPropagation(); openAddBatch(product.id, null); }} className={`${s.btnPrimary} ${p.btnSmallPrimary}`}>
+                      <button onClick={e => { e.stopPropagation(); openAddBatch(product.id, null); }} className={p.btnAddBatch}>
                         ＋ 新增批次
                       </button>
                     )}
@@ -230,7 +230,7 @@ export default function AdminPreorderPage() {
                         <div key={variant.id} className={p.variantSection}>
                           <div className={p.variantHeader}>
                             <span className={p.variantName}>規格：{variant.name}</span>
-                            <button onClick={() => openAddBatch(product.id, variant.id)} className={`${s.btnPrimary} ${p.btnSmallPad}`}>
+                            <button onClick={() => openAddBatch(product.id, variant.id)} className={p.btnAddBatch}>
                               ＋ 新增批次
                             </button>
                           </div>
@@ -327,9 +327,9 @@ export default function AdminPreorderPage() {
                       onClick={() => setBatchForm({...batchForm, status: opt.value})}
                       className={p.statusBtn}
                       style={{
-                        border: `1px solid ${batchForm.status === opt.value ? opt.color : 'var(--line)'}`,
+                        border: `1px solid ${batchForm.status === opt.value ? opt.color : '#e5dbcf'}`,
                         background: batchForm.status === opt.value ? opt.color : 'transparent',
-                        color: batchForm.status === opt.value ? '#fff' : 'var(--text-mid)',
+                        color: batchForm.status === opt.value ? '#fffaf6' : '#7a6a5d',
                       }}
                     >
                       {opt.label}
@@ -366,7 +366,7 @@ export default function AdminPreorderPage() {
 // ── 批次列表子元件 ────────────────────────────────
 function BatchList({ batches, orderStats, productId, getBatchStatus, onEdit, onToggle, onDelete }: {
   batches: any[]; orderStats: Record<string, number>; productId: number;
-  getBatchStatus: (b: any) => { label: string; color: string };
+  getBatchStatus: (b: any) => { label: string; color: string; badgeCls: string };
   onEdit: (b: any) => void; onToggle: (b: any) => void; onDelete: (id: number) => void;
 }) {
   if (batches.length === 0) {
@@ -379,17 +379,22 @@ function BatchList({ batches, orderStats, productId, getBatchStatus, onEdit, onT
         const statKey  = `${batch.product_id}_${batch.variant_id ?? 'null'}`;
         const reserved = orderStats[statKey] ?? 0;
         const pct      = batch.limit_qty > 0 ? Math.round(reserved / batch.limit_qty * 100) : 0;
+        const isActive = batch.status === 'active';
+        const isDraft  = batch.status === 'draft';
+        const cardCls  = isActive ? p.batchCardActive : isDraft ? p.batchCardDraft : p.batchCard;
+        const badgeCls = (p as any)[status.badgeCls] ?? p.badgeDraft;
+
         return (
-          <div key={batch.id} className={p.batchCard}>
+          <div key={batch.id} className={cardCls}>
             <div className={p.batchTop}>
-              <div>
+              <div className={p.batchTitleGroup}>
                 <span className={p.batchName}>{batch.name}</span>
-                <span className={s.badge} style={{ color: status.color, border: `1px solid ${status.color}` }}>{status.label}</span>
+                <span className={badgeCls}>{status.label}</span>
               </div>
-              <div className={`${s.flex} ${s.itemsCenter} ${s.gap8}`}>
-                <Toggle val={batch.status === 'active'} onChange={() => onToggle(batch)} />
-                <button onClick={() => onEdit(batch)} className={`${s.btnSmall} ${p.btnSmallAction}`}>編輯</button>
-                <button onClick={() => onDelete(batch.id)} className={`${s.btnDanger} ${p.btnSmallAction}`}>刪除</button>
+              <div className={p.batchActions}>
+                <Toggle val={isActive} onChange={() => onToggle(batch)} />
+                <button onClick={() => onEdit(batch)} className={p.actionBtn}>編輯</button>
+                <button onClick={() => onDelete(batch.id)} className={p.deleteBtn}>刪除</button>
               </div>
             </div>
 
@@ -401,8 +406,8 @@ function BatchList({ batches, orderStats, productId, getBatchStatus, onEdit, onT
 
             {/* 接單進度條 */}
             <div className={p.progressWrap}>
-              <div className={s.progressBar}>
-                <div className={s.progressFill} style={{ width: `${Math.min(100, pct)}%`, background: pct >= 100 ? '#c0392b' : '#2ab85a' }} />
+              <div className={p.progressBar}>
+                <div className={p.progressFill} style={{ width: `${Math.min(100, pct)}%`, background: pct >= 100 ? '#b55245' : '#6b4a3a' }} />
               </div>
               <span className={p.progressText}>
                 已接 {reserved} {batch.limit_qty > 0 ? `/ ${batch.limit_qty}` : ''} 份

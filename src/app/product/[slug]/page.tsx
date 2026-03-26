@@ -121,9 +121,31 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
           {promos.length > 0 && (
             <div className={s.promoBox}>
-              <div className={s.promoTitle}>優惠</div>
+              <div className={s.promoTitle}>優惠活動</div>
               {promos.map(promo => (
-                <div key={promo.id} className={s.promoItem}>· {promo.name}</div>
+                <div key={promo.id} className={s.promoItem}>
+                  <div className={s.promoText}>{promo.name}</div>
+                  {promo.type === 'volume' && promo.volume_tiers && promo.volume_tiers.length > 0 && (
+                    <div className={s.promoSub}>
+                      {promo.volume_tiers.map((t, i) => (
+                        <span key={i}>
+                          {i > 0 && '、'}
+                          買 {t.min_qty} 件 <span className={s.promoHighlight}>NT$ {t.price.toLocaleString()}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {promo.type === 'bundle' && promo.bundle_price != null && (
+                    <div className={s.promoSub}>
+                      組合優惠價 <span className={s.promoHighlight}>NT$ {promo.bundle_price.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {promo.type === 'gift' && (
+                    <div className={s.promoSub}>
+                      滿 {promo.gift_condition_qty} 件贈送 {promo.gift_qty} 份
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}

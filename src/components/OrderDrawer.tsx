@@ -10,10 +10,21 @@ import { useEffect } from 'react';
 import s from './OrderDrawer.module.css';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
-const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
+const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }> = {
+  processing: { bg: '#f5ede7', border: '#e4d2c4', color: '#7a5846' },
+  shipped:    { bg: '#edf3f5', border: '#c8d8e0', color: '#5a7a8a' },
+  done:       { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
+  cancelled:  { bg: '#f5f0ea', border: '#e7ddd0', color: '#8b7d70' },
+};
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗' };
-const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b' };
+const PAY_STYLE: Record<string, { bg: string; border: string; color: string }> = {
+  pending: { bg: '#f8f1e2', border: '#ead8aa', color: '#8b6722' },
+  paid:    { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
+  failed:  { bg: '#fcf1ef', border: '#e8b5a8', color: '#b55245' },
+};
 const SHIP_LABEL: Record<string, string>   = { home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨' };
+
+const FALLBACK_STYLE = { bg: '#f5f0ea', border: '#e7ddd0', color: '#8b7d70' };
 
 interface OrderDrawerProps {
   order: any | null;
@@ -29,6 +40,9 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  const ss = STATUS_STYLE[order?.status] ?? FALLBACK_STYLE;
+  const ps = PAY_STYLE[order?.pay_status] ?? FALLBACK_STYLE;
+
   return (
     <>
       {/* 遮罩 */}
@@ -41,27 +55,25 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
       <div className={`${s.drawer} ${order ? s.drawerOpen : ''}`}>
         {order && (
           <>
-            {/* 抽屜標題 */}
+            {/* 頂部摘要區 */}
             <div className={s.header}>
               <div>
-                <div className={s.headerLabel}>訂單詳細</div>
                 <div className={s.headerOrderNo}>{order.order_no}</div>
+                <div className={s.headerBadges}>
+                  <span className={s.badge} style={{ background: ss.bg, borderColor: ss.border, color: ss.color }}>
+                    {STATUS_LABEL[order.status]}
+                  </span>
+                  <span className={s.badge} style={{ background: ps.bg, borderColor: ps.border, color: ps.color }}>
+                    {PAY_LABEL[order.pay_status] ?? order.pay_status}
+                  </span>
+                </div>
+                <div className={s.headerTotal}>NT$ {order.total.toLocaleString()}</div>
               </div>
               <button onClick={onClose} className={s.closeBtn}>×</button>
             </div>
 
             {/* 抽屜內容（可捲動）*/}
             <div className={s.body}>
-
-              {/* 狀態徽章 */}
-              <div className={s.badges}>
-                <span className={s.badge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
-                  {STATUS_LABEL[order.status]}
-                </span>
-                <span className={s.badge} style={{ color: PAY_COLOR[order.pay_status], border: `1px solid ${PAY_COLOR[order.pay_status]}` }}>
-                  {PAY_LABEL[order.pay_status]}
-                </span>
-              </div>
 
               {/* 買家資訊 */}
               <div className={s.section}>
@@ -115,7 +127,7 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                   </div>
                 ))}
                 <div className={s.totalRow}>
-                  <span>應付金額</span>
+                  <span className={s.totalLabel}>應付金額</span>
                   <span className={s.totalPrice}>NT$ {order.total.toLocaleString()}</span>
                 </div>
               </div>
@@ -144,7 +156,7 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                     {order.status === 'cancelled' ? (
                       <span className={s.statusFixed}>已取消</span>
                     ) : (
-                      <select value={order.status} onChange={e => onStatusChange(order.id, 'status', e.target.value)} className={s.select} style={{ color: STATUS_COLOR[order.status] }}>
+                      <select value={order.status} onChange={e => onStatusChange(order.id, 'status', e.target.value)} className={s.select} style={{ color: ss.color }}>
                         {[{ value: 'processing', label: '處理中' }, { value: 'shipped', label: '已出貨' }, { value: 'done', label: '已完成' }].map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -153,13 +165,9 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                   </div>
                   <div className={s.actionGroup}>
                     <label className={s.actionLabel}>付款狀態（由金流系統自動更新）</label>
-                    {/* 付款狀態由綠界 ECPay webhook 自動更新，不給手動改 */}
                     <span
                       className={s.payStatusBadge}
-                      style={{
-                        color: PAY_COLOR[order.pay_status] ?? '#888580',
-                        border: `1px solid ${PAY_COLOR[order.pay_status] ?? '#E8E4DC'}`,
-                      }}
+                      style={{ background: ps.bg, borderColor: ps.border, color: ps.color, border: `1px solid ${ps.border}` }}
                     >
                       {PAY_LABEL[order.pay_status] ?? order.pay_status}
                     </span>

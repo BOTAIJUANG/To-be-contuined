@@ -30,9 +30,9 @@ const SHIP_OPTIONS = [
   { value: 'home_cold', label: '低溫宅配' }, { value: 'cvs_711', label: '7-11取貨' },
   { value: 'cvs_family', label: '全家取貨' }, { value: 'store', label: '門市自取' },
 ];
-const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
+const STATUS_COLOR: Record<string, string> = { processing: '#7a5846', shipped: '#5a7a8a', done: '#4a7a56', cancelled: '#8b7d70' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
-const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b' };
+const PAY_COLOR: Record<string, string>    = { pending: '#8b6722', paid: '#4a7a56', failed: '#b55245' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '失敗' };
 const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家' };
 
@@ -262,7 +262,7 @@ export default function AdminOrdersPage() {
                       <td className={s.tdBuyer}>
                         <div className={s.buyerName}>
                           {o.buyer_name}
-                          <span className={s.buyerBadge} style={{ borderColor: o.member_id ? '#2ab85a' : '#b87a2a', color: o.member_id ? '#2ab85a' : '#b87a2a' }}>
+                          <span className={s.buyerBadge} style={{ background: o.member_id ? '#ebf5ef' : '#f7f0e7', borderColor: o.member_id ? '#cfe4d4' : '#e9d9c6', color: o.member_id ? '#4a7a56' : '#8a6b4d' }}>
                             {o.member_id ? '會員' : '訪客'}
                           </span>
                         </div>
@@ -273,8 +273,9 @@ export default function AdminOrdersPage() {
                       <td className={s.tdPayStatus} onClick={e => e.stopPropagation()}>
                         {/* 付款狀態由綠界 webhook 自動更新，不給手動改 */}
                         <span className={s.payBadge} style={{
-                          color: PAY_COLOR[o.pay_status] ?? '#888580',
-                          border: `1px solid ${PAY_COLOR[o.pay_status] ?? '#E8E4DC'}`,
+                          color: PAY_COLOR[o.pay_status] ?? '#8b7d70',
+                          background: o.pay_status === 'paid' ? '#ebf5ef' : o.pay_status === 'pending' ? '#f8f1e2' : o.pay_status === 'failed' ? '#fcf1ef' : '#f5f0ea',
+                          border: `1px solid ${o.pay_status === 'paid' ? '#cfe4d4' : o.pay_status === 'pending' ? '#ead8aa' : o.pay_status === 'failed' ? '#e8b5a8' : '#e7ddd0'}`,
                         }}>
                           {PAY_LABEL[o.pay_status] ?? o.pay_status}
                         </span>
@@ -313,7 +314,7 @@ export default function AdminOrdersPage() {
                     <div className={s.cardMid}>
                       <div className={s.cardBuyer}>
                         {o.buyer_name}
-                        <span className={s.buyerBadge} style={{ borderColor: o.member_id ? '#2ab85a' : '#b87a2a', color: o.member_id ? '#2ab85a' : '#b87a2a' }}>
+                        <span className={s.buyerBadge} style={{ background: o.member_id ? '#ebf5ef' : '#f7f0e7', borderColor: o.member_id ? '#cfe4d4' : '#e9d9c6', color: o.member_id ? '#4a7a56' : '#8a6b4d' }}>
                           {o.member_id ? '會員' : '訪客'}
                         </span>
                       </div>
@@ -329,9 +330,13 @@ export default function AdminOrdersPage() {
                       {o.status === 'cancelled' ? (
                         <span className={s.cancelledBadge}>已取消</span>
                       ) : (
-                        <span className={s.payBadge} style={{ color: STATUS_COLOR[o.status], border: `1px solid ${STATUS_COLOR[o.status]}` }}>
-                          {STATUS_LABEL[o.status]}
-                        </span>
+                        <span className={s.payBadge} style={{
+                            color: STATUS_COLOR[o.status],
+                            background: o.status === 'processing' ? '#f5ede7' : o.status === 'shipped' ? '#edf3f5' : o.status === 'done' ? '#ebf5ef' : '#f5f0ea',
+                            border: `1px solid ${o.status === 'processing' ? '#e4d2c4' : o.status === 'shipped' ? '#c8d8e0' : o.status === 'done' ? '#cfe4d4' : '#e7ddd0'}`,
+                          }}>
+                            {STATUS_LABEL[o.status]}
+                          </span>
                       )}
                       <span className={s.cardShip}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
                     </div>

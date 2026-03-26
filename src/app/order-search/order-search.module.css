@@ -4,19 +4,13 @@
   width: 100%;
   max-width: calc(var(--max) + var(--gutter) * 2);
   margin: 0 auto;
-  padding: 40px var(--gutter);
+  padding: 32px var(--gutter);
 }
-
 @media (min-width: 768px) {
-  .container {
-    padding: 56px var(--gutter);
-  }
+  .container { padding: 44px var(--gutter); }
 }
-
 @media (min-width: 1024px) {
-  .container {
-    padding: 72px var(--gutter);
-  }
+  .container { padding: 56px var(--gutter); }
 }
 
 .inner {
@@ -27,47 +21,50 @@
 
 .title {
   font-family: "Noto Sans TC", sans-serif;
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: 0.28em;
-  color: var(--text-dark);
-  margin: 0 0 20px;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  color: #2f241e;
+  margin: 0 0 6px;
 }
-
 @media (min-width: 768px) {
-  .title {
-    font-size: 19px;
-  }
+  .title { font-size: 22px; }
 }
 
 .subtitle {
   font-size: 13px;
-  line-height: 2.4;
+  line-height: 1.8;
   font-weight: 300;
-  color: var(--text-mid);
-  margin-bottom: 36px;
+  color: #a89888;
+  margin-bottom: 32px;
 }
 
 /* Form inputs */
 .input {
   width: 100%;
-  padding: 14px 0;
+  padding: 10px 0 12px;
   border: none;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 22px;
+  border-bottom: 1px solid #ddd2c6;
+  margin-bottom: 28px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 16px;
   background: transparent;
-  color: var(--text-dark);
+  color: #2f241e;
   letter-spacing: 0.05em;
   outline: none;
   text-align: left;
   min-height: 44px;
   box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
-
+@media (min-width: 640px) {
+  .input { font-size: 14px; }
+}
 .input::placeholder {
-  color: var(--text-light);
+  color: #b0a295;
+}
+.input:focus {
+  border-bottom-color: #8f6b58;
 }
 
 .inputUpper {
@@ -78,21 +75,28 @@
 /* Search button */
 .searchBtn {
   width: 100%;
-  margin-top: 10px;
-  padding: 12px 44px;
-  border: 1px solid rgba(0, 0, 0, 0.18);
-  background: transparent;
-  font-family: "Montserrat", sans-serif;
-  font-size: 12px;
+  margin-top: 4px;
+  min-height: 48px;
+  padding: 14px 44px;
+  background: var(--btn);
+  color: #fffaf6;
+  border: none;
+  border-radius: 12px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: var(--text-dark);
+  letter-spacing: 0.12em;
   cursor: pointer;
-  min-height: 44px;
-  transition: opacity 0.2s var(--ease);
+  box-shadow: 0 8px 20px rgba(107, 74, 58, 0.16);
+  transition: background 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
 }
-
+@media (hover: hover) {
+  .searchBtn:hover:not(:disabled) {
+    background: #5A3D31;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(107, 74, 58, 0.2);
+  }
+}
 .searchBtn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -113,14 +117,13 @@
 
 /* Order card */
 .orderCard {
-  border: 1px solid var(--line);
+  border: 1px solid #e6d9cc;
+  border-radius: 14px;
   padding: 24px 16px;
+  background: rgba(255, 252, 247, 0.4);
 }
-
 @media (min-width: 640px) {
-  .orderCard {
-    padding: 32px;
-  }
+  .orderCard { padding: 32px; }
 }
 
 .orderHeader {
@@ -179,14 +182,12 @@
 .trackingBox {
   margin-top: 20px;
   padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: #F8F3EC;
+  border: 1px solid #e6d9cc;
+  border-radius: 12px;
 }
-
 @media (min-width: 640px) {
-  .trackingBox {
-    padding: 16px 20px;
-  }
+  .trackingBox { padding: 16px 20px; }
 }
 
 .trackingLabel {
@@ -234,27 +235,31 @@
 
 .copyBtn {
   padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #d8cec2;
+  border-radius: 10px;
   font-size: 11px;
-  color: var(--text-mid);
+  color: #5a3d31;
   cursor: pointer;
-  font-family: "Montserrat", sans-serif;
+  font-family: "Noto Sans TC", sans-serif;
   min-height: 44px;
   align-self: flex-start;
-  transition: opacity 0.2s var(--ease);
+  transition: all 0.2s ease;
 }
-
-.copyBtn:hover {
-  opacity: 0.6;
+@media (hover: hover) {
+  .copyBtn:hover {
+    background: #f3ece4;
+    border-color: #cdbdaa;
+  }
 }
 
 /* Shipped notice */
 .shippedNotice {
   margin-top: 20px;
   padding: 12px 16px;
-  background: #fff8e1;
-  border: 1px solid #f0c040;
+  background: #FBF6F0;
+  border: 1px solid #e6d9cc;
+  border-radius: 10px;
   font-size: 12px;
-  color: #7a5c00;
+  color: #8C7B6A;
 }

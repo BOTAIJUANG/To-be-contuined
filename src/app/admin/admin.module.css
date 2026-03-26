@@ -23,7 +23,7 @@
 
 /* ── 側邊欄 ── */
 .sidebar {
-  background: var(--text-dark);
+  background: linear-gradient(180deg, #1f1916 0%, #171210 100%);
   display: none;
   flex-direction: column;
 }
@@ -34,23 +34,22 @@
 }
 
 .sidebarBrand {
-  padding: 0 24px 32px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 28px 24px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 16px;
-  padding-top: 32px;
 }
 .brandName {
   font-family: "Noto Sans TC", sans-serif;
   font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.3em;
-  color: var(--bg);
+  font-size: 14px;
+  letter-spacing: 0.25em;
+  color: #f4f0ea;
 }
 .brandSub {
   font-family: "Montserrat", sans-serif;
   font-size: 10px;
   letter-spacing: 0.3em;
-  color: var(--text-light);
+  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
   margin-top: 4px;
 }
@@ -76,29 +75,33 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 16px;
-  border-radius: 4px;
+  padding: 10px 16px;
+  border-radius: 12px;
   margin-bottom: 2px;
   background: transparent;
-  color: var(--text-light);
+  color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
   font-size: 13px;
   letter-spacing: 0.05em;
   font-family: "Noto Sans TC", sans-serif;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
 }
 .navItem:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
 }
 .navItem.active {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--bg);
+  background: rgba(107, 74, 58, 0.35);
+  color: #f4f0ea;
 }
 .navIcon {
   display: flex;
   align-items: center;
-  opacity: 0.7;
+  opacity: 0.5;
+}
+.navItem:hover .navIcon {
+  opacity: 0.8;
 }
 .navItem.active .navIcon {
   opacity: 1;
@@ -106,7 +109,7 @@
 
 .sidebarFooter {
   padding: 16px 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin-top: 16px;
 }
 .sidebarLink {
@@ -114,15 +117,18 @@
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  color: var(--text-light);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.45);
   text-decoration: none;
   font-size: 12px;
   letter-spacing: 0.1em;
   font-family: "Noto Sans TC", sans-serif;
+  transition: all 0.2s ease;
 }
 .sidebarLink:hover {
   opacity: 1;
-  color: var(--bg);
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.04);
 }
 .logoutBtn {
   composes: sidebarLink;
@@ -158,6 +164,11 @@
   font-size: 22px;
   padding: 4px 8px;
   line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 手機側邊欄覆蓋 */
@@ -185,7 +196,7 @@
   bottom: 0;
   width: 260px;
   max-width: 85vw;
-  background: var(--text-dark);
+  background: linear-gradient(180deg, #1f1916 0%, #171210 100%);
   z-index: 401;
   transform: translateX(-100%);
   transition: transform 0.3s var(--ease);
@@ -216,8 +227,8 @@
   align-items: center;
   gap: 16px;
   padding: 14px 48px;
-  border-bottom: 1px solid var(--line);
-  background: #fff;
+  border-bottom: 1px solid #ece4d8;
+  background: #f8f5ef;
 }
 @media (min-width: 1024px) {
   .topBar { display: flex; }
@@ -242,6 +253,7 @@
   padding: 20px var(--gutter, 16px);
   overflow-y: auto;
   flex: 1;
+  background: #f4f0ea;
 }
 @media (min-width: 768px) {
   .main { padding: 32px 24px; }

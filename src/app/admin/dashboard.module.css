@@ -10,75 +10,108 @@
 .title {
   font-family: "Noto Sans TC", sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  letter-spacing: 0.2em;
-  color: var(--text-dark);
-  margin: 0 0 24px;
+  font-size: 22px;
+  letter-spacing: 0.15em;
+  color: #241b15;
+  margin: 0 0 28px;
 }
 @media (min-width: 768px) {
-  .title { font-size: 22px; margin-bottom: 32px; }
+  .title { font-size: 26px; margin-bottom: 36px; }
 }
 
-/* ── Alert banners ── */
-.alertBanner {
-  padding: 14px 16px;
+/* ── Notice cards ── */
+.alertCard {
+  border-radius: 18px;
+  padding: 18px 22px;
   margin-bottom: 16px;
-  font-size: 13px;
-  line-height: 2;
+  border: 1px solid transparent;
+  box-shadow: 0 6px 18px rgba(58, 42, 31, 0.03);
+  font-size: 14px;
+  line-height: 1.8;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 @media (min-width: 640px) {
-  .alertBanner { padding: 14px 20px; }
+  .alertCard { padding: 20px 26px; }
+}
+@media (hover: hover) {
+  .alertCard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(58, 42, 31, 0.05);
+  }
 }
 .alertOrder {
-  composes: alertBanner;
-  background: #fff8e1;
-  border: 1px solid #f0c040;
-  color: #7a5c00;
+  composes: alertCard;
+  background: #f7f1e3;
+  border-color: #e7d7a8;
+  color: #6e5727;
 }
 .alertStock {
-  composes: alertBanner;
-  background: #fef0e8;
-  border: 1px solid #e8a87c;
-  color: #7a3c00;
+  composes: alertCard;
+  background: #f8eeec;
+  border-color: #e6c8c1;
+  color: #8a4a3d;
 }
 .alertTitle {
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+  color: inherit;
+}
+.alertText {
+  font-size: 14px;
+  line-height: 1.8;
+  color: inherit;
 }
 .alertList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .alertItem {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  font-size: 14px;
 }
 @media (min-width: 640px) {
   .alertItem {
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 }
+.alertHighlight {
+  font-weight: 700;
+}
+.alertOrder .alertHighlight {
+  color: #c07d19;
+}
+.alertStock .alertHighlight {
+  color: #b55245;
+}
 .alertLink {
-  color: #c0392b;
   font-weight: 600;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+  color: inherit;
+  border-bottom: 1px solid currentColor;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
 }
 @media (min-width: 640px) {
   .alertLink { min-height: auto; }
+}
+@media (hover: hover) {
+  .alertLink:hover { opacity: 1; }
 }
 
 /* ── Clickable number ── */
 .clickNum {
   font-weight: 700;
-  text-decoration: underline;
   cursor: pointer;
   font-size: inherit;
   min-height: 44px;
@@ -91,11 +124,11 @@
 
 /* ── Section label ── */
 .sectionLabel {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.2em;
-  color: var(--text-mid);
-  margin-bottom: 12px;
+  letter-spacing: 0.18em;
+  color: #6b4a3a;
+  margin-bottom: 14px;
   text-transform: uppercase;
   font-family: "Montserrat", sans-serif;
 }
@@ -104,7 +137,7 @@
 .statGrid3 {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 32px;
 }
 @media (min-width: 640px) {
@@ -117,7 +150,7 @@
 .statGrid2 {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 32px;
 }
 @media (min-width: 640px) {
@@ -126,13 +159,21 @@
 
 /* ── Stat card ── */
 .statCard {
-  background: var(--surface, #fff);
-  border: 1px solid var(--line);
-  padding: 16px 20px;
-  transition: border-color 0.2s;
+  background: #f8f5ef;
+  border: 1px solid #ece4d8;
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 24px rgba(55, 40, 28, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
 }
 @media (min-width: 640px) {
-  .statCard { padding: 20px 24px; }
+  .statCard { padding: 24px 28px; }
+}
+@media (hover: hover) {
+  .statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(55, 40, 28, 0.08);
+  }
 }
 .statCardClickable {
   composes: statCard;
@@ -140,13 +181,13 @@
   min-height: 44px;
 }
 .statCardAlert {
-  border-color: #f0c040;
+  border-color: #e8d9a0;
 }
 .statLabel {
   font-size: 11px;
-  color: var(--text-light);
+  color: #8b7d70;
   letter-spacing: 0.15em;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-family: "Montserrat", sans-serif;
   text-transform: uppercase;
 }
@@ -154,15 +195,18 @@
   font-size: 10px;
 }
 .statValue {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text-dark);
+  color: #241b15;
+}
+@media (min-width: 480px) {
+  .statValue { font-size: 32px; }
 }
 @media (min-width: 640px) {
-  .statValue { font-size: 28px; }
+  .statValue { font-size: 42px; }
 }
 .statValueAlert {
-  color: #c0392b;
+  color: #b55245;
 }
 
 /* ── Recent orders header ── */
@@ -174,12 +218,16 @@
 }
 .viewAll {
   font-size: 12px;
-  color: var(--text-dark);
+  color: #6b4a3a;
   cursor: pointer;
   text-decoration: underline;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+  transition: color 0.2s ease;
+}
+@media (hover: hover) {
+  .viewAll:hover { color: #4a3429; }
 }
 @media (min-width: 640px) {
   .viewAll { min-height: auto; }
@@ -187,8 +235,10 @@
 
 /* ── Recent orders table (desktop) ── */
 .recentTable {
-  background: var(--surface, #fff);
-  border: 1px solid var(--line);
+  background: #f8f5ef;
+  border: 1px solid #ece4d8;
+  border-radius: 16px;
+  overflow: hidden;
 }
 .emptyMsg {
   padding: 24px;
@@ -206,19 +256,23 @@
 }
 
 .th {
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: left;
   font-family: "Montserrat", sans-serif;
   font-size: 10px;
   letter-spacing: 0.25em;
-  color: var(--text-light);
+  color: #8b7d70;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid #ece4d8;
 }
 
 .tr {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid #ece4d8;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+@media (hover: hover) {
+  .tr:hover { background: rgba(107, 74, 58, 0.03); }
 }
 
 .tdOrderNo {
@@ -251,9 +305,10 @@
 }
 .statusBadge {
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-family: "Montserrat", sans-serif;
   display: inline-block;
+  border-radius: 8px;
 }
 
 /* ── Mobile card list for recent orders ── */
@@ -266,10 +321,14 @@
 }
 
 .card {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
+  padding: 16px;
+  border-bottom: 1px solid #ece4d8;
   cursor: pointer;
   min-height: 44px;
+  transition: background 0.15s ease;
+}
+@media (hover: hover) {
+  .card:hover { background: rgba(107, 74, 58, 0.03); }
 }
 .cardTop {
   display: flex;

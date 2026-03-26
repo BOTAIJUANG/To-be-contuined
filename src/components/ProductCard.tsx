@@ -49,7 +49,7 @@ export default function ProductCard({ product }: { product: Product }) {
           {badge && <div className={`${s.badge} ${badge.cls}`}>{badge.text}</div>}
 
           <div className={s.hoverOverlay}>
-            <span className={s.viewLabel}>View</span>
+            <span className={s.viewLabel}>查看商品</span>
           </div>
         </div>
 
