@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/api';
 import AuthPanel from '@/components/AuthPanel';
 import MemberDashboard from '@/components/MemberDashboard';
 import Footer from '@/components/Footer';
@@ -24,54 +25,62 @@ export default function MemberPage() {
   const [authSlow, setAuthSlow] = useState(false);        // 是否載入較久
   const [storeSettings, setStoreSettings] = useState<any>(null);
 
-  // ── 頁面載入時檢查是否已登入 ──────────────────────
+  // ── 頁面載入時檢查是否已登入（經 server 驗證）──────────────────────
   useEffect(() => {
+    let alive = true;
+
     // settings 獨立載入，不影響 auth
     supabase.from('store_settings').select('phone, email, address').eq('id', 1).single()
       .then(({ data }) => { if (data) setStoreSettings(data); }, () => {});
 
-    // 3 秒後若還沒確認完，顯示「載入較久」提示（但不當成未登入）
+    // 3 秒後顯示「載入較久」提示；5 秒強制放行避免永遠卡住
     const slowTimer = setTimeout(() => setAuthSlow(true), 3000);
+    const hardTimeout = setTimeout(() => { if (alive) setAuthChecked(true); }, 5000);
 
-    // auth：只用 getSession 快速取，不呼叫 refreshSession
-    // token 刷新交給 onAuthStateChange 自動處理
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({
-          id:   session.user.id,
-          name: session.user.user_metadata?.name ?? session.user.email ?? '會員',
-        });
+    // 共用的 async 驗證邏輯
+    const syncAuth = async (session: any) => {
+      if (!alive) return;
+      if (!session?.user) { setUser(null); setAuthChecked(true); return; }
+
+      const u = session.user;
+
+      // Google OAuth 首次登入 → 自動建立 members 資料（非阻塞）
+      if (u.app_metadata?.provider === 'google' || u.identities?.some((i: any) => i.provider === 'google')) {
+        fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: u.id, name: u.user_metadata?.name ?? u.email }),
+        }).catch(() => {});
       }
-      clearTimeout(slowTimer);
-      setAuthChecked(true);
-    }).catch(() => {
-      clearTimeout(slowTimer);
-      setAuthChecked(true);
-    });
 
-    // 監聽登入狀態變化（登入/登出/token 刷新時自動更新）
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const u = session.user;
-        const name = u.user_metadata?.name ?? u.user_metadata?.full_name ?? u.email ?? '會員';
-        setUser({ id: u.id, name });
-
-        // Google OAuth 首次登入 → 自動建立 members 資料（非阻塞）
-        if (u.app_metadata?.provider === 'google' || u.identities?.some((i: any) => i.provider === 'google')) {
-          fetch('/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: u.id, name }),
-          }).catch(() => {});
+      try {
+        const res = await fetchApi('/api/auth/me');
+        if (!alive) return;
+        if (res.ok) {
+          const me = await res.json();
+          setUser({ id: u.id, name: me.name ?? u.user_metadata?.name ?? u.email ?? '會員' });
+        } else {
+          setUser(null);
+          await supabase.auth.signOut();
         }
-      } else {
-        setUser(null);
+      } catch {
+        if (alive) setUser(null);
+      } finally {
+        if (alive) { clearTimeout(slowTimer); setAuthChecked(true); }
       }
-      clearTimeout(slowTimer);
-      setAuthChecked(true);
+    };
+
+    // 初始檢查
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      void syncAuth(session);
+    }).catch(() => { if (alive) setAuthChecked(true); });
+
+    // onAuthStateChange callback 不可 async，用 setTimeout 脫勾
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setTimeout(() => { void syncAuth(session); }, 0);
     });
 
-    return () => { subscription.unsubscribe(); clearTimeout(slowTimer); };
+    return () => { alive = false; subscription.unsubscribe(); clearTimeout(slowTimer); clearTimeout(hardTimeout); };
   }, []);
 
   // 登入成功（AuthPanel 呼叫）

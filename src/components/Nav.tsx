@@ -79,33 +79,35 @@ export default function Nav() {
     return null;
   };
 
-  // 監聽登入狀態 — 不用 localStorage 預填，避免閃爍
+  // 監聯登入狀態 — onAuthStateChange callback 不可 async，否則會 deadlock
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const name = session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null;
-        setUserName(name);
-        const me = await verifyRole();
-        if (me) setIsAdmin(me.role === 'admin');
+    const syncAuthState = async (session: any) => {
+      if (!session?.user) {
+        setUserName(null);
+        setIsAdmin(false);
+        setAuthReady(true);
+        return;
+      }
+      const me = await verifyRole();
+      if (me) {
+        setUserName(me.name ?? session.user.email?.split('@')[0] ?? null);
+        setIsAdmin(me.role === 'admin');
       } else {
         setUserName(null);
         setIsAdmin(false);
+        await supabase.auth.signOut();
       }
       setAuthReady(true);
     };
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await syncAuthState(session);
+    };
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const name = session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? null;
-        setUserName(name);
-        const me = await verifyRole();
-        if (me) setIsAdmin(me.role === 'admin');
-      } else {
-        setUserName(null);
-        setIsAdmin(false);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setTimeout(() => { void syncAuthState(session); }, 0);
     });
 
     return () => subscription.unsubscribe();
