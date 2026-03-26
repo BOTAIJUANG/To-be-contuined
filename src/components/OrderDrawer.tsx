@@ -13,7 +13,7 @@ const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped:
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗' };
 const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b' };
-const SHIP_LABEL: Record<string, string>   = { home_normal: '一般宅配', home_cold: '低溫宅配', cvs_711: '7-11取貨', cvs_family: '全家取貨', store: '門市自取' };
+const SHIP_LABEL: Record<string, string>   = { home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨' };
 
 interface OrderDrawerProps {
   order: any | null;

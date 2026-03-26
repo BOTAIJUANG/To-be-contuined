@@ -35,17 +35,15 @@ export default function AdminStoreSettingsPage() {
   const [facebook, setFacebook] = useState('');
   const [lineId, setLineId] = useState('');
   // 配送設定
-  const [shipHomeNormal, setShipHomeNormal] = useState(true);
-  const [shipHomeCold, setShipHomeCold] = useState(true);
+  const [shipHome, setShipHome] = useState(true);
   const [shipCvs711, setShipCvs711] = useState(true);
-  const [shipCvsFamily, setShipCvsFamily] = useState(true);
   const [shipStore, setShipStore] = useState(true);
-  const [feeHomeNormal, setFeeHomeNormal] = useState(100);
-  const [feeHomeCold, setFeeHomeCold] = useState(200);
-  const [feeCvs, setFeeCvs] = useState(60);
-  const [freeShipEnabled, setFreeShipEnabled] = useState(false);
-  const [freeShip, setFreeShip] = useState(0);
-  const [freeShipCold, setFreeShipCold] = useState(false);
+  const [feeHome, setFeeHome] = useState(100);
+  const [feeHomeOuterIsland, setFeeHomeOuterIsland] = useState(250);
+  const [feeCvs711, setFeeCvs711] = useState(60);
+  const [feeStore, setFeeStore] = useState(0);
+  const [freeShipMainland, setFreeShipMainland] = useState(0);
+  const [freeShipOuterIsland, setFreeShipOuterIsland] = useState(0);
   const [shipMinDays, setShipMinDays] = useState(1);
   const [shipMaxDays, setShipMaxDays] = useState(14);
   const [sidebarProductLimit, setSidebarProductLimit] = useState(3);
@@ -97,17 +95,15 @@ export default function AdminStoreSettingsPage() {
         setInstagram(data.instagram_url ?? '');
         setFacebook(data.facebook_url ?? '');
         setLineId(data.line_id ?? '');
-        setShipHomeNormal(data.ship_home_normal ?? true);
-        setShipHomeCold(data.ship_home_cold ?? true);
+        setShipHome(data.ship_home ?? true);
         setShipCvs711(data.ship_cvs_711 ?? true);
-        setShipCvsFamily(data.ship_cvs_family ?? true);
         setShipStore(data.ship_store ?? true);
-        setFeeHomeNormal(data.fee_home_normal ?? 100);
-        setFeeHomeCold(data.fee_home_cold ?? 200);
-        setFeeCvs(data.fee_cvs ?? 60);
-        setFreeShip(data.free_ship_amount ?? 0);
-        setFreeShipEnabled((data.free_ship_amount ?? 0) > 0);
-        setFreeShipCold(data.free_ship_cold ?? false);
+        setFeeHome(data.fee_home ?? 100);
+        setFeeHomeOuterIsland(data.fee_home_outer_island ?? 250);
+        setFeeCvs711(data.fee_cvs_711 ?? 60);
+        setFeeStore(data.fee_store ?? 0);
+        setFreeShipMainland(data.free_ship_mainland_amount ?? 0);
+        setFreeShipOuterIsland(data.free_ship_outer_island_amount ?? 0);
         setShipMinDays(data.ship_min_days ?? 1);
         setShipMaxDays(data.ship_max_days ?? 14);
         setSidebarProductLimit(data.sidebar_product_limit ?? 3);
@@ -166,10 +162,10 @@ export default function AdminStoreSettingsPage() {
     await supabase.from('store_settings').upsert({
       id: 1, name, description, email, phone, address,
       instagram_url: instagram, facebook_url: facebook, line_id: lineId,
-      ship_home_normal: shipHomeNormal, ship_home_cold: shipHomeCold,
-      ship_cvs_711: shipCvs711, ship_cvs_family: shipCvsFamily, ship_store: shipStore,
-      fee_home_normal: feeHomeNormal, fee_home_cold: feeHomeCold, fee_cvs: feeCvs,
-      free_ship_amount: freeShipEnabled ? freeShip : 0, free_ship_cold: freeShipCold,
+      ship_home: shipHome, ship_cvs_711: shipCvs711, ship_store: shipStore,
+      fee_home: feeHome, fee_home_outer_island: feeHomeOuterIsland,
+      fee_cvs_711: feeCvs711, fee_store: feeStore,
+      free_ship_mainland_amount: freeShipMainland, free_ship_outer_island_amount: freeShipOuterIsland,
       ship_min_days: shipMinDays, ship_max_days: shipMaxDays,
       sidebar_product_limit: sidebarProductLimit,
       ship_blocked_weekdays: JSON.stringify(blockedWeekdays),
@@ -252,10 +248,8 @@ export default function AdminStoreSettingsPage() {
         <div className={p.formContainerMid}>
           <div className={s.sectionTitleBordered}>配送方式開關</div>
           {[
-            { label: '一般宅配', val: shipHomeNormal, set: setShipHomeNormal },
-            { label: '低溫宅配', val: shipHomeCold, set: setShipHomeCold },
+            { label: '一般宅配', val: shipHome, set: setShipHome },
             { label: '7-11 超商取貨', val: shipCvs711, set: setShipCvs711 },
-            { label: '全家超商取貨', val: shipCvsFamily, set: setShipCvsFamily },
             { label: '門市自取', val: shipStore, set: setShipStore },
           ].map(({ label, val, set }) => (
             <div key={label} className={p.toggleRow}>
@@ -266,9 +260,10 @@ export default function AdminStoreSettingsPage() {
 
           <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>運費設定</div>
           {[
-            { label: '一般宅配運費', val: feeHomeNormal, set: setFeeHomeNormal },
-            { label: '低溫宅配運費', val: feeHomeCold, set: setFeeHomeCold },
-            { label: '超商取貨運費', val: feeCvs, set: setFeeCvs },
+            { label: '宅配運費（本島）', val: feeHome, set: setFeeHome },
+            { label: '宅配運費（離島）', val: feeHomeOuterIsland, set: setFeeHomeOuterIsland },
+            { label: '超商取貨運費', val: feeCvs711, set: setFeeCvs711 },
+            { label: '門市自取運費', val: feeStore, set: setFeeStore },
           ].map(({ label, val, set }) => (
             <div key={label} className={p.feeRow}>
               <label className={p.feeLabel}>{label}</label>
@@ -278,23 +273,16 @@ export default function AdminStoreSettingsPage() {
           ))}
 
           <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>免運設定</div>
-          <div className={p.toggleRowMb12}>
-            <span className={p.toggleRowLabel}>啟用免運</span>
-            <Toggle val={freeShipEnabled} onChange={() => setFreeShipEnabled(!freeShipEnabled)} />
+          <div className={p.feeRow}>
+            <label className={p.feeLabel}>本島滿額免運</label>
+            <input type="number" value={freeShipMainland} onChange={e => setFreeShipMainland(Number(e.target.value))} className={`${s.input} ${p.feeInput}`} />
+            <span className={p.feeUnit}>NT$ 以上免運（0 = 不啟用）</span>
           </div>
-          {freeShipEnabled && (
-            <>
-              <div className={p.feeRow}>
-                <label className={p.feeLabel}>免運門檻</label>
-                <input type="number" value={freeShip} onChange={e => setFreeShip(Number(e.target.value))} className={`${s.input} ${p.feeInput}`} />
-                <span className={p.feeUnit}>NT$ 以上免一般宅配運費</span>
-              </div>
-              <div className={p.toggleRowMb12}>
-                <span className={p.toggleRowLabel}>低溫也免運</span>
-                <Toggle val={freeShipCold} onChange={() => setFreeShipCold(!freeShipCold)} />
-              </div>
-            </>
-          )}
+          <div className={p.feeRow}>
+            <label className={p.feeLabel}>離島滿額免運</label>
+            <input type="number" value={freeShipOuterIsland} onChange={e => setFreeShipOuterIsland(Number(e.target.value))} className={`${s.input} ${p.feeInput}`} />
+            <span className={p.feeUnit}>NT$ 以上免運（0 = 不啟用）</span>
+          </div>
 
           <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>前台側邊欄設定</div>
           <div className={p.feeRowMb24}>

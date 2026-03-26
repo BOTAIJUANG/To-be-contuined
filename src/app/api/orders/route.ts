@@ -168,27 +168,32 @@ export async function POST(req: NextRequest) {
   // ── 5. 在後端計算「真實運費」────────────────────
   const { data: settings } = await supabaseAdmin
     .from('store_settings')
-    .select('fee_home_normal, fee_home_cold, fee_cvs, free_ship_amount, free_ship_cold')
+    .select('fee_home, fee_home_outer_island, fee_cvs_711, fee_store, free_ship_mainland_amount, free_ship_outer_island_amount')
     .eq('id', 1)
     .single();
 
-  // 根據配送方式取得運費
-  const feeMap: Record<string, string> = {
-    home_normal: 'fee_home_normal',
-    home_cold:   'fee_home_cold',
-    cvs_711:     'fee_cvs',
-    cvs_family:  'fee_cvs',
-    store:       '',  // 門市自取免運
-  };
-  const feeKey = feeMap[body.ship_method];
-  let shippingFee = feeKey && settings ? (settings as any)[feeKey] ?? 0 : 0;
+  // 離島判斷
+  const OUTER_ISLAND_CITIES = ['澎湖縣', '金門縣', '連江縣'];
+  const isOuterIsland = OUTER_ISLAND_CITIES.includes(body.city ?? '');
 
-  // 免運判斷
-  const freeShipAmount = settings?.free_ship_amount ?? 0;
-  if (freeShipAmount > 0 && subtotal >= freeShipAmount) {
-    if (body.ship_method === 'home_cold' && !settings?.free_ship_cold) {
-      // 低溫宅配不適用免運 → 維持原運費
-    } else {
+  // 根據配送方式取得運費
+  let shippingFee = 0;
+  if (body.ship_method === 'home') {
+    shippingFee = isOuterIsland
+      ? ((settings as any)?.fee_home_outer_island ?? 250)
+      : ((settings as any)?.fee_home ?? 100);
+  } else if (body.ship_method === 'cvs_711') {
+    shippingFee = (settings as any)?.fee_cvs_711 ?? 60;
+  } else if (body.ship_method === 'store') {
+    shippingFee = (settings as any)?.fee_store ?? 0;
+  }
+
+  // 免運判斷（宅配 + 超商取貨都適用滿額免運）
+  if (body.ship_method === 'home' || body.ship_method === 'cvs_711') {
+    const threshold = isOuterIsland
+      ? ((settings as any)?.free_ship_outer_island_amount ?? 0)
+      : ((settings as any)?.free_ship_mainland_amount ?? 0);
+    if (threshold > 0 && subtotal >= threshold) {
       shippingFee = 0;
     }
   }

@@ -15,8 +15,8 @@ const STATUS_COLOR: Record<string, string> = {
   processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580',
 };
 const SHIP_LABEL: Record<string, string> = {
-  home_normal: '一般宅配', home_cold: '低溫宅配',
-  cvs_711: '7-11取貨', cvs_family: '全家取貨', store: '門市自取',
+  home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取',
+  home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨',
 };
 
 export default function OrderSearchPage() {

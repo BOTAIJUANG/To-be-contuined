@@ -34,7 +34,7 @@ const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '失敗' };
-const SHIP_LABEL: Record<string, string>   = { home_normal: '一般宅配', home_cold: '低溫宅配', cvs_711: '7-11', cvs_family: '全家', store: '門市自取' };
+const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家' };
 
 function getPeriodRange(period: ReportPeriod, cs: string, ce: string) {
   const now = new Date(); const today = now.toISOString().split('T')[0];

@@ -22,7 +22,7 @@ interface Category { id: number; name: string; slug: string; sort_order: number;
 interface Spec { id?: number; label: string; value: string; sort_order: number; }
 interface ShipDate { id?: number; ship_date: string; capacity: number; reserved: number; is_open: boolean; }
 
-const EMPTY_FORM = { name: '', name_en: '', slug: '', price: 0, description: '', image_url: '', is_available: true, is_sold_out: false, is_preorder: false, is_featured: false, sort_order: 0, category_id: 0, stock_mode: 'stock_mode', ship_start_date: '', ship_end_date: '', ship_blocked_dates: '[]' };
+const EMPTY_FORM = { name: '', name_en: '', slug: '', price: 0, description: '', image_url: '', is_available: true, is_sold_out: false, is_preorder: false, is_featured: false, sort_order: 0, category_id: 0, stock_mode: 'stock_mode', ship_start_date: '', ship_end_date: '', ship_blocked_dates: '[]', allow_home_delivery: true, allow_cvs_711: true, allow_store_pickup: true };
 const EMPTY_CAT  = { name: '', slug: '', sort_order: 0 };
 const EMPTY_SHIP_DATE: ShipDate = { ship_date: '', capacity: 0, reserved: 0, is_open: true };
 
@@ -97,7 +97,7 @@ export default function AdminProductsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const openEdit = async (prod: Product) => {
-    setForm({ name: prod.name, name_en: prod.name_en ?? '', slug: prod.slug, price: prod.price, description: prod.description ?? '', image_url: prod.image_url ?? '', is_available: prod.is_available, is_sold_out: prod.is_sold_out, is_preorder: prod.is_preorder, is_featured: prod.is_featured, sort_order: prod.sort_order, category_id: prod.category_id, stock_mode: prod.stock_mode ?? 'stock_mode', ship_start_date: (prod as any).ship_start_date ?? '', ship_end_date: (prod as any).ship_end_date ?? '', ship_blocked_dates: (prod as any).ship_blocked_dates ?? '[]' });
+    setForm({ name: prod.name, name_en: prod.name_en ?? '', slug: prod.slug, price: prod.price, description: prod.description ?? '', image_url: prod.image_url ?? '', is_available: prod.is_available, is_sold_out: prod.is_sold_out, is_preorder: prod.is_preorder, is_featured: prod.is_featured, sort_order: prod.sort_order, category_id: prod.category_id, stock_mode: prod.stock_mode ?? 'stock_mode', ship_start_date: (prod as any).ship_start_date ?? '', ship_end_date: (prod as any).ship_end_date ?? '', ship_blocked_dates: (prod as any).ship_blocked_dates ?? '[]', allow_home_delivery: (prod as any).allow_home_delivery ?? true, allow_cvs_711: (prod as any).allow_cvs_711 ?? true, allow_store_pickup: (prod as any).allow_store_pickup ?? true });
     const [{ data: specData }, { data: shipDateData }, { data: variantData }] = await Promise.all([
       supabase.from('product_specs').select('id, label, value, sort_order').eq('product_id', prod.id).order('sort_order'),
       supabase.from('product_ship_dates').select('id, ship_date, capacity, reserved, is_open').eq('product_id', prod.id).is('variant_id', null).order('ship_date'),
@@ -466,6 +466,18 @@ export default function AdminProductsPage() {
                     <input type="checkbox" checked={(form as any)[key]} onChange={e => setForm({...form, [key]: e.target.checked})} className={s.checkbox} /> {label}
                   </label>
                 ))}
+              </div>
+
+              {/* 可用運輸方式 */}
+              <div className={s.mb24}>
+                <label className={s.label}>可用運輸方式</label>
+                <div className={`${s.flex} ${s.flexWrap} ${s.gap24}`}>
+                  {[{ key: 'allow_home_delivery', label: '一般宅配' }, { key: 'allow_cvs_711', label: '7-11 取貨' }, { key: 'allow_store_pickup', label: '門市自取' }].map(({ key, label }) => (
+                    <label key={key} className={s.checkLabel}>
+                      <input type="checkbox" checked={(form as any)[key]} onChange={e => setForm({...form, [key]: e.target.checked})} className={s.checkbox} /> {label}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* 庫存模式（非預購商品才顯示）*/}

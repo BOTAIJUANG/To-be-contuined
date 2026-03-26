@@ -16,15 +16,14 @@ import { CartItemForCalc } from '@/lib/promotions';
 import Link from 'next/link';
 import s from './checkout.module.css';
 
-const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
+const CITIES = ['台北市','新北市','基隆市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣','澎湖縣','金門縣','連江縣'];
+const OUTER_ISLAND_CITIES = ['澎湖縣', '金門縣', '連江縣'];
 
 // 配送方式設定（settingKey 對應 store_settings 的開關欄位）
 const SHIP_OPTIONS = [
-  { value: 'home_normal', title: '一般宅配',  sub: '黑貓 / 新竹 — 常溫商品',  feeKey: 'fee_home_normal', settingKey: 'ship_home_normal' },
-  { value: 'home_cold',   title: '低溫宅配',  sub: '冷藏配送 — 蛋糕類商品',   feeKey: 'fee_home_cold',   settingKey: 'ship_home_cold' },
-  { value: 'cvs_711',     title: '7-11 取貨', sub: '超商取貨付款',             feeKey: 'fee_cvs',         settingKey: 'ship_cvs_711' },
-  { value: 'cvs_family',  title: '全家取貨',  sub: '超商取貨付款',             feeKey: 'fee_cvs',         settingKey: 'ship_cvs_family' },
-  { value: 'store',       title: '門市自取',  sub: '宜蘭市神農路二段 96 號',   feeKey: null,              settingKey: 'ship_store' },
+  { value: 'home',    title: '一般宅配',  sub: '黑貓 / 新竹物流配送',   settingKey: 'ship_home' },
+  { value: 'cvs_711', title: '7-11 取貨', sub: '超商取貨付款',           settingKey: 'ship_cvs_711' },
+  { value: 'store',   title: '門市自取',  sub: '宜蘭市神農路二段 96 號', settingKey: 'ship_store' },
 ];
 const PAY_OPTIONS = [
   { value: 'credit', title: '信用卡',   sub: 'Visa / Master / JCB — 綠界 ECPay 安全加密' },
@@ -88,6 +87,9 @@ export default function CheckoutPage() {
   // 商店配送設定
   const [storeSettings, setStoreSettings] = useState<any>(null);
 
+  // 商品可用運輸方式
+  const [productShipFlags, setProductShipFlags] = useState<Record<number, { allow_home_delivery: boolean; allow_cvs_711: boolean; allow_store_pickup: boolean }>>({});
+
   // 運費
   const [shippingFee, setShippingFee] = useState(0);
 
@@ -105,7 +107,7 @@ export default function CheckoutPage() {
   const promoDiscount = promoResult.total_discount;
 
   // Step 2 欄位
-  const [shipMethod, setShipMethod] = useState('home_cold');
+  const [shipMethod, setShipMethod] = useState('home');
   const [name,       setName]       = useState('');
   const [phone,      setPhone]      = useState('');
   const [email,      setEmail]      = useState('');
@@ -126,21 +128,42 @@ export default function CheckoutPage() {
     return sessionStorage.getItem('checkout_orderNo') ?? '';
   });
 
-  const isHomeDelivery = shipMethod === 'home_normal' || shipMethod === 'home_cold';
-  const isCvsPickup    = shipMethod === 'cvs_711' || shipMethod === 'cvs_family';
+  const isHomeDelivery = shipMethod === 'home';
+  const isCvsPickup    = shipMethod === 'cvs_711';
   const isStorePickup  = shipMethod === 'store';
 
-  // 根據後台設定過濾可用的配送方式
-  const availableShipOptions = storeSettings
-    ? SHIP_OPTIONS.filter(opt => storeSettings[opt.settingKey] !== false)
-    : SHIP_OPTIONS;
+  // 根據後台設定 + 購物車商品交集過濾可用的配送方式
+  const availableShipOptions = useMemo(() => {
+    // 全店開關過濾
+    let opts = storeSettings
+      ? SHIP_OPTIONS.filter(opt => storeSettings[opt.settingKey] !== false)
+      : SHIP_OPTIONS;
+    // 購物車商品交集：每個商品都允許的配送方式才可選
+    const productIds = items.filter(i => !i.isRedeemItem).map(i => i.productRealId ?? parseInt(i.id));
+    if (productIds.length > 0 && Object.keys(productShipFlags).length > 0) {
+      const shipFieldMap: Record<string, keyof typeof productShipFlags[number]> = {
+        home: 'allow_home_delivery',
+        cvs_711: 'allow_cvs_711',
+        store: 'allow_store_pickup',
+      };
+      opts = opts.filter(opt => {
+        const field = shipFieldMap[opt.value];
+        if (!field) return true;
+        return productIds.every(pid => {
+          const flags = productShipFlags[pid];
+          return !flags || flags[field] !== false;
+        });
+      });
+    }
+    return opts;
+  }, [storeSettings, items, productShipFlags]);
 
   // 載入登入狀態 + 商店設定
   useEffect(() => {
     const load = async () => {
       const [{ data: { session } }, { data: settings }] = await Promise.all([
         supabase.auth.getSession(),
-        supabase.from('store_settings').select('fee_home_normal, fee_home_cold, fee_cvs, free_ship_amount, free_ship_cold, ship_home_normal, ship_home_cold, ship_cvs_711, ship_cvs_family, ship_store').eq('id', 1).single(),
+        supabase.from('store_settings').select('fee_home, fee_home_outer_island, fee_cvs_711, fee_store, free_ship_mainland_amount, free_ship_outer_island_amount, ship_home, ship_cvs_711, ship_store').eq('id', 1).single(),
       ]);
       setStoreSettings(settings);
       if (session?.user) {
@@ -162,6 +185,19 @@ export default function CheckoutPage() {
     load();
   }, []);
 
+  // 載入購物車商品的可用配送方式
+  useEffect(() => {
+    const productIds = [...new Set(items.filter(i => !i.isRedeemItem).map(i => i.productRealId ?? parseInt(i.id)))];
+    if (productIds.length === 0) return;
+    supabase.from('products').select('id, allow_home_delivery, allow_cvs_711, allow_store_pickup').in('id', productIds).then(({ data }) => {
+      if (data) {
+        const map: typeof productShipFlags = {};
+        data.forEach((p: any) => { map[p.id] = { allow_home_delivery: p.allow_home_delivery ?? true, allow_cvs_711: p.allow_cvs_711 ?? true, allow_store_pickup: p.allow_store_pickup ?? true }; });
+        setProductShipFlags(map);
+      }
+    });
+  }, [items]);
+
   // 購物車為空時，重設回 step 1（防止沿用上次的結帳進度）
   useEffect(() => {
     if (items.length === 0 && step !== 'done') {
@@ -170,31 +206,38 @@ export default function CheckoutPage() {
     }
   }, [items.length, step]);
 
-  // 如果目前選的配送方式被後台關閉了，自動切到第一個可用的
+  // 如果目前選的配送方式不可用，自動切到第一個可用的
   useEffect(() => {
-    if (!storeSettings) return;
-    const currentAvailable = SHIP_OPTIONS.filter(opt => storeSettings[opt.settingKey] !== false);
-    const currentStillValid = currentAvailable.some(opt => opt.value === shipMethod);
-    if (!currentStillValid && currentAvailable.length > 0) {
-      setShipMethod(currentAvailable[0].value);
+    const currentStillValid = availableShipOptions.some(opt => opt.value === shipMethod);
+    if (!currentStillValid && availableShipOptions.length > 0) {
+      setShipMethod(availableShipOptions[0].value);
     }
-  }, [storeSettings]);
+  }, [availableShipOptions]);
 
-  // 計算運費
+  // 計算運費（含離島判斷 + 免運邏輯）
+  const isOuterIsland = OUTER_ISLAND_CITIES.includes(city);
+
   useEffect(() => {
     if (!storeSettings) return;
-    const opt = SHIP_OPTIONS.find(o => o.value === shipMethod);
-    if (!opt || !opt.feeKey) { setShippingFee(0); return; }
-    const fee = storeSettings[opt.feeKey] ?? 0;
-    // 免運判斷
-    const freeShipAmount = storeSettings.free_ship_amount ?? 0;
-    if (freeShipAmount > 0 && totalPrice >= freeShipAmount) {
-      if (shipMethod === 'home_cold' && !storeSettings.free_ship_cold) { setShippingFee(fee); return; }
-      setShippingFee(0);
-    } else {
-      setShippingFee(fee);
+    let fee = 0;
+    if (shipMethod === 'home') {
+      fee = isOuterIsland
+        ? (storeSettings.fee_home_outer_island ?? 250)
+        : (storeSettings.fee_home ?? 100);
+    } else if (shipMethod === 'cvs_711') {
+      fee = storeSettings.fee_cvs_711 ?? 60;
+    } else if (shipMethod === 'store') {
+      fee = storeSettings.fee_store ?? 0;
     }
-  }, [shipMethod, totalPrice, storeSettings]);
+    // 免運判斷
+    if (shipMethod === 'home' || shipMethod === 'cvs_711') {
+      const threshold = isOuterIsland
+        ? (storeSettings.free_ship_outer_island_amount ?? 0)
+        : (storeSettings.free_ship_mainland_amount ?? 0);
+      if (threshold > 0 && totalPrice >= threshold) fee = 0;
+    }
+    setShippingFee(fee);
+  }, [shipMethod, totalPrice, storeSettings, city, isOuterIsland]);
 
   // 帶入已儲存地址（再點一次同一個 = 取消選取，清空欄位）
   const applyAddress = (addr: any) => {
@@ -212,12 +255,12 @@ export default function CheckoutPage() {
     setName(addr.name ?? '');
     setPhone(addr.phone ?? '');
     if (addr.type === 'home') {
-      setShipMethod('home_cold');
+      setShipMethod('home');
       setCity(addr.city ?? '');
       setDistrict(addr.district ?? '');
       setAddress(addr.address ?? '');
     } else {
-      setShipMethod(addr.cvs_brand === '711' ? 'cvs_711' : 'cvs_family');
+      setShipMethod('cvs_711');
     }
   };
 
@@ -438,14 +481,23 @@ export default function CheckoutPage() {
     }
   };
 
-  // 運費顯示文字
+  // 運費顯示��字
   const feeDisplay = (opt: typeof SHIP_OPTIONS[0]) => {
-    if (!opt.feeKey || !storeSettings) return '';
-    const fee = storeSettings[opt.feeKey] ?? 0;
-    const freeShipAmount = storeSettings.free_ship_amount ?? 0;
-    if (freeShipAmount > 0 && totalPrice >= freeShipAmount) {
-      if (opt.value === 'home_cold' && !storeSettings.free_ship_cold) return `NT$ ${fee}`;
-      return '免運';
+    if (!storeSettings) return '';
+    let fee = 0;
+    if (opt.value === 'home') {
+      fee = isOuterIsland ? (storeSettings.fee_home_outer_island ?? 250) : (storeSettings.fee_home ?? 100);
+    } else if (opt.value === 'cvs_711') {
+      fee = storeSettings.fee_cvs_711 ?? 60;
+    } else if (opt.value === 'store') {
+      fee = storeSettings.fee_store ?? 0;
+    }
+    // 免運判斷
+    if (opt.value === 'home' || opt.value === 'cvs_711') {
+      const threshold = isOuterIsland
+        ? (storeSettings.free_ship_outer_island_amount ?? 0)
+        : (storeSettings.free_ship_mainland_amount ?? 0);
+      if (threshold > 0 && totalPrice >= threshold) return '免運';
     }
     return fee === 0 ? '免費' : `NT$ ${fee}`;
   };

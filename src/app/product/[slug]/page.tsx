@@ -13,6 +13,7 @@ async function getProduct(slug: string) {
     .select(`
       id, name, name_en, slug, price, description, image_url,
       is_available, is_sold_out, is_preorder, preorder_note, variant_label,
+      allow_home_delivery, allow_cvs_711, allow_store_pickup,
       categories(name),
       product_specs(label, value),
       product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
@@ -122,6 +123,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               ))}
             </div>
           )}
+
+          {/* 運送方式 */}
+          {(() => {
+            const methods: string[] = [];
+            if ((product as any).allow_home_delivery !== false) methods.push('一般宅配');
+            if ((product as any).allow_cvs_711 !== false) methods.push('7-11 取貨');
+            if ((product as any).allow_store_pickup !== false) methods.push('門市自取');
+            return methods.length > 0 ? (
+              <div className={s.specs}>
+                <div className={s.specRow}>
+                  <span className={s.specLabel}>運送方式</span>
+                  <span className={s.specValue}>{methods.join('、')}</span>
+                </div>
+              </div>
+            ) : null;
+          })()}
 
           <AddToCartButton
             product={{

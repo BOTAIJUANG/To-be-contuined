@@ -25,15 +25,15 @@ export interface StoreSettings {
   about_title: string;
   about_body: string;
   about_image_url: string;
-  ship_home_normal: boolean;
-  ship_home_cold: boolean;
+  ship_home: boolean;
   ship_cvs_711: boolean;
-  ship_cvs_family: boolean;
   ship_store: boolean;
-  fee_home_normal: number;
-  fee_home_cold: number;
-  fee_cvs: number;
-  free_ship_amount: number;
+  fee_home: number;
+  fee_home_outer_island: number;
+  fee_cvs_711: number;
+  fee_store: number;
+  free_ship_mainland_amount: number;
+  free_ship_outer_island_amount: number;
   stamp_enabled: boolean;
   stamp_threshold: number;
   stamp_goal: number;
@@ -58,15 +58,15 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   about_title: "關於未半",
   about_body: "未半甜點希望讓甜點從複雜回到純粹。",
   about_image_url: "",
-  ship_home_normal: true,
-  ship_home_cold: true,
+  ship_home: true,
   ship_cvs_711: true,
-  ship_cvs_family: true,
   ship_store: true,
-  fee_home_normal: 100,
-  fee_home_cold: 200,
-  fee_cvs: 60,
-  free_ship_amount: 0,
+  fee_home: 100,
+  fee_home_outer_island: 250,
+  fee_cvs_711: 60,
+  fee_store: 0,
+  free_ship_mainland_amount: 0,
+  free_ship_outer_island_amount: 0,
   stamp_enabled: true,
   stamp_threshold: 200,
   stamp_goal: 8,
