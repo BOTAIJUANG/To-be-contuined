@@ -8,20 +8,29 @@ import { getProductPromotions } from '@/lib/getProductPromotions';
 import s from './product.module.css';
 
 async function getProduct(slug: string) {
-  const { data } = await supabase
-    .from('products')
-    .select(`
-      id, name, name_en, slug, price, description, image_url,
-      is_available, is_sold_out, is_preorder, preorder_note, variant_label,
-      allow_home_delivery, allow_cvs_711, allow_store_pickup,
-      categories(name),
-      product_specs(label, value),
-      product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
-    `)
-    .eq('slug', slug)
-    .eq('is_available', true)
-    .single();
-  return data;
+  // 先嘗試含 shipping 欄位的查詢，若欄位不存在則 fallback
+  const cols = `
+    id, name, name_en, slug, price, description, image_url,
+    is_available, is_sold_out, is_preorder, preorder_note, variant_label,
+    categories(name),
+    product_specs(label, value),
+    product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
+  `;
+  const shipCols = `
+    id, name, name_en, slug, price, description, image_url,
+    is_available, is_sold_out, is_preorder, preorder_note, variant_label,
+    allow_home_delivery, allow_cvs_711, allow_store_pickup,
+    categories(name),
+    product_specs(label, value),
+    product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
+  `;
+  const { data, error } = await supabase
+    .from('products').select(shipCols).eq('slug', slug).eq('is_available', true).single();
+  if (!error) return data;
+  // fallback：欄位不存在時用舊查詢
+  const { data: fallback } = await supabase
+    .from('products').select(cols).eq('slug', slug).eq('is_available', true).single();
+  return fallback;
 }
 
 async function getActiveBatches(productId: number) {

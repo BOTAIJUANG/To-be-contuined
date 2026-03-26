@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
   // ── 5. 在後端計算「真實運費」────────────────────
   const { data: settings } = await supabaseAdmin
     .from('store_settings')
-    .select('fee_home, fee_home_outer_island, fee_cvs_711, fee_store, free_ship_mainland_amount, free_ship_outer_island_amount')
+    .select('*')
     .eq('id', 1)
     .single();
 

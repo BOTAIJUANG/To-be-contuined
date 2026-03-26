@@ -163,7 +163,7 @@ export default function CheckoutPage() {
     const load = async () => {
       const [{ data: { session } }, { data: settings }] = await Promise.all([
         supabase.auth.getSession(),
-        supabase.from('store_settings').select('fee_home, fee_home_outer_island, fee_cvs_711, fee_store, free_ship_mainland_amount, free_ship_outer_island_amount, ship_home, ship_cvs_711, ship_store').eq('id', 1).single(),
+        supabase.from('store_settings').select('*').eq('id', 1).single(),
       ]);
       setStoreSettings(settings);
       if (session?.user) {
@@ -189,7 +189,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     const productIds = [...new Set(items.filter(i => !i.isRedeemItem).map(i => i.productRealId ?? parseInt(i.id)))];
     if (productIds.length === 0) return;
-    supabase.from('products').select('id, allow_home_delivery, allow_cvs_711, allow_store_pickup').in('id', productIds).then(({ data }) => {
+    supabase.from('products').select('id, allow_home_delivery, allow_cvs_711, allow_store_pickup').in('id', productIds).then(({ data, error }) => {
+      if (error) return; // 欄位尚未建立時靜默跳過，全部預設為 true
       if (data) {
         const map: typeof productShipFlags = {};
         data.forEach((p: any) => { map[p.id] = { allow_home_delivery: p.allow_home_delivery ?? true, allow_cvs_711: p.allow_cvs_711 ?? true, allow_store_pickup: p.allow_store_pickup ?? true }; });
