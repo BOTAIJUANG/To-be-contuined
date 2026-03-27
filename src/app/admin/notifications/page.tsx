@@ -105,6 +105,28 @@ export default function AdminNotificationsPage() {
   // 初次載入：從 localStorage 讀取範本
   useEffect(() => { setTemplates(loadTemplates()); }, []);
 
+  // ── 載入發送記錄 ──────────────────────────────
+  useEffect(() => {
+    if (tab !== 'log') return;
+    const loadLog = async () => {
+      const { data } = await supabase
+        .from('email_logs')
+        .select('id, type, subject, recipient_count, success_count, fail_count, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (data) {
+        setLog(data.map(l => ({
+          time: new Date(l.created_at).toLocaleString('zh-TW'),
+          type: l.type === 'batch' ? '批次發送' : l.type === 'order_confirm' ? '訂單確認' : l.type === 'ship_notify' ? '出貨通知' : l.type === 'refund_notify' ? '退款通知' : l.type,
+          recipients: l.recipient_count,
+          subject: l.subject ?? '',
+          status: l.fail_count > 0 ? `${l.success_count} 成功 / ${l.fail_count} 失敗` : '全部成功',
+        })));
+      }
+    };
+    loadLog();
+  }, [tab]);
+
   // ── 載入後台提醒 ──────────────────────────────
   useEffect(() => {
     if (tab !== 'alerts') return;
@@ -166,13 +188,6 @@ export default function AdminNotificationsPage() {
       const data = await res.json();
 
       if (res.ok && data.ok) {
-        setLog(prev => [{
-          time: new Date().toLocaleString('zh-TW'),
-          type: '批次發送',
-          recipients: data.sent,
-          subject: batchSubject,
-          status: data.failed > 0 ? `${data.sent - data.failed} 成功 / ${data.failed} 失敗` : '全部成功',
-        }, ...prev]);
         const failDetails = data.results?.filter((r: any) => !r.ok).map((r: any) => `${r.email}: ${r.error}`).join('\n');
         alert(`已發送給 ${data.sent} 位顧客` + (data.failed > 0 ? `（${data.failed} 封失敗）\n\n失敗原因：\n${failDetails}` : ''));
       } else {
