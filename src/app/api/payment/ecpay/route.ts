@@ -34,14 +34,19 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 2. 查詢訂單 ──────────────────────────────────
-  const { data: order } = await supabaseAdmin
+  console.log('ECPay 查詢 order_id:', order_id, typeof order_id);
+  const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
     .select('id, order_no, total, pay_method, pay_status, member_id, pay_token')
     .eq('id', order_id)
     .single();
 
-  if (!order) {
-    return NextResponse.json({ error: '訂單不存在' }, { status: 404 });
+  if (orderError || !order) {
+    console.error('ECPay 訂單查詢失敗:', orderError?.message, 'order_id:', order_id);
+    return NextResponse.json(
+      { error: '訂單不存在', detail: orderError?.message ?? 'no data', order_id },
+      { status: 404 },
+    );
   }
 
   // 確認權限：

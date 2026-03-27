@@ -888,7 +888,7 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <h2 className={s.doneHeading}>訂單已成立</h2>
-          <p className={s.doneSubtext}>訂單確認信已寄至您的 Email</p>
+          <p className={s.doneSubtext}>您的訂單號碼</p>
           <p className={s.doneOrderNo}>{orderNo}</p>
           <Link href="/" onClick={() => { sessionStorage.removeItem('checkout_step'); sessionStorage.removeItem('checkout_orderNo'); }} className={s.doneHomeLink}>返回首頁</Link>
         </div>
