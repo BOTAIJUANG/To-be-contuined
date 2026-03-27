@@ -15,6 +15,7 @@ interface AddToCartButtonProps {
     isSoldOut?: boolean; isPreorder?: boolean;
     preorderBatches?: Batch[]; preorderShipDate?: string; preorderStatus?: string;
     variantLabel?: string; variants?: Variant[];
+    stock?: number | null;  // 無規格商品的可售庫存
   };
   variantId?: number;
   variantName?: string;
@@ -129,7 +130,9 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         <button className={s.qtyBtn} onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
         <span className={s.qtyValue}>{qty}</span>
         <button className={s.qtyBtn} onClick={() => {
-          const maxStock = hasVariants && selectedVariant?.stock != null ? selectedVariant.stock : Infinity;
+          const maxStock = hasVariants
+            ? (selectedVariant?.stock != null ? selectedVariant.stock : Infinity)
+            : (product.stock != null ? product.stock : Infinity);
           setQty(q => Math.min(q + 1, maxStock));
         }}>+</button>
       </div>

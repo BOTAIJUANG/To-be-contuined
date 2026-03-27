@@ -82,6 +82,20 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       });
     }
   }
+
+  // 載入無規格商品的庫存量
+  let productStock: number | null = null;
+  if (rawVariants.length === 0 && !product.is_preorder) {
+    const { data: invData } = await supabase
+      .from('inventory')
+      .select('stock, reserved')
+      .eq('product_id', product.id)
+      .is('variant_id', null)
+      .single();
+    if (invData) {
+      productStock = Math.max(0, (invData.stock ?? 0) - (invData.reserved ?? 0));
+    }
+  }
   const variants = rawVariants;
 
   return (
@@ -200,6 +214,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               preorderShipDate: activeBatches[0]?.ship_date ?? undefined,
               preorderStatus:   (preorderStatus as any) ?? undefined,
               variantLabel:     (product as any).variant_label ?? '規格',
+              stock:            productStock,
               variants:         ((product.product_variants ?? []) as any[])
                 .filter(v => v.is_available)
                 .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))

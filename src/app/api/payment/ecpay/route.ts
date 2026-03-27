@@ -50,16 +50,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 確認權限：
-  //   會員 → 必須是訂單本人
-  //   訪客 → 必須提供正確的 pay_token（防止只知道 order_id 就能付款）
-  if (order.member_id) {
-    if (order.member_id !== userId) {
-      return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
-    }
-  } else if (order.pay_token) {
-    if (order.pay_token !== clientPayToken) {
-      return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
-    }
+  //   1. 會員本人（JWT 驗證）
+  //   2. 或提供正確的 pay_token（訂單查詢頁重新付款用）
+  const isOwner = order.member_id && order.member_id === userId;
+  const hasValidToken = order.pay_token && order.pay_token === clientPayToken;
+  if (!isOwner && !hasValidToken) {
+    return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
   }
 
   // 已付款的不能重複付
@@ -68,7 +64,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3. 產生綠界付款參數 ──────────────────────────
-  // 取得目前網站的網址（用來組合回呼網址）
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL
     ?? req.headers.get('origin')
     ?? 'http://localhost:3000').trim().replace(/\/+$/, '');
@@ -81,8 +76,8 @@ export async function POST(req: NextRequest) {
     total:       order.total,
     description: `未半甜點 訂單 ${order.order_no}`,
     payMethod:   order.pay_method as 'credit' | 'atm',
-    returnUrl:   `${baseUrl}/api/payment/notify`,   // 綠界通知我們的網址（server 對 server）
-    clientBackUrl: `${baseUrl}/api/payment/return`, // 使用者導回的網址（會再跳轉到訂單頁）
+    returnUrl:   `${baseUrl}/api/payment/notify`,
+    clientBackUrl: `${baseUrl}/api/payment/return`,
   });
 
   console.log('ECPay 送出參數:', JSON.stringify(params));

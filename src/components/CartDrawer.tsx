@@ -58,6 +58,31 @@ export default function CartDrawer() {
       }, () => {});
   }, [promoResult.gifts]);
 
+  // 載入購物車商品的可售庫存（用於限制 + 按鈕）
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!isOpen || items.length === 0) return;
+    const productIds = [...new Set(items.map(i => i.productRealId ?? parseInt(i.id)))];
+    supabase
+      .from('inventory')
+      .select('product_id, variant_id, stock, reserved')
+      .in('product_id', productIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, number> = {};
+        data.forEach((inv: any) => {
+          const key = inv.variant_id ? `${inv.product_id}_${inv.variant_id}` : `${inv.product_id}`;
+          map[key] = Math.max(0, (inv.stock ?? 0) - (inv.reserved ?? 0));
+        });
+        setStockMap(map);
+      });
+  }, [isOpen, items]);
+
+  const getMaxQty = (item: any) => {
+    const key = item.variantId ? `${item.productRealId ?? parseInt(item.id)}_${item.variantId}` : `${item.productRealId ?? parseInt(item.id)}`;
+    return stockMap[key] ?? Infinity;
+  };
+
   const handleCancelRedeem = async (item: any) => {
     if (!confirm(`確定要取消「${item.name}」的兌換嗎？章數將立即歸還。`)) return;
     if (item.redemptionId) {
@@ -128,7 +153,14 @@ export default function CartDrawer() {
                       <div className={s.qtyControl}>
                         <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId)}>−</button>
                         <span className={s.qtyValue}>{item.qty}</span>
-                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty + 1, item.variantId)}>+</button>
+                        <button
+                          className={s.qtyBtn}
+                          onClick={() => {
+                            const max = getMaxQty(item);
+                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId);
+                          }}
+                          disabled={item.qty >= getMaxQty(item)}
+                        >+</button>
                       </div>
                     )}
                     <span className={item.isRedeemItem ? s.itemPriceFree : s.itemPrice}>

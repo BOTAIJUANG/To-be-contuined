@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
 
   // ── 4. 用訂單編號找到我們的訂單 ──────────────────
   // 送給綠界時我們把 order_no 的 - 去掉了（例：WB20260321-A3K9X2 → WB20260321A3K9X2）
-  // 格式是 WB(2碼) + YYYYMMDD(8碼) = 前10碼 + '-' + 後6碼
-  const orderNo = merchantTradeNo.slice(0, 10) + '-' + merchantTradeNo.slice(10);
+  // 重試時可能加了 4 碼後綴（例：WB20260321A3K9X21234）
+  // 格式是 WB(2碼) + YYYYMMDD(8碼) = 前10碼 + '-' + 接下來6碼（忽略後綴）
+  const orderNo = merchantTradeNo.slice(0, 10) + '-' + merchantTradeNo.slice(10, 16);
 
   const { data: order } = await supabaseAdmin
     .from('orders')
@@ -108,15 +109,43 @@ export async function POST(req: NextRequest) {
 
     console.log(`訂單 ${order.order_no} 付款成功`);
   } else {
-    // 付款失敗
+    // 付款失敗 → 取消訂單 + 釋放預留庫存
     await supabaseAdmin
       .from('orders')
-      .update({
-        pay_status: 'failed',
-      })
+      .update({ pay_status: 'failed', status: 'cancelled' })
       .eq('id', order.id);
 
-    console.log(`訂單 ${order.order_no} 付款失敗: ${rtnCode} ${rtnMsg}`);
+    // 釋放預留庫存
+    const { data: orderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, variant_id, qty')
+      .eq('order_id', order.id);
+
+    if (orderItems) {
+      for (const item of orderItems) {
+        let query = supabaseAdmin
+          .from('inventory')
+          .select('*')
+          .eq('product_id', item.product_id);
+        if (item.variant_id) query = query.eq('variant_id', item.variant_id);
+        else query = query.is('variant_id', null);
+
+        const { data: inv } = await query.single();
+        if (!inv) continue;
+
+        if (inv.inventory_mode === 'stock') {
+          await supabaseAdmin.from('inventory')
+            .update({ reserved: Math.max(0, inv.reserved - item.qty), updated_at: new Date().toISOString() })
+            .eq('id', inv.id);
+        } else if (inv.inventory_mode === 'preorder') {
+          await supabaseAdmin.from('inventory')
+            .update({ reserved_preorder: Math.max(0, inv.reserved_preorder - item.qty), updated_at: new Date().toISOString() })
+            .eq('id', inv.id);
+        }
+      }
+    }
+
+    console.log(`訂單 ${order.order_no} 付款失敗，已取消並釋放庫存: ${rtnCode} ${rtnMsg}`);
   }
 
   // ── 6. 回傳 "1|OK" 給綠界 ─────────────────────────

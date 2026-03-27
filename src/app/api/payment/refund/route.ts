@@ -8,15 +8,14 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { requireAuth } from '@/lib/auth';
 import crypto from 'crypto';
 
-const MERCHANT_ID = process.env.ECPAY_MERCHANT_ID ?? '3002607';
-const HASH_KEY    = process.env.ECPAY_HASH_KEY    ?? 'pwFHCqoQZGmho4w6';
-const HASH_IV     = process.env.ECPAY_HASH_IV     ?? 'EkRm7iFT261dpevs';
-
 // 綠界 DoAction API（測試 vs 正式）
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
   ?? 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction';
 
 function generateCheckMacValue(params: Record<string, string>): string {
+  const HASH_KEY = (process.env.ECPAY_HASH_KEY ?? 'pwFHCqoQZGmho4w6').trim();
+  const HASH_IV  = (process.env.ECPAY_HASH_IV  ?? 'EkRm7iFT261dpevs').trim();
+
   const sorted = Object.keys(params)
     .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
     .map(key => `${key}=${params[key]}`)
@@ -77,6 +76,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 組合綠界 DoAction 參數
+  const MERCHANT_ID = (process.env.ECPAY_MERCHANT_ID ?? '3002607').trim();
   const params: Record<string, string> = {
     MerchantID:      MERCHANT_ID,
     MerchantTradeNo: order.order_no.replace(/-/g, ''),
@@ -102,8 +102,11 @@ export async function POST(req: NextRequest) {
     const resText = await ecpayRes.text();
     console.log('ECPay 退款回應:', resText);
 
-    // 綠界回傳格式：Succeeded 或 RtnCode=xxx&RtnMsg=xxx
-    const isSuccess = resText.includes('1|OK') || resText.includes('Succeeded');
+    // 綠界 DoAction 回傳格式：RtnCode=1&RtnMsg=OK（成功）或 RtnCode=xxx&RtnMsg=錯誤訊息
+    const resParams = new URLSearchParams(resText);
+    const rtnCode = resParams.get('RtnCode');
+    const rtnMsg  = resParams.get('RtnMsg') ?? resText;
+    const isSuccess = rtnCode === '1';
 
     if (isSuccess) {
       // 更新訂單退款狀態
@@ -115,7 +118,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, message: '信用卡退款成功' });
     } else {
       console.error('綠界退款失敗:', resText);
-      return NextResponse.json({ ok: false, message: `退款請求已送出，綠界回應：${resText}` });
+      return NextResponse.json(
+        { ok: false, error: `綠界退款失敗：${rtnMsg}` },
+        { status: 400 },
+      );
     }
   } catch (err) {
     console.error('退款 API 錯誤:', err);

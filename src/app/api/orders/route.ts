@@ -439,8 +439,8 @@ export async function POST(req: NextRequest) {
     ? `${body.city ?? ''}${body.district ?? ''}${body.address ?? ''}`
     : body.ship_method === 'store' ? null : (body.address ?? null);
 
-  // 訪客訂單產生 pay_token（防止知道 order_id 就能付款）
-  const payToken = !memberId ? crypto.randomUUID() : null;
+  // 所有訂單都產生 pay_token（用於訂單查詢頁重新付款驗證）
+  const payToken = crypto.randomUUID();
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
@@ -468,7 +468,7 @@ export async function POST(req: NextRequest) {
       pay_method:   body.pay_method,
       pay_status:   'pending',   // 等待付款
       status:       'processing', // 處理中
-      ...(payToken ? { pay_token: payToken } : {}),
+      pay_token:    payToken,
     })
     .select('id')
     .single();
@@ -593,6 +593,6 @@ export async function POST(req: NextRequest) {
     order_no:   orderNo,
     total,
     pay_method: body.pay_method,
-    ...(payToken ? { pay_token: payToken } : {}),
+    pay_token:  payToken,
   });
 }
