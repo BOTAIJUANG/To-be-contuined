@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import s from '../_shared/admin-shared.module.css';
 import p from './preorder.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 const numVal = (v: number) => v === 0 ? '' : String(v);
 
@@ -297,17 +298,17 @@ export default function AdminPreorderPage() {
               <div className={s.grid2}>
                 <div>
                   <label className={s.label}>預購開始日（留空 = 立即）</label>
-                  <input type="date" value={batchForm.starts_at} onChange={e => setBatchForm({...batchForm, starts_at: e.target.value})} className={s.input} />
+                  <AdminDatePicker value={batchForm.starts_at} onChange={val => setBatchForm({...batchForm, starts_at: val})} className={s.input} />
                 </div>
                 <div>
                   <label className={s.label}>預購結束日（留空 = 無期限）</label>
-                  <input type="date" value={batchForm.ends_at} onChange={e => setBatchForm({...batchForm, ends_at: e.target.value})} className={s.input} />
+                  <AdminDatePicker value={batchForm.ends_at} onChange={val => setBatchForm({...batchForm, ends_at: val})} className={s.input} />
                 </div>
               </div>
 
               <div>
                 <label className={s.label}>預計出貨日 *</label>
-                <input type="date" value={batchForm.ship_date} onChange={e => setBatchForm({...batchForm, ship_date: e.target.value})} className={`${s.input} ${p.inputMaxWidth}`} />
+                <AdminDatePicker value={batchForm.ship_date} onChange={val => setBatchForm({...batchForm, ship_date: val})} className={`${s.input} ${p.inputMaxWidth}`} />
               </div>
 
               <div>

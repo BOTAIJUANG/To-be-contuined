@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import s from '../_shared/admin-shared.module.css';
 import p from './members.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 type MemberTab = 'list' | 'stamps' | 'redeem' | 'stats';
 type DetailTab = 'profile' | 'stamp_logs' | 'redemptions';
@@ -490,11 +491,11 @@ export default function AdminMembersPage() {
                     </div>
                     <div>
                       <label className={s.label}>開始日期（留空 = 立即）</label>
-                      <input type="date" value={redeemForm.starts_at} onChange={e => setRedeemForm({...redeemForm, starts_at: e.target.value})} className={s.input} />
+                      <AdminDatePicker value={redeemForm.starts_at} onChange={val => setRedeemForm({...redeemForm, starts_at: val})} className={s.input} />
                     </div>
                     <div>
                       <label className={s.label}>結束日期（留空 = 長期）</label>
-                      <input type="date" value={redeemForm.ends_at} onChange={e => setRedeemForm({...redeemForm, ends_at: e.target.value})} className={s.input} />
+                      <AdminDatePicker value={redeemForm.ends_at} onChange={val => setRedeemForm({...redeemForm, ends_at: val})} className={s.input} />
                     </div>
                   </div>
                   <label className={s.checkLabel}>

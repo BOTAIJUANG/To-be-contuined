@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
 import s from './orders.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 type OrderTab = 'list' | 'shiplist' | 'shipped' | 'report';
 type ReportPeriod = 'today' | 'week' | 'month' | 'custom';
@@ -426,9 +427,9 @@ export default function AdminOrdersPage() {
             <div className={s.searchBar}>
               <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadOrders()} placeholder="搜尋訂單編號 / 姓名 / 電話" className={s.input} />
               <div className={s.searchDates}>
-                <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className={s.searchDateInput} />
+                <AdminDatePicker value={dateStart} onChange={val => setDateStart(val)} className={s.searchDateInput} />
                 <span className={s.dateSep}>～</span>
-                <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className={s.searchDateInput} />
+                <AdminDatePicker value={dateEnd} onChange={val => setDateEnd(val)} className={s.searchDateInput} />
               </div>
               <div className={s.searchActions}>
                 <button onClick={() => loadOrders()} className={s.btnSearch}>搜尋</button>
@@ -744,9 +745,9 @@ export default function AdminOrdersPage() {
             ))}
             {reportPeriod === 'custom' && (
               <>
-                <input type="date" value={reportCustomStart} onChange={e => setReportCustomStart(e.target.value)} className={s.dateInput} />
+                <AdminDatePicker value={reportCustomStart} onChange={val => setReportCustomStart(val)} className={s.dateInput} />
                 <span className={s.dateSep}>～</span>
-                <input type="date" value={reportCustomEnd} onChange={e => setReportCustomEnd(e.target.value)} className={s.dateInput} />
+                <AdminDatePicker value={reportCustomEnd} onChange={val => setReportCustomEnd(val)} className={s.dateInput} />
                 <button onClick={loadReport} className={s.btnApply}>套用</button>
               </>
             )}

@@ -14,6 +14,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import s from '../_shared/admin-shared.module.css';
 import p from './products.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 type ProductTab = 'list' | 'category' | 'quickupdate' | 'notify';
 
@@ -538,11 +539,11 @@ export default function AdminProductsPage() {
                       <div className={`${s.grid2} ${p.dateRangeMb}`}>
                         <div>
                           <label className={s.label}>最早可出貨日</label>
-                          <input type="date" value={(form as any).ship_start_date} onChange={e => setForm({...form, ship_start_date: e.target.value} as any)} className={`${s.input} ${p.inputFull}`} />
+                          <AdminDatePicker value={(form as any).ship_start_date} onChange={val => setForm({...form, ship_start_date: val} as any)} className={`${s.input} ${p.inputFull}`} />
                         </div>
                         <div>
                           <label className={s.label}>最晚可出貨日</label>
-                          <input type="date" value={(form as any).ship_end_date} onChange={e => setForm({...form, ship_end_date: e.target.value} as any)} className={`${s.input} ${p.inputFull}`} />
+                          <AdminDatePicker value={(form as any).ship_end_date} onChange={val => setForm({...form, ship_end_date: val} as any)} className={`${s.input} ${p.inputFull}`} />
                         </div>
                       </div>
 
@@ -942,11 +943,11 @@ export default function AdminProductsPage() {
                   <div className={s.grid2}>
                     <div>
                       <label className={s.label}>開始日期 *</label>
-                      <input type="date" value={batchStart} onChange={e => setBatchStart(e.target.value)} className={`${s.input} ${p.inputFull}`} />
+                      <AdminDatePicker value={batchStart} onChange={val => setBatchStart(val)} className={`${s.input} ${p.inputFull}`} />
                     </div>
                     <div>
                       <label className={s.label}>結束日期 *</label>
-                      <input type="date" value={batchEnd} onChange={e => setBatchEnd(e.target.value)} className={`${s.input} ${p.inputFull}`} />
+                      <AdminDatePicker value={batchEnd} onChange={val => setBatchEnd(val)} className={`${s.input} ${p.inputFull}`} />
                     </div>
                   </div>
                   <div>
@@ -963,7 +964,7 @@ export default function AdminProductsPage() {
                 <>
                   <div>
                     <label className={s.label}>出貨日期 *</label>
-                    <input type="date" value={dateForm.ship_date} onChange={e => setDateForm({...dateForm, ship_date: e.target.value})} disabled={editingDateIdx !== null} className={`${s.input} ${p.inputW180}`} style={editingDateIdx !== null ? { opacity: 0.5 } : undefined} />
+                    <AdminDatePicker value={dateForm.ship_date} onChange={val => setDateForm({...dateForm, ship_date: val})} disabled={editingDateIdx !== null} className={`${s.input} ${p.inputW180}`} style={editingDateIdx !== null ? { opacity: 0.5 } : undefined} />
                     {editingDateIdx !== null && <div className={p.hintText}>日期不可修改，如需更改請刪除後重新新增</div>}
                   </div>
                   <div>

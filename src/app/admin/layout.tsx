@@ -147,6 +147,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <main className={s.main}>{children}</main>
       </div>
+      <div id="datepicker-portal" />
     </div>
   );
 }

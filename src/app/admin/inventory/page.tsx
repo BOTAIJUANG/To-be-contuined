@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import s from '../_shared/admin-shared.module.css';
 import p from './inventory.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 // ── 數字 input helpers（避免前導 0）────────────────
 const numVal = (v: number) => v === 0 ? '' : String(v);
@@ -734,9 +735,9 @@ export default function AdminInventoryPage() {
                         <option value="audit">盤點修正</option>
                         <option value="adjust">其他</option>
                       </select>
-                      <input type="date" value={ingLogFilter.date_start} onChange={e => setIngLogFilter(f => ({...f, date_start: e.target.value}))} className={s.input} />
+                      <AdminDatePicker value={ingLogFilter.date_start} onChange={val => setIngLogFilter(f => ({...f, date_start: val}))} className={s.input} />
                       <span className={p.dateSeparator}>～</span>
-                      <input type="date" value={ingLogFilter.date_end} onChange={e => setIngLogFilter(f => ({...f, date_end: e.target.value}))} className={s.input} />
+                      <AdminDatePicker value={ingLogFilter.date_end} onChange={val => setIngLogFilter(f => ({...f, date_end: val}))} className={s.input} />
                       <button onClick={loadIngLogs} className={s.btnPrimary}>查詢</button>
                     </div>
                     {ingLogsLoading ? <p className={s.loadingText}>載入中...</p> : (
@@ -904,11 +905,11 @@ export default function AdminInventoryPage() {
             </div>
             <div>
               <label className={s.label}>開始日期</label>
-              <input type="date" value={logFilter.date_start} onChange={e => setLogFilter(f => ({...f, date_start: e.target.value}))} className={s.input} />
+              <AdminDatePicker value={logFilter.date_start} onChange={val => setLogFilter(f => ({...f, date_start: val}))} className={s.input} />
             </div>
             <div>
               <label className={s.label}>結束日期</label>
-              <input type="date" value={logFilter.date_end} onChange={e => setLogFilter(f => ({...f, date_end: e.target.value}))} className={s.input} />
+              <AdminDatePicker value={logFilter.date_end} onChange={val => setLogFilter(f => ({...f, date_end: val}))} className={s.input} />
             </div>
             <button onClick={loadLogs} className={s.btnPrimary}>查詢</button>
           </div>
@@ -1216,11 +1217,11 @@ export default function AdminInventoryPage() {
               <div className={s.grid2}>
                 <div>
                   <label className={s.label}>最近進貨日（選填）</label>
-                  <input type="date" value={ingForm.restocked_at} onChange={e => setIngForm({...ingForm, restocked_at: e.target.value})} className={`${s.input} ${p.inputFull}`} />
+                  <AdminDatePicker value={ingForm.restocked_at} onChange={val => setIngForm({...ingForm, restocked_at: val})} className={`${s.input} ${p.inputFull}`} />
                 </div>
                 <div>
                   <label className={s.label}>保存期限（選填）</label>
-                  <input type="date" value={ingForm.expiry_date} onChange={e => setIngForm({...ingForm, expiry_date: e.target.value})} className={`${s.input} ${p.inputFull}`} />
+                  <AdminDatePicker value={ingForm.expiry_date} onChange={val => setIngForm({...ingForm, expiry_date: val})} className={`${s.input} ${p.inputFull}`} />
                 </div>
               </div>
               {/* 位置 + 備註 */}

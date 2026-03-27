@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import s from '../_shared/admin-shared.module.css';
 import p from './announcements.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 interface Announcement {
   id: number; content: string; type: string;
@@ -200,11 +201,11 @@ export default function AdminAnnouncementsPage() {
                 </div>
                 <div>
                   <label className={s.label}>開始日期（空白 = 立即）</label>
-                  <input type="date" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} className={s.input} />
+                  <AdminDatePicker value={form.starts_at} onChange={val => setForm({ ...form, starts_at: val })} className={s.input} />
                 </div>
                 <div>
                   <label className={s.label}>結束日期（空白 = 永久）</label>
-                  <input type="date" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} className={s.input} />
+                  <AdminDatePicker value={form.ends_at} onChange={val => setForm({ ...form, ends_at: val })} className={s.input} />
                 </div>
               </div>
               <label className={s.checkLabel}>

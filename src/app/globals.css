@@ -259,6 +259,18 @@ body.no-scroll {
   letter-spacing: 0;
 }
 
+/* ── react-datepicker 全域覆蓋 ─── */
+.admin-datepicker-wrapper { display: block !important; }
+.admin-datepicker-wrapper .react-datepicker-wrapper { width: 100%; }
+.react-datepicker-popper { z-index: 9999 !important; }
+.react-datepicker { font-family: "Noto Sans TC", sans-serif; font-size: 13px; border: 1px solid var(--line); border-radius: 2px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.react-datepicker__header { background: var(--bg); border-bottom: 1px solid var(--line); }
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected { background: var(--btn) !important; color: #fff !important; border-radius: 2px; }
+.react-datepicker__day:hover { background: var(--surface); border-radius: 2px; }
+.react-datepicker__day--disabled { color: #ccc !important; }
+.react-datepicker__close-icon::after { background: var(--text-light) !important; font-size: 14px; }
+
 /* ── Touch 友善 ───────────────── */
 @media (hover: none) {
   a:hover { opacity: 1; }

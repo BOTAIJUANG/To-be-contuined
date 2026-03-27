@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import s from '../_shared/admin-shared.module.css';
 import cx from './coupons.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 interface Coupon {
   id: number; code: string; type: string;
@@ -124,7 +125,7 @@ export default function AdminCouponsPage() {
             </div>
             <div>
               <label className={s.label}>到期日（留空 = 永不過期）</label>
-              <input type="date" value={form.expires_at} onChange={e => setForm({ ...form, expires_at: e.target.value })} className={s.input} />
+              <AdminDatePicker value={form.expires_at} onChange={val => setForm({ ...form, expires_at: val })} className={s.input} />
             </div>
           </div>
           <div className={`${s.grid3} ${s.mb20}`}>

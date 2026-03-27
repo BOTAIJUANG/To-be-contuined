@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import s from '../_shared/admin-shared.module.css';
 import p from './store-settings.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 const DAYS_TW = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 const DAYS_EN = ['0', '1', '2', '3', '4', '5', '6'];
@@ -298,7 +299,7 @@ export default function AdminStoreSettingsPage() {
           <div>
             <label className={s.label}>特定封鎖日期</label>
             <div className={p.blockedDateRow}>
-              <input type="date" value={newBlockedDate} onChange={e => setNewBlockedDate(e.target.value)} className={p.blockedDateInputNarrow} />
+              <AdminDatePicker value={newBlockedDate} onChange={val => setNewBlockedDate(val)} className={p.blockedDateInputNarrow} />
               <button onClick={addBlockedDate} className={s.btnSmall}>＋ 新增</button>
             </div>
             <div className={p.blockedDateWrap}>
