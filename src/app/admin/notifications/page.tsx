@@ -14,27 +14,75 @@ import p from './notifications.module.css';
 
 type NotifTab = 'alerts' | 'templates' | 'batch' | 'log';
 
+// Email 範本型別
+interface EmailTemplate {
+  key: string;
+  name: string;
+  subject: string;
+  body: string;
+  isDefault?: boolean; // 預設範本不可刪除
+}
+
 // Email 範本預設內容
-const EMAIL_TEMPLATES = [
+const DEFAULT_TEMPLATES: EmailTemplate[] = [
   {
     key:     'order_confirm',
     name:    '訂單確認信',
     subject: '【未半甜點】訂單確認 #{{訂單編號}}',
     body:    '親愛的 {{姓名}}，\n\n感謝您的訂購！您的訂單 #{{訂單編號}} 已成立。\n\n訂購商品：\n{{商品清單}}\n\n應付金額：{{總金額}}\n\n我們將盡快為您準備，出貨後會再次通知您。\n\n感謝您的支持！\n未半甜點',
+    isDefault: true,
   },
   {
     key:     'ship_notify',
     name:    '出貨通知',
     subject: '【未半甜點】您的訂單 #{{訂單編號}} 已出貨',
     body:    '親愛的 {{姓名}}，\n\n您的訂單 #{{訂單編號}} 已出貨！\n\n物流追蹤號碼：{{追蹤號碼}}\n預計到貨：{{預計到貨}}\n\n感謝您的支持！\n未半甜點',
+    isDefault: true,
   },
   {
     key:     'delay',
     name:    '出貨延遲通知',
     subject: '【未半甜點】關於您訂單 #{{訂單編號}} 的重要通知',
     body:    '親愛的 {{姓名}}，\n\n非常抱歉，您的訂單 #{{訂單編號}} 因原料備貨延遲，出貨時間將順延。\n\n我們將盡快處理並另行通知您新的出貨時間。造成不便，敬請見諒。\n\n未半甜點',
+    isDefault: true,
+  },
+  {
+    key:     'cvs_fail',
+    name:    '超商取貨異常通知',
+    subject: '【未半甜點】關於您訂單 #{{訂單編號}} 的配送通知',
+    body:    '親愛的 {{姓名}}，您好，\n\n感謝您的訂購與支持。\n\n很抱歉通知您，您本次訂單 #{{訂單編號}} 所選擇的取貨門市目前無法收貨或配送異常，因此訂單暫時無法正常出貨。\n\n為了盡快為您安排出貨，煩請您回覆此信件，提供以下資訊：\n\n・新的取貨門市名稱\n・或門市代號（若有）\n\n我們將在收到您的回覆後，立即為您更新訂單並安排後續配送。\n\n若有任何問題，也歡迎隨時與我們聯繫。\n\n造成您的不便，敬請見諒，感謝您的配合與理解。\n\n祝您順心\n未半甜點',
+    isDefault: true,
   },
 ];
+
+const STORAGE_KEY = 'tbc_email_templates';
+
+// 從 localStorage 載入範本（合併預設 + 自訂）
+function loadTemplates(): EmailTemplate[] {
+  if (typeof window === 'undefined') return DEFAULT_TEMPLATES;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return DEFAULT_TEMPLATES;
+    const custom: EmailTemplate[] = JSON.parse(saved);
+    // 預設範本用最新程式碼版本，再接上自訂範本
+    // 但如果預設範本被使用者編輯過，保留使用者的修改
+    const savedMap = new Map(custom.map(t => [t.key, t]));
+    const merged = DEFAULT_TEMPLATES.map(dt => {
+      const saved = savedMap.get(dt.key);
+      return saved ? { ...saved, isDefault: true } : dt;
+    });
+    // 加上自訂範本（非預設的）
+    const defaultKeys = new Set(DEFAULT_TEMPLATES.map(t => t.key));
+    const customs = custom.filter(t => !defaultKeys.has(t.key));
+    return [...merged, ...customs];
+  } catch {
+    return DEFAULT_TEMPLATES;
+  }
+}
+
+function saveTemplates(templates: EmailTemplate[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(templates)); } catch {}
+}
 
 export default function AdminNotificationsPage() {
   const [tab,           setTab]           = useState<NotifTab>('alerts');
@@ -43,11 +91,19 @@ export default function AdminNotificationsPage() {
   const [selectedOrders,setSelectedOrders]= useState<Set<string>>(new Set());
   const [batchFilter,   setBatchFilter]   = useState('');
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
-  const [templates,     setTemplates]     = useState(EMAIL_TEMPLATES);
+  const [templates,     setTemplates]     = useState<EmailTemplate[]>(DEFAULT_TEMPLATES);
   const [batchSubject,  setBatchSubject]  = useState('');
   const [batchBody,     setBatchBody]     = useState('');
   const [sending,       setSending]       = useState(false);
   const [log,           setLog]           = useState<any[]>([]);
+  // 新增範本表單
+  const [showNewForm,   setShowNewForm]   = useState(false);
+  const [newName,       setNewName]       = useState('');
+  const [newSubject,    setNewSubject]    = useState('');
+  const [newBody,       setNewBody]       = useState('');
+
+  // 初次載入：從 localStorage 讀取範本
+  useEffect(() => { setTemplates(loadTemplates()); }, []);
 
   // ── 載入後台提醒 ──────────────────────────────
   useEffect(() => {
@@ -164,22 +220,48 @@ export default function AdminNotificationsPage() {
             <code className={`${p.codeTag} ${p.codeTagGap}`}>{'{{總金額}}'}</code>
             <code className={`${p.codeTag} ${p.codeTagGap}`}>{'{{追蹤號碼}}'}</code>
           </div>
+
           {templates.map((t) => (
             <div key={t.key} className={p.templateCard}>
               <div className={p.templateHeader} style={{ borderBottom: editingTemplate === t.key ? '1px solid var(--line)' : 'none' }}>
                 <div>
-                  <div className={p.templateTitle}>{t.name}</div>
+                  <div className={p.templateTitle}>
+                    {t.name}
+                    {!t.isDefault && <span className={p.customBadge}>自訂</span>}
+                  </div>
                   <div className={p.templateSubject}>{t.subject}</div>
                 </div>
-                <button
-                  onClick={() => setEditingTemplate(editingTemplate === t.key ? null : t.key)}
-                  className={s.btnSmall}
-                >
-                  {editingTemplate === t.key ? '收合' : '編輯'}
-                </button>
+                <div className={p.templateActions}>
+                  <button
+                    onClick={() => setEditingTemplate(editingTemplate === t.key ? null : t.key)}
+                    className={s.btnSmall}
+                  >
+                    {editingTemplate === t.key ? '收合' : '編輯'}
+                  </button>
+                  {!t.isDefault && (
+                    <button
+                      onClick={() => {
+                        if (!confirm(`確定刪除範本「${t.name}」？`)) return;
+                        const next = templates.filter(x => x.key !== t.key);
+                        setTemplates(next);
+                        saveTemplates(next);
+                        if (editingTemplate === t.key) setEditingTemplate(null);
+                      }}
+                      className={s.btnDanger}
+                    >
+                      刪除
+                    </button>
+                  )}
+                </div>
               </div>
               {editingTemplate === t.key && (
                 <div className={p.templateBody}>
+                  {!t.isDefault && (
+                    <div className={s.mb12}>
+                      <label className={s.label}>範本名稱</label>
+                      <input value={t.name} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, name: e.target.value } : x))} className={s.input} />
+                    </div>
+                  )}
                   <div className={s.mb12}>
                     <label className={s.label}>主旨</label>
                     <input value={t.subject} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, subject: e.target.value } : x))} className={s.input} />
@@ -188,13 +270,57 @@ export default function AdminNotificationsPage() {
                     <label className={s.label}>內容</label>
                     <textarea value={t.body} onChange={e => setTemplates(prev => prev.map(x => x.key === t.key ? { ...x, body: e.target.value } : x))} rows={8} className={s.textarea} />
                   </div>
-                  <button onClick={() => alert('範本已儲存（本地）')} className={s.btnPrimary}>
+                  <button onClick={() => { saveTemplates(templates); alert('範本已儲存'); }} className={s.btnPrimary}>
                     儲存範本
                   </button>
                 </div>
               )}
             </div>
           ))}
+
+          {/* 新增範本 */}
+          {!showNewForm ? (
+            <button onClick={() => setShowNewForm(true)} className={`${s.btnOutline} ${p.addTemplateBtn}`}>
+              + 新增自訂範本
+            </button>
+          ) : (
+            <div className={p.templateCard}>
+              <div className={p.templateBody}>
+                <div className={s.mb12}>
+                  <label className={s.label}>範本名稱</label>
+                  <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例：門市自取提醒" className={s.input} />
+                </div>
+                <div className={s.mb12}>
+                  <label className={s.label}>主旨</label>
+                  <input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="例：【未半甜點】{{訂單編號}} 相關通知" className={s.input} />
+                </div>
+                <div className={s.mb12}>
+                  <label className={s.label}>內容</label>
+                  <textarea value={newBody} onChange={e => setNewBody(e.target.value)} rows={8} placeholder={'親愛的 {{姓名}}，...'} className={s.textarea} />
+                </div>
+                <div className={p.newFormActions}>
+                  <button
+                    onClick={() => {
+                      if (!newName.trim() || !newSubject.trim()) { alert('請填寫範本名稱和主旨'); return; }
+                      const key = `custom_${Date.now()}`;
+                      const next = [...templates, { key, name: newName.trim(), subject: newSubject.trim(), body: newBody }];
+                      setTemplates(next);
+                      saveTemplates(next);
+                      setNewName(''); setNewSubject(''); setNewBody('');
+                      setShowNewForm(false);
+                      alert('自訂範本已新增');
+                    }}
+                    className={s.btnPrimary}
+                  >
+                    新增範本
+                  </button>
+                  <button onClick={() => { setShowNewForm(false); setNewName(''); setNewSubject(''); setNewBody(''); }} className={s.btnSmall}>
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

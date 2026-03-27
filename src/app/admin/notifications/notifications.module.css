@@ -145,3 +145,36 @@
 .cardValueSmall {
   font-size: 12px;
 }
+
+/* ── Template actions row ── */
+.templateActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Custom badge ── */
+.customBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-light);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ── Add template button ── */
+.addTemplateBtn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* ── New form actions row ── */
+.newFormActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
