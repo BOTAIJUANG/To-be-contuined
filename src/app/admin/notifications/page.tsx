@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/api';
 import s from '../_shared/admin-shared.module.css';
 import p from './notifications.module.css';
 
@@ -84,17 +85,48 @@ export default function AdminNotificationsPage() {
     if (selectedOrders.size === 0) { alert('請選擇訂單'); return; }
     if (!batchSubject || !batchBody) { alert('請填寫主旨和內容'); return; }
     setSending(true);
-    // TODO: 串接 Email 發送 API（例如 Resend / SendGrid）
-    await new Promise(r => setTimeout(r, 1000));
-    setLog(prev => [{
-      time: new Date().toLocaleString('zh-TW'),
-      type: '批次發送',
-      recipients: selectedOrders.size,
-      subject: batchSubject,
-      status: '已發送',
-    }, ...prev]);
+
+    // 組合收件人資料
+    const recipients = batchOrders
+      .filter(o => selectedOrders.has(o.order_no))
+      .map(o => ({
+        email: o.buyer_email,
+        name: o.buyer_name,
+        order_no: o.order_no,
+        items: o.order_items?.map((i: any) => i.name).join('、') ?? '',
+        total: '',
+      }));
+
+    try {
+      const res = await fetchApi('/api/email', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'batch',
+          recipients,
+          subject: batchSubject,
+          body: batchBody,
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        setLog(prev => [{
+          time: new Date().toLocaleString('zh-TW'),
+          type: '批次發送',
+          recipients: data.sent,
+          subject: batchSubject,
+          status: data.failed > 0 ? `${data.sent - data.failed} 成功 / ${data.failed} 失敗` : '全部成功',
+        }, ...prev]);
+        alert(`已發送給 ${data.sent} 位顧客` + (data.failed > 0 ? `（${data.failed} 封失敗）` : ''));
+      } else {
+        alert('發送失敗：' + (data.error ?? '未知錯誤'));
+      }
+    } catch (err) {
+      console.error('批次發送錯誤:', err);
+      alert('發送失敗，請稍後再試');
+    }
+
     setSending(false);
-    alert(`已發送給 ${selectedOrders.size} 位顧客（目前為模擬，需串接 Email API）`);
     setSelectedOrders(new Set());
   };
 
