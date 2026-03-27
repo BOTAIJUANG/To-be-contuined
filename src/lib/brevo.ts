@@ -14,10 +14,6 @@
 //   })
 // ════════════════════════════════════════════════
 
-const BREVO_API_KEY    = process.env.BREVO_API_KEY ?? '';
-const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL ?? '';
-const BREVO_SENDER_NAME  = process.env.BREVO_SENDER_NAME ?? '未半甜點';
-
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 export interface EmailRecipient {
@@ -39,8 +35,12 @@ export interface SendEmailResult {
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
-  if (!BREVO_API_KEY) {
-    console.error('[brevo] BREVO_API_KEY 未設定');
+  const apiKey      = (process.env.BREVO_API_KEY ?? '').trim();
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL ?? '').trim();
+  const senderName  = (process.env.BREVO_SENDER_NAME ?? '未半甜點').trim();
+
+  if (!apiKey) {
+    console.error('[brevo] BREVO_API_KEY 未設定, env keys:', Object.keys(process.env).filter(k => k.includes('BREVO')));
     return { ok: false, error: 'BREVO_API_KEY 未設定' };
   }
 
@@ -50,10 +50,10 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       headers: {
         'accept': 'application/json',
         'content-type': 'application/json',
-        'api-key': BREVO_API_KEY,
+        'api-key': apiKey,
       },
       body: JSON.stringify({
-        sender: { email: BREVO_SENDER_EMAIL, name: BREVO_SENDER_NAME },
+        sender: { email: senderEmail, name: senderName },
         to: options.to,
         subject: options.subject,
         htmlContent: options.html,
