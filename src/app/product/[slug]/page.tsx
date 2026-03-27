@@ -1,6 +1,7 @@
 // app/product/[slug]/page.tsx  ──  商品詳細頁（responsive）
 
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
 import AddToCartButton from '@/components/AddToCartButton';
 import Footer from '@/components/Footer';
@@ -68,10 +69,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const specs    = (product.product_specs   ?? []) as { label: string; value: string }[];
   const rawVariants = (product.product_variants ?? []).filter((v: any) => v.is_available) as { id: number; name: string; price_diff: number; stock: number }[];
 
-  // 載入各規格的庫存量
+  // 載入各規格的庫存量（用 supabaseAdmin 繞過 RLS）
   let variantStockMap: Record<number, number> = {};
   if (rawVariants.length > 0) {
-    const { data: invData } = await supabase
+    const { data: invData } = await supabaseAdmin
       .from('inventory')
       .select('variant_id, stock, reserved')
       .eq('product_id', product.id)
@@ -86,7 +87,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   // 載入無規格商品的庫存量
   let productStock: number | null = null;
   if (rawVariants.length === 0 && !product.is_preorder) {
-    const { data: invData } = await supabase
+    const { data: invData } = await supabaseAdmin
       .from('inventory')
       .select('stock, reserved')
       .eq('product_id', product.id)

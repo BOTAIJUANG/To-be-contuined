@@ -63,19 +63,18 @@ export default function CartDrawer() {
   useEffect(() => {
     if (!isOpen || items.length === 0) return;
     const productIds = [...new Set(items.map(i => i.productRealId ?? parseInt(i.id)))];
-    supabase
-      .from('inventory')
-      .select('product_id, variant_id, stock, reserved')
-      .in('product_id', productIds)
+    fetch(`/api/stock?product_ids=${productIds.join(',')}`)
+      .then(r => r.json())
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, number> = {};
         data.forEach((inv: any) => {
           const key = inv.variant_id ? `${inv.product_id}_${inv.variant_id}` : `${inv.product_id}`;
-          map[key] = Math.max(0, (inv.stock ?? 0) - (inv.reserved ?? 0));
+          map[key] = inv.available;
         });
         setStockMap(map);
-      });
+      })
+      .catch(() => {});
   }, [isOpen, items]);
 
   const getMaxQty = (item: any) => {

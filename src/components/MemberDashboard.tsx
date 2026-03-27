@@ -16,6 +16,15 @@ import s from './MemberDashboard.module.css';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
+
+// 根據付款狀態決定顯示文字：信用卡/ATM 未付款或失敗 → 顯示付款相關狀態
+function getDisplayStatus(order: any): { label: string; color: string } {
+  const needPay = order.pay_method === 'credit' || order.pay_method === 'atm';
+  if (needPay && order.pay_status === 'pending') return { label: '待付款', color: '#b87a2a' };
+  if (needPay && order.pay_status === 'failed')  return { label: '付款失敗', color: '#c44' };
+  if (needPay && order.pay_status === 'refunded') return { label: '已退款', color: '#888580' };
+  return { label: STATUS_LABEL[order.status] ?? order.status, color: STATUS_COLOR[order.status] ?? '#888' };
+}
 const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
 
 interface MemberDashboardProps {
@@ -113,7 +122,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
     if (activeTab !== 'orders') return;
     const load = async () => {
       setOrdersLoading(true);
-      const { data } = await supabase.from('orders').select('order_no, status, total, created_at, tracking_no, carrier, order_items(name, qty)').eq('member_id', userId).order('created_at', { ascending: false });
+      const { data } = await supabase.from('orders').select('order_no, status, total, created_at, tracking_no, carrier, pay_status, pay_method, order_items(name, qty)').eq('member_id', userId).order('created_at', { ascending: false });
       setOrders(data ?? []);
       setOrdersLoading(false);
     };
@@ -560,9 +569,14 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                 <div key={order.order_no} className={s.orderCard}>
                   <div className={s.orderHeader}>
                     <span className={s.orderNo}>{order.order_no}</span>
-                    <span className={s.orderStatusBadge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
-                      {STATUS_LABEL[order.status]}
-                    </span>
+                    {(() => {
+                      const ds = getDisplayStatus(order);
+                      return (
+                        <span className={s.orderStatusBadge} style={{ color: ds.color, border: `1px solid ${ds.color}` }}>
+                          {ds.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className={s.orderItems}>
                     {order.order_items?.map((i: any) => `${i.name} ×${i.qty}`).join('、')}
