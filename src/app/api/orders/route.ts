@@ -84,6 +84,9 @@ export async function POST(req: NextRequest) {
   const { userId: memberId } = await optionalAuth(req);
   const body: OrderInput = await req.json();
 
+  // 過濾掉前端傳來的贈品（贈品由後端自行計算，避免重複）
+  body.items = (body.items ?? []).filter(i => !i.is_gift);
+
   // ── 2. 基本欄位檢查 ──────────────────────────────
   if (!body.items?.length) {
     return NextResponse.json({ error: '購物車是空的' }, { status: 400 });

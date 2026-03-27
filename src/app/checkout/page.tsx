@@ -402,20 +402,13 @@ export default function CheckoutPage() {
       // 只傳「商品 ID + 數量」和「收件資訊」，
       // 價格、運費、折扣全部由後端重新計算
       // 贈品也加入 items（is_gift=true, price 由後端設為 0）
-      const orderItems = [
-        ...items.map(item => ({
-          product_id: item.productRealId ?? parseInt(item.id),
-          variant_id: item.variantId ?? null,
-          qty:        item.qty,
-          is_redeem:  item.isRedeemItem ?? false,
-        })),
-        ...promoResult.gifts.map(g => ({
-          product_id: g.product_id,
-          variant_id: g.variant_id ?? null,
-          qty:        g.qty,
-          is_gift:    true,
-        })),
-      ];
+      // 只傳購買商品，贈品由後端自行計算
+      const orderItems = items.map(item => ({
+        product_id: item.productRealId ?? parseInt(item.id),
+        variant_id: item.variantId ?? null,
+        qty:        item.qty,
+        is_redeem:  item.isRedeemItem ?? false,
+      }));
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
