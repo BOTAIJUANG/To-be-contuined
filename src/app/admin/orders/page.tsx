@@ -317,20 +317,17 @@ export default function AdminOrdersPage() {
       const upd: any = { [field]: value };
       if (field === 'status' && value === 'shipped') upd.shipped_at = new Date().toISOString();
 
-      // 取得訂單明細（出貨或取消時需要）
+      // 出貨或取消 → 庫存操作（API 自動查 order_items）
       if (field === 'status' && (value === 'shipped' || value === 'cancelled')) {
-        const { data: orderItems } = await supabase
-          .from('order_items')
-          .select('product_id, variant_id, qty')
-          .eq('order_id', orderId);
-
-        if (orderItems && orderItems.length > 0) {
-          const action = value === 'shipped' ? 'ship' : 'cancel';
-          const res = await fetchApi(`/api/inventory?action=${action}`, {
-            method: 'POST',
-            body: JSON.stringify({ order_id: orderId, items: orderItems }),
-          });
-          if (!res.ok) console.error('庫存操作失敗:', await res.text());
+        const action = value === 'shipped' ? 'ship' : 'cancel';
+        const res = await fetchApi(`/api/inventory?action=${action}`, {
+          method: 'POST',
+          body: JSON.stringify({ order_id: orderId }),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          console.error('庫存操作失敗:', err);
+          alert('庫存操作失敗：' + err);
         }
       }
 

@@ -39,15 +39,29 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { order_id, items, admin_id, admin_name } = body as {
+  const { order_id, items: clientItems, admin_id, admin_name } = body as {
     order_id:   number;
-    items:      OrderItem[];
+    items?:     OrderItem[];
     admin_id?:  string;
     admin_name?: string;
   };
 
-  if (!order_id || !items?.length) {
-    return NextResponse.json({ error: 'Missing order_id or items' }, { status: 400 });
+  if (!order_id) {
+    return NextResponse.json({ error: 'Missing order_id' }, { status: 400 });
+  }
+
+  // 優先用 server 端查 order_items（避免 RLS 讀不到）
+  let items: OrderItem[] = clientItems ?? [];
+  if (!items.length) {
+    const { data } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, variant_id, qty')
+      .eq('order_id', order_id);
+    items = (data ?? []) as OrderItem[];
+  }
+
+  if (!items.length) {
+    return NextResponse.json({ error: `找不到訂單 #${order_id} 的明細` }, { status: 400 });
   }
 
   const errors: string[] = [];

@@ -125,18 +125,11 @@ export default function AdminPaymentPage() {
             });
           }
 
-          // 2. 回補庫存
-          const { data: orderItems } = await supabase
-            .from('order_items')
-            .select('product_id, variant_id, qty')
-            .eq('order_id', orderId);
-
-          if (orderItems && orderItems.length > 0) {
-            await fetchApi('/api/inventory?action=cancel', {
-              method: 'POST',
-              body: JSON.stringify({ order_id: orderId, items: orderItems }),
-            });
-          }
+          // 2. 回補庫存（API 自動查 order_items）
+          await fetchApi('/api/inventory?action=cancel', {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId }),
+          });
 
           // 3. 取消兌換紀錄
           if (fullOrder.redemption_id) {
