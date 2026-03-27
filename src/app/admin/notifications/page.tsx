@@ -117,7 +117,8 @@ export default function AdminNotificationsPage() {
           subject: batchSubject,
           status: data.failed > 0 ? `${data.sent - data.failed} 成功 / ${data.failed} 失敗` : '全部成功',
         }, ...prev]);
-        alert(`已發送給 ${data.sent} 位顧客` + (data.failed > 0 ? `（${data.failed} 封失敗）` : ''));
+        const failDetails = data.results?.filter((r: any) => !r.ok).map((r: any) => `${r.email}: ${r.error}`).join('\n');
+        alert(`已發送給 ${data.sent} 位顧客` + (data.failed > 0 ? `（${data.failed} 封失敗）\n\n失敗原因：\n${failDetails}` : ''));
       } else {
         alert('發送失敗：' + (data.error ?? '未知錯誤'));
       }
