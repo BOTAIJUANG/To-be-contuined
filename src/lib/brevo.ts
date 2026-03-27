@@ -40,8 +40,8 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   const senderName  = (process.env.BREVO_SENDER_NAME ?? '未半甜點').trim();
 
   if (!apiKey) {
-    console.error('[brevo] BREVO_API_KEY 未設定, env keys:', Object.keys(process.env).filter(k => k.includes('BREVO')));
-    return { ok: false, error: 'BREVO_API_KEY 未設定' };
+    const brevoKeys = Object.keys(process.env).filter(k => k.includes('BREVO'));
+    return { ok: false, error: `BREVO_API_KEY 未設定 (found env: ${brevoKeys.join(', ') || 'none'})` };
   }
 
   try {
