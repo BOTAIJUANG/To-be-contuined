@@ -25,6 +25,7 @@
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { optionalAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { Promotion, CartItemForCalc, calculatePromotions } from '@/lib/promotions';
@@ -264,22 +265,16 @@ export async function POST(req: NextRequest) {
           ? Math.floor(subtotal * coupon.value / 100)
           : coupon.value;
 
-        // 檢查額度是否還夠
-        if (coupon.max_uses > 0 && (coupon.used_count ?? 0) >= coupon.max_uses) {
+        // 使用原子操作扣除折扣碼額度（防止高併發超用）
+        // claim_coupon_usage 在 DB 層用 WHERE used_count < max_uses 確保不超賣
+        const { data: claimed } = await supabaseAdmin
+          .rpc('claim_coupon_usage', { p_coupon_id: coupon.id });
+
+        if (!claimed) {
+          // 額度已用完（可能被其他訂單搶先用完）
           discount = 0;
         } else {
-          // 扣除折扣碼使用次數
-          const { error: updateErr } = await supabaseAdmin
-            .from('coupons')
-            .update({ used_count: (coupon.used_count ?? 0) + 1 })
-            .eq('id', coupon.id);
-
-          if (updateErr) {
-            console.error('折扣碼更新失敗:', updateErr);
-            discount = 0;
-          } else {
-            couponClaimedId = coupon.id;
-          }
+          couponClaimedId = coupon.id;
         }
       }
     }
@@ -426,6 +421,9 @@ export async function POST(req: NextRequest) {
     ? `${body.city ?? ''}${body.district ?? ''}${body.address ?? ''}`
     : body.ship_method === 'store' ? null : (body.address ?? null);
 
+  // 訪客訂單產生 pay_token（防止知道 order_id 就能付款）
+  const payToken = !memberId ? crypto.randomUUID() : null;
+
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
     .insert({
@@ -452,6 +450,7 @@ export async function POST(req: NextRequest) {
       pay_method:   body.pay_method,
       pay_status:   'pending',   // 等待付款
       status:       'processing', // 處理中
+      ...(payToken ? { pay_token: payToken } : {}),
     })
     .select('id')
     .single();
@@ -575,5 +574,6 @@ export async function POST(req: NextRequest) {
     order_no:   orderNo,
     total,
     pay_method: body.pay_method,
+    ...(payToken ? { pay_token: payToken } : {}),
   });
 }

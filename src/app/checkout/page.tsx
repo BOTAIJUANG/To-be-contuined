@@ -467,7 +467,10 @@ export default function CheckoutPage() {
         const payRes = await fetch('/api/payment/ecpay', {
           method: 'POST',
           headers: payHeaders,
-          body: JSON.stringify({ order_id: result.order_id }),
+          body: JSON.stringify({
+            order_id: result.order_id,
+            ...(result.pay_token ? { pay_token: result.pay_token } : {}),
+          }),
         });
 
         if (payRes.ok) {

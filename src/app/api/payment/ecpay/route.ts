@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
   // ── 1. 驗證身份（會員或訪客）──────────────────────
   const { userId } = await optionalAuth(req);
 
-  const { order_id } = await req.json();
+  const body = await req.json();
+  const { order_id, pay_token: clientPayToken } = body;
   if (!order_id) {
     return NextResponse.json({ error: '缺少 order_id' }, { status: 400 });
   }
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   // ── 2. 查詢訂單 ──────────────────────────────────
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, total, pay_method, pay_status, member_id')
+    .select('id, order_no, total, pay_method, pay_status, member_id, pay_token')
     .eq('id', order_id)
     .single();
 
@@ -43,9 +44,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '訂單不存在' }, { status: 404 });
   }
 
-  // 確認權限：會員只能付自己的單，訪客只能付 member_id=null 的單
+  // 確認權限：
+  //   會員 → 必須是訂單本人
+  //   訪客 → 必須提供正確的 pay_token（防止只知道 order_id 就能付款）
   if (order.member_id) {
     if (order.member_id !== userId) {
+      return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
+    }
+  } else if (order.pay_token) {
+    if (order.pay_token !== clientPayToken) {
       return NextResponse.json({ error: '無權操作此訂單' }, { status: 403 });
     }
   }

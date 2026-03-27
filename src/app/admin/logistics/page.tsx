@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchApi } from '@/lib/api';
 import s from '../_shared/admin-shared.module.css';
 import p from './logistics.module.css';
 
@@ -69,12 +70,55 @@ export default function AdminLogisticsPage() {
 
   useEffect(() => { load(); }, []);
 
-  // 更新訂單狀態
-  const updateStatus = async (orderId: number, status: string) => {
-    const updateData: any = { status };
-    if (status === 'shipped') updateData.shipped_at = new Date().toISOString();
-    await supabase.from('orders').update(updateData).eq('id', orderId);
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+  // 更新訂單狀態（含庫存扣除/回補、集章/扣章等副作用）
+  const updateStatus = async (orderId: number, newStatus: string) => {
+    try {
+      const updateData: any = { status: newStatus };
+      if (newStatus === 'shipped') updateData.shipped_at = new Date().toISOString();
+
+      const order = orders.find(o => o.id === orderId);
+
+      // 出貨或取消 → 呼叫庫存 API（出貨扣庫存、取消釋放預留）
+      if (newStatus === 'shipped' || newStatus === 'cancelled') {
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('product_id, variant_id, qty')
+          .eq('order_id', orderId);
+
+        if (orderItems && orderItems.length > 0) {
+          const action = newStatus === 'shipped' ? 'ship' : 'cancel';
+          const res = await fetchApi(`/api/inventory?action=${action}`, {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId, items: orderItems }),
+          });
+          if (!res.ok) console.error('庫存操作失敗:', await res.text());
+        }
+      }
+
+      // 完成 → 自動加章
+      if (newStatus === 'done') {
+        const res = await fetchApi('/api/stamps?action=add', {
+          method: 'POST',
+          body: JSON.stringify({ order_id: orderId }),
+        });
+        if (!res.ok) console.error('集章失敗:', await res.text());
+      }
+
+      // 取消（且原本是已完成）→ 扣章
+      if (newStatus === 'cancelled' && order?.status === 'done') {
+        await fetchApi('/api/stamps?action=deduct', {
+          method: 'POST',
+          body: JSON.stringify({ order_id: orderId }),
+        });
+      }
+
+      const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
+      if (error) { alert('更新失敗：' + error.message); return; }
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updateData } : o));
+    } catch (err) {
+      console.error('updateStatus 錯誤:', err);
+      alert('操作失敗，請稍後再試');
+    }
   };
 
   // 儲存追蹤號碼

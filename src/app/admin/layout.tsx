@@ -48,7 +48,7 @@ const NAV_SECTIONS = [
       { label: '公告管理', href: '/admin/announcements',  icon: <MultiIcon paths={['M22 17H2a3 3 0 006 0h8a3 3 0 006 0z', 'M9.4 1h5.2L16 4H8l1.4-3z', 'M12 4v13']} /> },
       { label: '通知系統', href: '/admin/notifications',   icon: <MultiIcon paths={['M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9', 'M13.73 21a2 2 0 01-3.46 0']} /> },
       { label: '商店設定', href: '/admin/store-settings',  icon: <MultiIcon paths={['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6']} /> },
-      { label: '物流狀態', href: '/admin/logistics',       icon: <MultiIcon paths={['M1 3h15v13H1z', 'M16 8h4l3 3v5h-7V8z', 'M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z', 'M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z']} /> },
+      // { label: '物流狀態', href: '/admin/logistics', icon: <MultiIcon paths={['M1 3h15v13H1z', 'M16 8h4l3 3v5h-7V8z', 'M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z', 'M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z']} /> },  // 暫時隱藏，未來擴充用
       { label: '金流狀態', href: '/admin/payment',         icon: <MultiIcon paths={['M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2z', 'M1 10h22']} /> },
       { label: '購物說明', href: '/admin/faqs',            icon: <MultiIcon paths={['M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z', 'M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3', 'M12 17h.01']} /> },
     ],
