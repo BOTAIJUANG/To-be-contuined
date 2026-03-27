@@ -22,6 +22,7 @@ interface Promotion {
   type: string;
   is_active: boolean;
   stackable: boolean;
+  coupon_stackable: boolean;
   start_at: string | null;
   end_at: string | null;
   bundle_price: number | null;
@@ -55,6 +56,7 @@ export default function AdminPromotionsPage() {
   const [formName, setFormName] = useState('');
   const [formActive, setFormActive] = useState(true);
   const [formStackable, setFormStackable] = useState(false);
+  const [formCouponStackable, setFormCouponStackable] = useState(false);
   const [formStartAt, setFormStartAt] = useState('');
   const [formEndAt, setFormEndAt] = useState('');
 
@@ -93,7 +95,7 @@ export default function AdminPromotionsPage() {
   // ── 重置表單 ────────────────────────────────────
   const resetForm = () => {
     setEditing(null);
-    setFormName(''); setFormActive(true); setFormStackable(false);
+    setFormName(''); setFormActive(true); setFormStackable(false); setFormCouponStackable(false);
     setFormStartAt(''); setFormEndAt('');
     setFormVolumeProducts([]); setFormTiers([{ min_qty: 1, price: 0 }]);
     setFormBundlePrice(0); setFormBundleRepeatable(false); setFormBundleItems([{ product_id: 0, qty: 1 }]);
@@ -107,6 +109,7 @@ export default function AdminPromotionsPage() {
     setFormName(promo.name);
     setFormActive(promo.is_active);
     setFormStackable(promo.stackable);
+    setFormCouponStackable(promo.coupon_stackable ?? false);
     setFormStartAt(promo.start_at?.slice(0, 16) ?? '');
     setFormEndAt(promo.end_at?.slice(0, 16) ?? '');
 
@@ -143,6 +146,7 @@ export default function AdminPromotionsPage() {
       type: tab,
       is_active: formActive,
       stackable: formStackable,
+      coupon_stackable: formCouponStackable,
       start_at: formStartAt || null,
       end_at: formEndAt || null,
     };
@@ -297,6 +301,10 @@ export default function AdminPromotionsPage() {
             <label className={s.checkLabel}>
               <input type="checkbox" checked={formStackable} onChange={e => setFormStackable(e.target.checked)} className={s.checkbox} />
               可與其他活動併用
+            </label>
+            <label className={s.checkLabel}>
+              <input type="checkbox" checked={formCouponStackable} onChange={e => setFormCouponStackable(e.target.checked)} className={s.checkbox} />
+              可與折扣碼併用
             </label>
           </div>
 

@@ -20,6 +20,7 @@ export interface Promotion {
   type: 'volume' | 'bundle' | 'gift';
   is_active: boolean;
   stackable: boolean;
+  coupon_stackable: boolean;
   start_at: string | null;
   end_at: string | null;
   bundle_price: number | null;

@@ -299,12 +299,12 @@ export default function CheckoutPage() {
       setCouponMsg('此折扣碼無法與商品優惠活動併用');
       return;
     }
-    // 活動側不可併用：有任何 non-stackable 活動正在套用
+    // 活動側不可與折扣碼併用：有任何活動的 coupon_stackable=false
     if (promoDiscount > 0) {
-      const hasNonStackablePromo = promoResult.discounts.some(d =>
-        loadedPromos.find(p => p.id === d.promotion_id && !p.stackable)
+      const hasNonCouponStackablePromo = promoResult.discounts.some(d =>
+        loadedPromos.find(p => p.id === d.promotion_id && !p.coupon_stackable)
       );
-      if (hasNonStackablePromo) {
+      if (hasNonCouponStackablePromo) {
         setDiscount(0);
         setCouponMsg('目前套用的商品優惠不允許與折扣碼併用');
         return;

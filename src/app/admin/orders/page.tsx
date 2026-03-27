@@ -2,7 +2,7 @@
 
 // app/admin/orders/page.tsx  ──  訂單管理（含詳細抽屜）
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
@@ -55,6 +55,54 @@ function productSummary(items: any[]) {
 }
 function totalQty(items: any[]) { return items?.reduce((s: number, i: any) => s + i.qty, 0) ?? 0; }
 
+// ── 多選下拉元件 ──
+function MultiSelectDropdown({ options, selected, onChange, placeholder }: {
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (value: string) => {
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value]);
+  };
+  const isAll = selected.length === 0;
+  const label = isAll ? placeholder : selected.length === 1 ? options.find(o => o.value === selected[0])?.label ?? '' : `${selected.length} 項已選`;
+
+  return (
+    <div className={s.multiSelect} ref={ref}>
+      <button type="button" className={`${s.multiSelectBtn} ${selected.length > 0 ? s.multiSelectBtnActive : ''}`} onClick={() => setOpen(v => !v)}>
+        <span>{label}</span>
+        <span className={s.multiSelectArrow}>▾</span>
+      </button>
+      {open && (
+        <div className={s.multiSelectDropdown}>
+          <label className={s.multiSelectItem} onClick={() => { onChange([]); }}>
+            <input type="checkbox" checked={isAll} readOnly />
+            全部
+          </label>
+          {options.map(opt => (
+            <label key={opt.value} className={s.multiSelectItem}>
+              <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getPeriodRange(period: ReportPeriod, cs: string, ce: string) {
   const now = new Date(); const today = now.toISOString().split('T')[0];
   if (period === 'today') return { start: today, end: today };
@@ -77,9 +125,9 @@ export default function AdminOrdersPage() {
   const [keyword, setKeyword] = useState('');
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
-  const [osStatus, setOsStatus] = useState('');
-  const [osPay, setOsPay] = useState('');
-  const [osShip, setOsShip] = useState('');
+  const [osStatuses, setOsStatuses] = useState<string[]>([]);
+  const [osPays, setOsPays] = useState<string[]>([]);
+  const [osShips, setOsShips] = useState<string[]>([]);
   const [osMin, setOsMin] = useState('');
   const [osMax, setOsMax] = useState('');
   const [osSort, setOsSort] = useState('newest');
@@ -109,14 +157,14 @@ export default function AdminOrdersPage() {
   const [reportDaily, setReportDaily] = useState<any[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
 
-  const loadOrders = async (overrides: Record<string, string> = {}) => {
+  const loadOrders = async (overrides: Record<string, any> = {}) => {
     setLoading(true);
     const kw = 'keyword' in overrides ? overrides.keyword : keyword;
     const ds = 'dateStart' in overrides ? overrides.dateStart : dateStart;
     const de = 'dateEnd' in overrides ? overrides.dateEnd : dateEnd;
-    const st = 'osStatus' in overrides ? overrides.osStatus : osStatus;
-    const py = 'osPay' in overrides ? overrides.osPay : osPay;
-    const sh = 'osShip' in overrides ? overrides.osShip : osShip;
+    const sts: string[] = 'osStatuses' in overrides ? overrides.osStatuses : osStatuses;
+    const pys: string[] = 'osPays' in overrides ? overrides.osPays : osPays;
+    const shs: string[] = 'osShips' in overrides ? overrides.osShips : osShips;
     const mn = 'osMin' in overrides ? overrides.osMin : osMin;
     const mx = 'osMax' in overrides ? overrides.osMax : osMax;
     const sort = 'osSort' in overrides ? overrides.osSort : osSort;
@@ -128,9 +176,9 @@ export default function AdminOrdersPage() {
     if (sort === 'amount_asc') { orderBy = 'total'; ascending = true; }
 
     let q = supabase.from('orders').select('*, order_items(name, qty, price)').order(orderBy, { ascending });
-    if (st)  q = q.eq('status', st);
-    if (py)  q = q.eq('pay_status', py);
-    if (sh)  q = q.eq('ship_method', sh);
+    if (sts.length > 0)  q = q.in('status', sts);
+    if (pys.length > 0)  q = q.in('pay_status', pys);
+    if (shs.length > 0)  q = q.in('ship_method', shs);
     if (ds)  q = q.gte('created_at', ds);
     if (de)  q = q.lte('created_at', de + 'T23:59:59');
     if (mn)  q = q.gte('total', Number(mn));
@@ -145,10 +193,10 @@ export default function AdminOrdersPage() {
     setLoading(false);
   };
 
-  const removeChip = (overrides: Record<string, string>) => {
-    if ('osStatus' in overrides) setOsStatus(overrides.osStatus);
-    if ('osPay' in overrides) setOsPay(overrides.osPay);
-    if ('osShip' in overrides) setOsShip(overrides.osShip);
+  const removeChip = (overrides: Record<string, any>) => {
+    if ('osStatuses' in overrides) setOsStatuses(overrides.osStatuses);
+    if ('osPays' in overrides) setOsPays(overrides.osPays);
+    if ('osShips' in overrides) setOsShips(overrides.osShips);
     if ('dateStart' in overrides) setDateStart(overrides.dateStart);
     if ('dateEnd' in overrides) setDateEnd(overrides.dateEnd);
     if ('osMin' in overrides) setOsMin(overrides.osMin);
@@ -158,9 +206,9 @@ export default function AdminOrdersPage() {
 
   const clearAll = () => {
     setKeyword(''); setDateStart(''); setDateEnd('');
-    setOsStatus(''); setOsPay(''); setOsShip('');
+    setOsStatuses([]); setOsPays([]); setOsShips([]);
     setOsMin(''); setOsMax(''); setOsSort('newest');
-    loadOrders({ keyword: '', dateStart: '', dateEnd: '', osStatus: '', osPay: '', osShip: '', osMin: '', osMax: '', osSort: 'newest' });
+    loadOrders({ keyword: '', dateStart: '', dateEnd: '', osStatuses: [], osPays: [], osShips: [], osMin: '', osMax: '', osSort: 'newest' });
   };
 
   // ── 出貨列表（待出貨）──
@@ -395,9 +443,9 @@ export default function AdminOrdersPage() {
 
             {/* Row 2: Filter Bar */}
             <div className={`${s.filterBar} ${showFilters ? s.filterBarOpen : ''}`}>
-              <select value={osStatus} onChange={e => setOsStatus(e.target.value)} className={s.select}>{STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-              <select value={osPay} onChange={e => setOsPay(e.target.value)} className={s.select}>{PAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-              <select value={osShip} onChange={e => setOsShip(e.target.value)} className={s.select}>{SHIP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+              <MultiSelectDropdown options={STATUS_OPTIONS.filter(o => o.value)} selected={osStatuses} onChange={setOsStatuses} placeholder="全部配送狀態" />
+              <MultiSelectDropdown options={PAY_OPTIONS.filter(o => o.value)} selected={osPays} onChange={setOsPays} placeholder="全部付款狀態" />
+              <MultiSelectDropdown options={SHIP_OPTIONS.filter(o => o.value)} selected={osShips} onChange={setOsShips} placeholder="全部配送方式" />
               <input type="number" value={osMin} onChange={e => setOsMin(e.target.value)} placeholder="最低金額" className={s.amountInput} />
               <input type="number" value={osMax} onChange={e => setOsMax(e.target.value)} placeholder="最高金額" className={s.amountInput} />
               <select value={osSort} onChange={e => setOsSort(e.target.value)} className={s.sortSelect}>{SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
@@ -406,11 +454,11 @@ export default function AdminOrdersPage() {
             {/* Row 3: Result Bar */}
             <div className={s.resultBar}>
               <span className={s.resultCount}>共 <strong className={s.resultCountNum}>{orders.length}</strong> 筆訂單</span>
-              {(osStatus || osPay || osShip || dateStart || dateEnd || osMin || osMax) && (
+              {(osStatuses.length > 0 || osPays.length > 0 || osShips.length > 0 || dateStart || dateEnd || osMin || osMax) && (
                 <div className={s.filterChips}>
-                  {osStatus && <span className={s.filterChip}>{STATUS_OPTIONS.find(o => o.value === osStatus)?.label}<button onClick={() => removeChip({ osStatus: '' })} className={s.chipRemove}>×</button></span>}
-                  {osPay && <span className={s.filterChip}>{PAY_OPTIONS.find(o => o.value === osPay)?.label}<button onClick={() => removeChip({ osPay: '' })} className={s.chipRemove}>×</button></span>}
-                  {osShip && <span className={s.filterChip}>{SHIP_OPTIONS.find(o => o.value === osShip)?.label}<button onClick={() => removeChip({ osShip: '' })} className={s.chipRemove}>×</button></span>}
+                  {osStatuses.length > 0 && <span className={s.filterChip}>{osStatuses.map(v => STATUS_OPTIONS.find(o => o.value === v)?.label).join('、')}<button onClick={() => removeChip({ osStatuses: [] })} className={s.chipRemove}>×</button></span>}
+                  {osPays.length > 0 && <span className={s.filterChip}>{osPays.map(v => PAY_OPTIONS.find(o => o.value === v)?.label).join('、')}<button onClick={() => removeChip({ osPays: [] })} className={s.chipRemove}>×</button></span>}
+                  {osShips.length > 0 && <span className={s.filterChip}>{osShips.map(v => SHIP_OPTIONS.find(o => o.value === v)?.label).join('、')}<button onClick={() => removeChip({ osShips: [] })} className={s.chipRemove}>×</button></span>}
                   {(dateStart || dateEnd) && (
                     <span className={s.filterChip}>
                       {dateStart && dateEnd ? `${dateStart.slice(5).replace('-', '/')} - ${dateEnd.slice(5).replace('-', '/')}` : dateStart ? `${dateStart.slice(5).replace('-', '/')} 起` : `至 ${dateEnd!.slice(5).replace('-', '/')}`}

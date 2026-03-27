@@ -29,6 +29,7 @@ export function usePromotions(cartItems: CartItemForCalc[]) {
           type: p.type,
           is_active: p.is_active,
           stackable: p.stackable,
+          coupon_stackable: p.coupon_stackable ?? false,
           start_at: p.start_at,
           end_at: p.end_at,
           bundle_price: p.bundle_price,

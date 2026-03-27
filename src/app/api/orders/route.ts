@@ -305,6 +305,7 @@ export async function POST(req: NextRequest) {
         type: p.type,
         is_active: p.is_active,
         stackable: p.stackable,
+        coupon_stackable: p.coupon_stackable ?? false,
         start_at: p.start_at,
         end_at: p.end_at,
         bundle_price: p.bundle_price,
@@ -387,13 +388,13 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 7.8 stackable 互斥邏輯 ──────────────────────
-  // 折扣碼不可併用 或 有活動不可併用 → 只保留金額較大的一方
+  // 折扣碼不可併用 或 有任一活動不可與折扣碼併用 → 整批判斷，只保留金額較大的一方
   if (discount > 0 && promoDiscount > 0) {
-    const hasNonStackablePromo = appliedPromoIds.some(pid => {
+    const hasNonCouponStackablePromo = appliedPromoIds.some(pid => {
       const p = mappedPromos.find(pr => pr.id === pid);
-      return p && !p.stackable;
+      return p && !p.coupon_stackable;
     });
-    if (!couponStackable || hasNonStackablePromo) {
+    if (!couponStackable || hasNonCouponStackablePromo) {
       if (discount >= promoDiscount) {
         promoDiscount = 0;
         appliedPromoIds = [];
