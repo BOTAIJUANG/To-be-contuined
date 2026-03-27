@@ -283,7 +283,7 @@ export async function POST(req: NextRequest) {
   // ── 7.5 後端重新計算優惠活動折扣（防竄改）──────────
   let promoDiscount = 0;
   let appliedPromoIds: number[] = [];
-  let giftItems: { product_id: number; qty: number; name: string }[] = [];
+  let giftItems: { product_id: number; variant_id: number | null; qty: number; name: string }[] = [];
   let mappedPromos: Promotion[] = [];
 
   {
@@ -306,6 +306,7 @@ export async function POST(req: NextRequest) {
         bundle_price: p.bundle_price,
         bundle_repeatable: p.bundle_repeatable,
         gift_product_id: p.gift_product_id,
+        gift_variant_id: p.gift_variant_id ?? null,
         gift_qty: p.gift_qty ?? 1,
         gift_condition_qty: p.gift_condition_qty ?? 1,
         product_ids: p.promotion_products?.map((pp: any) => pp.product_id) ?? [],
@@ -345,23 +346,37 @@ export async function POST(req: NextRequest) {
 
         const giftNameMap = new Map((giftProducts ?? []).map(p => [p.id, p.name]));
 
-        giftItems = result.gifts.map(g => ({
-          product_id: g.product_id,
-          qty: g.qty,
-          name: giftNameMap.get(g.product_id) ?? `贈品 #${g.product_id}`,
-        }));
+        // 查出贈品規格名稱
+        const giftVariantIds = result.gifts.map(g => g.variant_id).filter((v): v is number => v !== null);
+        let giftVariantNameMap = new Map<number, string>();
+        if (giftVariantIds.length > 0) {
+          const { data: gv } = await supabaseAdmin.from('product_variants').select('id, name').in('id', giftVariantIds);
+          giftVariantNameMap = new Map((gv ?? []).map(v => [v.id, v.name]));
+        }
+
+        giftItems = result.gifts.map(g => {
+          const baseName = giftNameMap.get(g.product_id) ?? `贈品 #${g.product_id}`;
+          const variantName = g.variant_id ? giftVariantNameMap.get(g.variant_id) : null;
+          return {
+            product_id: g.product_id,
+            variant_id: g.variant_id,
+            qty: g.qty,
+            name: variantName ? `${baseName}（${variantName}）` : baseName,
+          };
+        });
       }
     }
   }
 
   // ── 7.6 贈品庫存預檢 ──────────────────────────────
   for (const gift of giftItems) {
-    const { data: inv } = await supabaseAdmin
+    let invQuery = supabaseAdmin
       .from('inventory')
       .select('id, inventory_mode, stock, reserved, reserved_preorder, preorder_limit')
-      .eq('product_id', gift.product_id)
-      .is('variant_id', null)
-      .single();
+      .eq('product_id', gift.product_id);
+    if (gift.variant_id) invQuery = invQuery.eq('variant_id', gift.variant_id);
+    else invQuery = invQuery.is('variant_id', null);
+    const { data: inv } = await invQuery.single();
     if (!inv) continue;
     if (inv.inventory_mode === 'stock') {
       const available = inv.stock - inv.reserved;
@@ -472,10 +487,11 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 10. 寫入訂單明細（含贈品）─────────────────────
-  // 贈品以 price=0 加入訂單明細
+  // 贈品以 price=0 加入訂單明細（含規格）
   for (const gift of giftItems) {
     orderItems.push({
       product_id: gift.product_id,
+      variant_id: gift.variant_id ?? null,
       name: gift.name,
       price: 0,
       qty: gift.qty,
@@ -502,7 +518,7 @@ export async function POST(req: NextRequest) {
   // 合併原始商品 + 贈品一起預留庫存
   const allItemsForInventory = [
     ...body.items.map(i => ({ product_id: i.product_id, variant_id: i.variant_id ?? null, qty: i.qty, is_redeem: i.is_redeem })),
-    ...giftItems.map(g => ({ product_id: g.product_id, variant_id: null, qty: g.qty, is_redeem: false })),
+    ...giftItems.map(g => ({ product_id: g.product_id, variant_id: g.variant_id ?? null, qty: g.qty, is_redeem: false })),
   ];
   for (const item of allItemsForInventory) {
     let query = supabaseAdmin

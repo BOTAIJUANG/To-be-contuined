@@ -26,6 +26,7 @@ export interface Promotion {
   bundle_price: number | null;
   bundle_repeatable: boolean;
   gift_product_id: number | null;
+  gift_variant_id: number | null;
   gift_qty: number;
   gift_condition_qty: number;
   // 關聯
@@ -53,6 +54,7 @@ export interface GiftItem {
   promotion_id: number;
   promotion_name: string;
   product_id: number;
+  variant_id: number | null;
   qty: number;
 }
 
@@ -187,6 +189,7 @@ export function calculatePromotions(
         promotion_id: promo.id,
         promotion_name: promo.name,
         product_id: promo.gift_product_id,
+        variant_id: promo.gift_variant_id ?? null,
         qty: promo.gift_qty * giftSets,
       });
     }

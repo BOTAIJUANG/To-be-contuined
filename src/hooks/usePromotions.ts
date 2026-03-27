@@ -35,6 +35,7 @@ export function usePromotions(cartItems: CartItemForCalc[]) {
           bundle_price: p.bundle_price,
           bundle_repeatable: p.bundle_repeatable,
           gift_product_id: p.gift_product_id,
+          gift_variant_id: p.gift_variant_id ?? null,
           gift_qty: p.gift_qty ?? 1,
           gift_condition_qty: p.gift_condition_qty ?? 1,
           product_ids: p.promotion_products?.map((pp: any) => pp.product_id) ?? [],

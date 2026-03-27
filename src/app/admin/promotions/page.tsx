@@ -28,6 +28,7 @@ interface Promotion {
   bundle_price: number | null;
   bundle_repeatable: boolean;
   gift_product_id: number | null;
+  gift_variant_id: number | null;
   gift_qty: number;
   gift_condition_qty: number;
   created_at: string;
@@ -72,8 +73,10 @@ export default function AdminPromotionsPage() {
   // Gift 專用
   const [formGiftProducts, setFormGiftProducts] = useState<number[]>([]);
   const [formGiftProductId, setFormGiftProductId] = useState(0);
+  const [formGiftVariantId, setFormGiftVariantId] = useState<number | null>(null);
   const [formGiftQty, setFormGiftQty] = useState(1);
   const [formGiftConditionQty, setFormGiftConditionQty] = useState(1);
+  const [giftVariants, setGiftVariants] = useState<{ id: number; name: string }[]>([]);
 
   // ── 載入資料 ────────────────────────────────────
   const loadData = async () => {
@@ -92,6 +95,16 @@ export default function AdminPromotionsPage() {
 
   useEffect(() => { loadData(); }, [tab]);
 
+  // 贈品商品變更 → 載入該商品的規格
+  useEffect(() => {
+    if (!formGiftProductId) { setGiftVariants([]); setFormGiftVariantId(null); return; }
+    supabase.from('product_variants').select('id, name').eq('product_id', formGiftProductId).order('sort_order').then(({ data }) => {
+      setGiftVariants(data ?? []);
+      // 如果沒有規格就清空
+      if (!data?.length) setFormGiftVariantId(null);
+    });
+  }, [formGiftProductId]);
+
   // ── 重置表單 ────────────────────────────────────
   const resetForm = () => {
     setEditing(null);
@@ -99,7 +112,7 @@ export default function AdminPromotionsPage() {
     setFormStartAt(''); setFormEndAt('');
     setFormVolumeProducts([]); setFormTiers([{ min_qty: 1, price: 0 }]);
     setFormBundlePrice(0); setFormBundleRepeatable(false); setFormBundleItems([{ product_id: 0, qty: 1 }]);
-    setFormGiftProducts([]); setFormGiftProductId(0); setFormGiftQty(1); setFormGiftConditionQty(1);
+    setFormGiftProducts([]); setFormGiftProductId(0); setFormGiftVariantId(null); setFormGiftQty(1); setFormGiftConditionQty(1); setGiftVariants([]);
     setShowForm(false);
   };
 
@@ -131,6 +144,7 @@ export default function AdminPromotionsPage() {
     if (promo.type === 'gift') {
       setFormGiftProducts(promo.promotion_products?.map(pp => pp.product_id) ?? []);
       setFormGiftProductId(promo.gift_product_id ?? 0);
+      setFormGiftVariantId(promo.gift_variant_id ?? null);
       setFormGiftQty(promo.gift_qty ?? 1);
       setFormGiftConditionQty(promo.gift_condition_qty ?? 1);
     }
@@ -157,6 +171,7 @@ export default function AdminPromotionsPage() {
     }
     if (tab === 'gift') {
       base.gift_product_id = formGiftProductId || null;
+      base.gift_variant_id = formGiftVariantId || null;
       base.gift_qty = formGiftQty;
       base.gift_condition_qty = formGiftConditionQty;
     }
@@ -389,7 +404,7 @@ export default function AdminPromotionsPage() {
                 </div>
                 <div>
                   <label className={s.label}>贈品</label>
-                  <select value={formGiftProductId} onChange={e => setFormGiftProductId(Number(e.target.value))} className={s.select}>
+                  <select value={formGiftProductId} onChange={e => { setFormGiftProductId(Number(e.target.value)); setFormGiftVariantId(null); }} className={s.select}>
                     <option value={0}>選擇贈品</option>
                     {products.map(prod => <option key={prod.id} value={prod.id}>{prod.name}</option>)}
                   </select>
@@ -399,6 +414,15 @@ export default function AdminPromotionsPage() {
                   <input type="number" min={1} value={formGiftQty} onChange={e => setFormGiftQty(Number(e.target.value))} className={s.input} />
                 </div>
               </div>
+              {giftVariants.length > 0 && (
+                <div className={s.mb16}>
+                  <label className={s.label}>贈品規格</label>
+                  <select value={formGiftVariantId ?? ''} onChange={e => setFormGiftVariantId(e.target.value ? Number(e.target.value) : null)} className={s.select}>
+                    <option value="">選擇規格</option>
+                    {giftVariants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                </div>
+              )}
             </>
           )}
 

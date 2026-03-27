@@ -411,7 +411,7 @@ export default function CheckoutPage() {
         })),
         ...promoResult.gifts.map(g => ({
           product_id: g.product_id,
-          variant_id: null,
+          variant_id: g.variant_id ?? null,
           qty:        g.qty,
           is_gift:    true,
         })),
@@ -474,18 +474,43 @@ export default function CheckoutPage() {
         });
 
         if (payRes.ok) {
-          // 取得 HTML 表單，寫入新頁面自動提交到綠界
+          // 取得 HTML 表單（內含自動提交的 form → 導向綠界付款頁）
           const html = await payRes.text();
-          const newWindow = window.open('', '_self');
-          if (newWindow) {
-            newWindow.document.write(html);
-            newWindow.document.close();
-            return; // 頁面會被導走，不需要繼續
-          }
-        }
 
-        // 如果付款頁面打不開，還是顯示成功畫面（使用者可以稍後付款）
-        console.warn('無法自動導向付款頁面');
+          // 方法 1：解析回傳 HTML，動態建立 form 並提交（最可靠）
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const srcForm = doc.querySelector('form');
+
+          if (srcForm) {
+            const form = document.createElement('form');
+            form.method = srcForm.method || 'POST';
+            form.action = srcForm.action;
+            form.style.display = 'none';
+            // 複製所有 hidden input
+            srcForm.querySelectorAll('input').forEach(input => {
+              const clone = document.createElement('input');
+              clone.type = 'hidden';
+              clone.name = input.name;
+              clone.value = input.value;
+              form.appendChild(clone);
+            });
+            document.body.appendChild(form);
+            form.submit();
+            return; // 頁面會被導走
+          }
+
+          // 方法 2：fallback — 直接覆寫整頁
+          document.open();
+          document.write(html);
+          document.close();
+          return;
+        } else {
+          // ECPay API 回傳錯誤 → 顯示錯誤但仍進入完成畫面（訂單已建立，可稍後付款）
+          const errText = await payRes.text();
+          console.error('ECPay 付款頁面取得失敗:', payRes.status, errText);
+          alert('付款頁面載入失敗，訂單已建立，請至訂單查詢頁面重新付款。\n\n錯誤：' + errText);
+        }
       }
 
       // 6. 顯示訂單完成畫面
