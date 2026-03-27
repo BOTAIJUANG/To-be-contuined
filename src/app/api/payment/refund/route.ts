@@ -109,10 +109,7 @@ export async function POST(req: NextRequest) {
       // 更新訂單退款狀態
       await supabaseAdmin
         .from('orders')
-        .update({
-          pay_status: 'refunded',
-          updated_at: new Date().toISOString(),
-        })
+        .update({ pay_status: 'refunded' })
         .eq('id', order.id);
 
       return NextResponse.json({ ok: true, message: '信用卡退款成功' });
