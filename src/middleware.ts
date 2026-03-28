@@ -73,7 +73,7 @@ export async function middleware(req: NextRequest) {
     '/api/ecpay/cvs-callback',
     '/api/pickup-session',
   ];
-  const isPublicApi = publicApiPaths.some(p => pathname.startsWith(p));
+  const isPublicApi = publicApiPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   if (pathname.startsWith('/api/') && !isPublicApi) {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
