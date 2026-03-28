@@ -1120,3 +1120,47 @@
   cursor: pointer;
   min-height: 44px;
 }
+
+/* ── CVS Map Button ── */
+.btnCvsMap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background: var(--bg-warm, #FAF8F5);
+  color: var(--text-dark, #1E1C1A);
+  border: 1px solid var(--line, #E8E4DC);
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  min-height: 44px;
+  margin-bottom: 12px;
+  transition: background 0.15s;
+}
+.btnCvsMap:hover {
+  background: var(--line, #E8E4DC);
+}
+
+/* ── CVS Store Info (readonly) ── */
+.cvsStoreInfo {
+  background: var(--bg-warm, #FAF8F5);
+  border: 1px solid var(--line, #E8E4DC);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.cvsStoreRow {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.cvsStoreLabel {
+  color: var(--text-light, #888580);
+  min-width: 40px;
+  flex-shrink: 0;
+}
+.cvsStoreValue {
+  color: var(--text-dark, #1E1C1A);
+  word-break: break-all;
+}

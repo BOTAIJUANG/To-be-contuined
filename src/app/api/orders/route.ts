@@ -78,6 +78,10 @@ interface OrderInput {
   pay_method:     string;
   redemption_id?: number;
   promotion_ids?: number[];
+  cvs_store_id?:      string;
+  cvs_store_name?:    string;
+  cvs_store_address?: string;
+  cvs_store_brand?:   string;
 }
 
 export async function POST(req: NextRequest) {
@@ -400,6 +404,10 @@ export async function POST(req: NextRequest) {
       city:        body.city ?? null,
       district:    body.district ?? null,
       address:     fullAddress,
+      cvs_store_id:      body.cvs_store_id ?? null,
+      cvs_store_name:    body.cvs_store_name ?? null,
+      cvs_store_address: body.cvs_store_address ?? null,
+      cvs_store_brand:   body.cvs_store_brand ?? null,
       ship_date:   body.ship_date ?? null,
       note:        body.note ?? null,
       subtotal,

@@ -110,7 +110,14 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                 <div className={s.sectionTitle}>配送資訊</div>
                 {[
                   { label: '配送方式', value: SHIP_LABEL[order.ship_method] ?? order.ship_method },
-                  { label: '收件地址', value: order.address || '—' },
+                  ...(order.cvs_store_name
+                    ? [
+                        { label: '取貨門市', value: `${order.cvs_store_brand ?? ''} ${order.cvs_store_name}`.trim() },
+                        { label: '門市地址', value: order.cvs_store_address || '—' },
+                        ...(order.cvs_store_id ? [{ label: '門市店號', value: order.cvs_store_id }] : []),
+                      ]
+                    : [{ label: '收件地址', value: order.address || '—' }]
+                  ),
                   { label: order.ship_method === 'store' ? '指定到店日' : '指定出貨日', value: order.ship_date || '—' },
                   { label: '物流業者', value: order.carrier || '—' },
                   { label: '追蹤號碼', value: order.tracking_no || '—' },

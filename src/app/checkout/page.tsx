@@ -8,7 +8,7 @@
 // 現在改成呼叫後端的 /api/orders API 來建立訂單，
 // 所有金額計算都在 server 端完成。
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 import { usePromotions } from '@/hooks/usePromotions';
@@ -136,6 +136,11 @@ export default function CheckoutPage() {
   const [address,    setAddress]    = useState('');
   const [cvsStoreName, setCvsStoreName] = useState('');
   const [cvsStoreAddr, setCvsStoreAddr] = useState('');
+  const [cvsStoreId,   setCvsStoreId]   = useState('');
+  const [cvsStoreBrand, setCvsStoreBrand] = useState('');
+  const [pickupToken,  setPickupToken]  = useState('');
+  const pickupPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mapWindowRef  = useRef<Window | null>(null);
   const [date,       setDate]       = useState('');
   const [note,       setNote]       = useState('');
   const [coupon,     setCoupon]     = useState('');
@@ -153,6 +158,71 @@ export default function CheckoutPage() {
       setCustomerEmail(buyerEmail);
     }
   };
+  // ── 綠界超商地圖 ──────────────────────────────
+  const generatePickupToken = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let t = '';
+    for (let i = 0; i < 16; i++) t += chars[Math.floor(Math.random() * chars.length)];
+    return t;
+  };
+
+  const pollPickupSession = useCallback(async (token: string) => {
+    try {
+      const res = await fetch(`/api/pickup-session?token=${token}`);
+      const data = await res.json();
+      if (data.found) {
+        setCvsStoreId(data.store_id);
+        setCvsStoreName(data.store_name);
+        setCvsStoreAddr(data.store_address);
+        setCvsStoreBrand(data.store_brand);
+        // 停止輪詢
+        if (pickupPollRef.current) { clearInterval(pickupPollRef.current); pickupPollRef.current = null; }
+      }
+    } catch { /* 靜默 */ }
+  }, []);
+
+  const openCvsMap = async () => {
+    const token = generatePickupToken();
+    setPickupToken(token);
+    // 清除舊的輪詢
+    if (pickupPollRef.current) { clearInterval(pickupPollRef.current); pickupPollRef.current = null; }
+
+    // 取得 E-map 表單 HTML
+    const subtype = shipMethod === 'cvs_family' ? 'FAMI' : 'UNIMART';
+    const res = await fetch('/api/ecpay/cvs-map', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, subtype }),
+    });
+    const html = await res.text();
+
+    // 開啟新視窗
+    const popup = window.open('', 'ecpay_cvs_map', 'width=1024,height=700,scrollbars=yes');
+    if (popup) {
+      popup.document.open();
+      popup.document.write(html);
+      popup.document.close();
+      mapWindowRef.current = popup;
+    }
+
+    // 開始輪詢（每 2 秒）
+    pickupPollRef.current = setInterval(() => pollPickupSession(token), 2000);
+  };
+
+  // visibilitychange：使用者從彈窗回到本頁時立即查一次
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && pickupToken) {
+        pollPickupSession(pickupToken);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (pickupPollRef.current) clearInterval(pickupPollRef.current);
+    };
+  }, [pickupToken, pollPickupSession]);
+
   const [orderNo,    setOrderNo]    = useState(() => {
     if (typeof window === 'undefined') return '';
     return sessionStorage.getItem('checkout_orderNo') ?? '';
@@ -386,7 +456,7 @@ export default function CheckoutPage() {
     const finalCustomerEmail = sameAsBuyer ? buyerEmail : customerEmail;
     if (!finalCustomerName || !finalCustomerPhone || !finalCustomerEmail) { alert('請填寫收件人資訊'); return; }
     if (isHomeDelivery && (!city || !address)) { alert('請填寫完整收件地址'); return; }
-    if (isCvsPickup && (!cvsStoreName || !cvsStoreAddr)) { alert('請填寫取貨門市名稱與地址'); return; }
+    if (isCvsPickup && (!cvsStoreName || !cvsStoreAddr)) { alert('請先選擇取貨門市'); return; }
     if (noIntersection) { alert('您的購物車商品無法安排在同一天出貨，請分開下單。'); return; }
     if (!date && availableDates.length > 0) { alert('請選擇出貨日期'); return; }
     setStep(3);
@@ -453,8 +523,10 @@ export default function CheckoutPage() {
           city:           city || undefined,
           district:       district || undefined,
           address:        isCvsPickup ? `${cvsStoreName} ${cvsStoreAddr}` : (address || undefined),
-          cvs_store_name: isCvsPickup ? cvsStoreName : undefined,
-          cvs_store_addr: isCvsPickup ? cvsStoreAddr : undefined,
+          cvs_store_id:      isCvsPickup ? cvsStoreId : undefined,
+          cvs_store_name:    isCvsPickup ? cvsStoreName : undefined,
+          cvs_store_address: isCvsPickup ? cvsStoreAddr : undefined,
+          cvs_store_brand:   isCvsPickup ? cvsStoreBrand : undefined,
           ship_date:      finalShipDate,
           note:           note || undefined,
           coupon_code:    coupon || undefined,
@@ -774,17 +846,28 @@ export default function CheckoutPage() {
 
           {isCvsPickup && (
             <>
-              <div className={s.sectionTitleSmSpaced}>取貨門市資訊</div>
-              <div className={s.grid2}>
-                <div className={s.fieldGroup}>
-                  <label className={s.label}>門市名稱 *</label>
-                  <input value={cvsStoreName} onChange={e => setCvsStoreName(e.target.value)} placeholder={`${shipMethod === 'cvs_711' ? '7-11' : '全家'} ○○門市`} className={s.input} />
+              <div className={s.sectionTitleSmSpaced}>取貨門市</div>
+              <button type="button" onClick={openCvsMap} className={s.btnCvsMap}>
+                {cvsStoreName ? '重新選擇門市' : '選擇取貨門市'}
+              </button>
+              {cvsStoreName && (
+                <div className={s.cvsStoreInfo}>
+                  <div className={s.cvsStoreRow}>
+                    <span className={s.cvsStoreLabel}>門市</span>
+                    <span className={s.cvsStoreValue}>{cvsStoreBrand} {cvsStoreName}</span>
+                  </div>
+                  <div className={s.cvsStoreRow}>
+                    <span className={s.cvsStoreLabel}>地址</span>
+                    <span className={s.cvsStoreValue}>{cvsStoreAddr}</span>
+                  </div>
+                  {cvsStoreId && (
+                    <div className={s.cvsStoreRow}>
+                      <span className={s.cvsStoreLabel}>店號</span>
+                      <span className={s.cvsStoreValue}>{cvsStoreId}</span>
+                    </div>
+                  )}
                 </div>
-                <div className={s.fieldGroup}>
-                  <label className={s.label}>門市地址 *</label>
-                  <input value={cvsStoreAddr} onChange={e => setCvsStoreAddr(e.target.value)} placeholder="門市所在地址" className={s.input} />
-                </div>
-              </div>
+              )}
             </>
           )}
 
