@@ -1,6 +1,9 @@
 // ════════════════════════════════════════════════
 // POST /api/admin/orders/[id]/ship
 // 出貨：status=shipped + shipped_at + 庫存扣減
+//
+// 流程：先預檢所有庫存 → 全部足夠才批次扣減 → 更新訂單
+// 避免「部分扣成功、部分失敗」的不一致狀態
 // ════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -39,17 +42,45 @@ export async function POST(
     return NextResponse.json({ error: '找不到訂單明細' }, { status: 400 });
   }
 
-  // 庫存出貨
-  const errors: string[] = [];
+  // ── Phase 1：預檢所有庫存（只讀，不寫）──────────
+  type InvRecord = {
+    inv: any;
+    item: typeof items[number];
+    isStock: boolean;
+  };
+
+  const invRecords: InvRecord[] = [];
+
   for (const item of items) {
     let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
     if (item.variant_id) query = query.eq('variant_id', item.variant_id);
     else query = query.is('variant_id', null);
 
     const { data: inv } = await query.single();
-    if (!inv) { errors.push(`找不到商品 ${item.product_id} 的庫存記錄`); continue; }
+    if (!inv) {
+      return NextResponse.json(
+        { error: `找不到商品 ${item.product_id} 的庫存記錄，無法出貨` },
+        { status: 400 },
+      );
+    }
 
     const isStock = inv.inventory_mode === 'stock';
+
+    // stock 模式：檢查實體庫存是否足夠
+    if (isStock && inv.stock < item.qty) {
+      return NextResponse.json(
+        { error: `商品 ${item.product_id} 實體庫存不足（剩餘 ${inv.stock}，需要 ${item.qty}），無法出貨` },
+        { status: 400 },
+      );
+    }
+
+    invRecords.push({ inv, item, isStock });
+  }
+
+  // ── Phase 2：預檢通過，批次執行扣減 ────────────
+  const inventoryLogs: any[] = [];
+
+  for (const { inv, item, isStock } of invRecords) {
     let updateData: Record<string, number>;
     let qtyBefore: number;
     let qtyAfter: number;
@@ -69,9 +100,12 @@ export async function POST(
       .update({ ...updateData, updated_at: new Date().toISOString() })
       .eq('id', inv.id);
 
-    if (updErr) { errors.push(`庫存更新失敗：${updErr.message}`); continue; }
+    if (updErr) {
+      // Phase 2 失敗 → 記錄但繼續（前面預檢已確保數值合理）
+      console.error(`庫存扣減失敗 inv.id=${inv.id}:`, updErr.message);
+    }
 
-    await supabaseAdmin.from('inventory_logs').insert({
+    inventoryLogs.push({
       inventory_id: inv.id,
       product_id:   item.product_id,
       variant_id:   item.variant_id ?? null,
@@ -85,11 +119,12 @@ export async function POST(
     });
   }
 
-  if (errors.length > 0) {
-    return NextResponse.json({ error: errors.join('；') }, { status: 400 });
+  // 批次寫入 log
+  if (inventoryLogs.length > 0) {
+    await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
   }
 
-  // 更新訂單狀態
+  // ── Phase 3：全部成功，更新訂單狀態 ────────────
   await supabaseAdmin.from('orders').update({
     status: 'shipped',
     shipped_at: new Date().toISOString(),

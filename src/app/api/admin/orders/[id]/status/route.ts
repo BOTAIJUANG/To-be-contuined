@@ -40,6 +40,15 @@ export async function PATCH(
     return NextResponse.json({ error: '已取消或已退款的訂單無法變更狀態' }, { status: 400 });
   }
 
+  // 只允許 shipped → processing（退回處理中）
+  // done → processing 不允許，因為完成時已加章，退回不會自動扣章
+  if (order.status !== 'shipped') {
+    return NextResponse.json(
+      { error: `只有「已出貨」狀態可以改回「處理中」，目前狀態：${order.status}` },
+      { status: 400 },
+    );
+  }
+
   const { error } = await supabaseAdmin
     .from('orders')
     .update({ status: 'processing' })
