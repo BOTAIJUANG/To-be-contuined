@@ -1,5 +1,7 @@
 // app/product/[slug]/page.tsx  ──  商品詳細頁（responsive）
 
+export const dynamic = 'force-dynamic';
+
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
