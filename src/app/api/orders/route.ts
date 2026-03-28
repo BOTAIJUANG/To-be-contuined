@@ -538,19 +538,52 @@ export async function POST(req: NextRequest) {
     const isStock = inv.inventory_mode === 'stock';
     const isPreorder = inv.inventory_mode === 'preorder';
 
-    let updateData: any = {};
     if (isStock) {
-      updateData = { reserved: inv.reserved + item.qty };
+      // 再次確認庫存夠（防止預檢後被搶走）
+      const available = inv.stock - inv.reserved;
+      if (!item.is_redeem && available < item.qty) {
+        return NextResponse.json(
+          { error: `商品庫存不足（剩餘 ${available} 件），請減少數量後重試` },
+          { status: 409 },
+        );
+      }
+      // 樂觀鎖：只有 reserved 沒被別人改過才更新
+      const { error: updateErr } = await supabaseAdmin
+        .from('inventory')
+        .update({ reserved: inv.reserved + item.qty, updated_at: new Date().toISOString() })
+        .eq('id', inv.id)
+        .eq('reserved', inv.reserved);
+
+      if (updateErr) {
+        return NextResponse.json(
+          { error: '庫存預留失敗，請重新整理後再試' },
+          { status: 409 },
+        );
+      }
     } else if (isPreorder) {
-      updateData = { reserved_preorder: inv.reserved_preorder + item.qty };
+      const limit = inv.preorder_limit ?? 0;
+      const available = limit > 0 ? limit - inv.reserved_preorder : Infinity;
+      if (!item.is_redeem && limit > 0 && available < item.qty) {
+        return NextResponse.json(
+          { error: `預購額度不足（剩餘 ${available} 件），請減少數量後重試` },
+          { status: 409 },
+        );
+      }
+      const { error: updateErr } = await supabaseAdmin
+        .from('inventory')
+        .update({ reserved_preorder: inv.reserved_preorder + item.qty, updated_at: new Date().toISOString() })
+        .eq('id', inv.id)
+        .eq('reserved_preorder', inv.reserved_preorder);
+
+      if (updateErr) {
+        return NextResponse.json(
+          { error: '預購預留失敗，請重新整理後再試' },
+          { status: 409 },
+        );
+      }
     } else {
       continue;
     }
-
-    await supabaseAdmin
-      .from('inventory')
-      .update({ ...updateData, updated_at: new Date().toISOString() })
-      .eq('id', inv.id);
 
     await supabaseAdmin.from('inventory_logs').insert({
       inventory_id: inv.id,

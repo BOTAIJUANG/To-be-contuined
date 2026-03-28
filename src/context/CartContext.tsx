@@ -32,7 +32,7 @@ export interface CartItem {
 // 加入購物車的結果
 export type AddItemResult =
   | { ok: true }
-  | { ok: false; conflict: true; existingType: 'stock' | 'preorder'; newType: 'stock' | 'preorder' };
+  | { ok: false; overStock: true; maxStock: number };
 
 interface CartContextType {
   items:       CartItem[];
@@ -40,9 +40,9 @@ interface CartContextType {
   totalPrice:  number;
   cartType:    'stock' | 'preorder' | null;  // 目前購物車類型
   mixedShipDate: string | null;              // 混購時的統一出貨日
-  addItem:     (item: Omit<CartItem, 'qty'>, qty?: number) => AddItemResult;
+  addItem:     (item: Omit<CartItem, 'qty'>, qty?: number, maxStock?: number | null) => AddItemResult;
   removeItem:  (id: string, variantId?: number) => void;
-  updateQty:   (id: string, qty: number, variantId?: number) => void;
+  updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null) => boolean;
   clearCart:   () => void;
   isOpen:      boolean;
   openCart:    () => void;
@@ -81,14 +81,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return preorderDates.sort().reverse()[0]; // 最晚日期
   })();
 
-  const addItem = (newItem: Omit<CartItem, 'qty'>, qty = 1): AddItemResult => {
+  const addItem = (newItem: Omit<CartItem, 'qty'>, qty = 1, maxStock?: number | null): AddItemResult => {
+    const key = newItem.variantId ? `${newItem.id}_${newItem.variantId}` : newItem.id;
+    const existing = items.find(i => {
+      const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
+      return iKey === key;
+    });
+    const existingQty = existing?.qty ?? 0;
+    const nextQty = existingQty + qty;
+
+    // 超過庫存 → 擋住
+    if (maxStock != null && nextQty > maxStock) {
+      return { ok: false, overStock: true, maxStock };
+    }
+
     setItems(prev => {
-      const key = newItem.variantId ? `${newItem.id}_${newItem.variantId}` : newItem.id;
-      const existing = prev.find(i => {
+      const ex = prev.find(i => {
         const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
         return iKey === key;
       });
-      if (existing) {
+      if (ex) {
         return prev.map(i => {
           const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
           return iKey === key ? { ...i, qty: i.qty + qty } : i;
@@ -107,12 +119,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const updateQty = (id: string, qty: number, variantId?: number) => {
-    if (qty <= 0) { removeItem(id, variantId); return; }
+  const updateQty = (id: string, qty: number, variantId?: number, maxStock?: number | null): boolean => {
+    if (qty <= 0) { removeItem(id, variantId); return true; }
+    if (maxStock != null && qty > maxStock) return false;
     setItems(prev => prev.map(i => {
       if (variantId) return (i.id === id && i.variantId === variantId) ? { ...i, qty } : i;
       return i.id === id ? { ...i, qty } : i;
     }));
+    return true;
   };
 
   const clearCart  = () => setItems([]);

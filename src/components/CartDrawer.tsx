@@ -156,7 +156,7 @@ export default function CartDrawer() {
                           className={s.qtyBtn}
                           onClick={() => {
                             const max = getMaxQty(item);
-                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId);
+                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId, max);
                           }}
                           disabled={item.qty >= getMaxQty(item)}
                         >+</button>

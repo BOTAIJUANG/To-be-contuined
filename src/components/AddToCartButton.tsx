@@ -2,7 +2,7 @@
 
 // components/AddToCartButton.tsx  ──  加入購物車（responsive）
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import s from './AddToCartButton.module.css';
 
@@ -22,12 +22,11 @@ interface AddToCartButtonProps {
 }
 
 export default function AddToCartButton({ product, variantId, variantName }: AddToCartButtonProps) {
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(product.preorderBatches?.[0] ?? null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
-    // 預設選第一個有庫存的規格
     product.variants?.find(v => v.stock === null || v.stock === undefined || v.stock > 0) ?? product.variants?.[0] ?? null
   );
 
@@ -38,20 +37,50 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const isPreorder   = product.isPreorder ?? false;
   const batches      = product.preorderBatches ?? [];
 
+  // 計算這個商品/規格在購物車裡已經有幾件
+  const currentKey = hasVariants
+    ? `${product.id}_${selectedVariant?.id ?? ''}`
+    : product.id;
+
+  const cartQty = useMemo(() => {
+    return items
+      .filter(i => {
+        const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
+        return iKey === currentKey;
+      })
+      .reduce((sum, i) => sum + i.qty, 0);
+  }, [items, currentKey]);
+
+  // 實際庫存
+  const realStock = hasVariants
+    ? (selectedVariant?.stock ?? null)
+    : (product.stock ?? null);
+
+  // 還可以再加入的數量 = 庫存 - 購物車已有
+  const remainingStock = realStock == null ? null : Math.max(0, realStock - cartQty);
+  const maxSelectableQty = remainingStock == null ? Infinity : remainingStock;
+
   const handleAdd = () => {
     if (product.isSoldOut) return;
     if (isPreorder && !selectedBatch) return;
     if (hasVariants && !selectedVariant) return;
+    if (maxSelectableQty <= 0) return;
 
-    addItem({
+    const result = addItem({
       id: product.id, slug: product.slug, name: product.name,
       price: displayPrice, imageUrl: product.imageUrl,
       isPreorder, preorderShipDate: selectedBatch?.ship_date ?? product.preorderShipDate,
       variantId: hasVariants ? selectedVariant?.id : variantId,
       variantName: hasVariants ? selectedVariant?.name : variantName,
-    }, qty);
+    }, qty, realStock);
+
+    if (!result.ok) {
+      alert(`此商品目前最多只能購買 ${result.maxStock} 件（購物車已有 ${cartQty} 件）`);
+      return;
+    }
 
     setAdded(true);
+    setQty(1);
     setTimeout(() => setAdded(false), 2000);
   };
 
@@ -81,7 +110,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
                 <button
                   key={v.id}
                   className={`${s.variantBtn} ${selectedVariant?.id === v.id ? s.selected : ''} ${outOfStock ? s.variantSoldOut : ''}`}
-                  onClick={() => !outOfStock && setSelectedVariant(v)}
+                  onClick={() => { if (!outOfStock) { setSelectedVariant(v); setQty(1); } }}
                   disabled={outOfStock}
                 >
                   {v.name}{outOfStock ? '（售完）' : ''}
@@ -129,12 +158,11 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       <div className={s.qtyWrap}>
         <button className={s.qtyBtn} onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
         <span className={s.qtyValue}>{qty}</span>
-        <button className={s.qtyBtn} onClick={() => {
-          const maxStock = hasVariants
-            ? (selectedVariant?.stock != null ? selectedVariant.stock : Infinity)
-            : (product.stock != null ? product.stock : Infinity);
-          setQty(q => Math.min(q + 1, maxStock));
-        }}>+</button>
+        <button
+          className={s.qtyBtn}
+          onClick={() => setQty(q => Math.min(q + 1, maxSelectableQty))}
+          disabled={qty >= maxSelectableQty || maxSelectableQty <= 0}
+        >+</button>
       </div>
 
       {/* 即時金額 */}
@@ -149,9 +177,9 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         <button
           className={`${s.addBtn} ${added ? s.added : ''}`}
           onClick={handleAdd}
-          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant) || variantSoldOut}
+          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant) || variantSoldOut || maxSelectableQty <= 0}
         >
-          {added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
+          {maxSelectableQty <= 0 ? '已達可購上限' : added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
         </button>
       </div>
     </div>
