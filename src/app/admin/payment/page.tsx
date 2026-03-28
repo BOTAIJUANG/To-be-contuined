@@ -42,7 +42,7 @@ export default function AdminPaymentPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('id, order_no, buyer_name, buyer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, ecpay_trade_no, paid_at, created_at')
+      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, ecpay_trade_no, paid_at, created_at')
       .order('created_at', { ascending: false });
     const list = data ?? [];
     const today = new Date().toISOString().split('T')[0];
@@ -151,7 +151,7 @@ export default function AdminPaymentPage() {
 
   // ── 篩選 ──────────────────────────────────────────
   const filtered = orders.filter(o => {
-    const matchSearch = !search || o.order_no.includes(search.toUpperCase()) || (o.buyer_name ?? '').includes(search);
+    const matchSearch = !search || o.order_no.includes(search.toUpperCase()) || (o.buyer_name ?? '').includes(search) || (o.customer_name ?? '').includes(search);
     const matchFilter = !filter || o.pay_status === filter || o.refund_status === filter;
     return matchSearch && matchFilter;
   });
@@ -223,6 +223,9 @@ export default function AdminPaymentPage() {
                 <td className={s.td}>
                   <div className={p.buyerName}>{order.buyer_name}</div>
                   <div className={p.buyerEmail}>{order.buyer_email}</div>
+                  {order.customer_name && order.customer_name !== order.buyer_name && (
+                    <div className={p.buyerEmail} style={{ color: '#999' }}>收件人：{order.customer_name}</div>
+                  )}
                 </td>
                 <td className={`${s.td} ${p.tdNoWrap}`}>NT$ {order.total.toLocaleString()}</td>
                 <td className={`${s.td} ${p.tdPayMethod}`}>{PAY_METHOD[order.pay_method] ?? order.pay_method ?? '—'}</td>
@@ -271,7 +274,7 @@ export default function AdminPaymentPage() {
                 <span className={`${s.cardValue} ${p.cardOrderNo}`}>{order.order_no}</span>
               </div>
               <div className={s.cardRow}>
-                <span className={s.cardLabel}>買家</span>
+                <span className={s.cardLabel}>購買人</span>
                 <span className={s.cardValue}>{order.buyer_name}</span>
               </div>
               <div className={s.cardRow}>

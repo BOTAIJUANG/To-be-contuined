@@ -61,9 +61,14 @@ interface CartItemInput {
 interface OrderInput {
   items:          CartItemInput[];
   ship_method:    string;
-  name:           string;
-  phone:          string;
-  email:          string;
+  // 購買人（下單人 / 付款人）
+  buyerName:      string;
+  buyerPhone:     string;
+  buyerEmail:     string;
+  // 收件人
+  customerName:   string;
+  customerPhone:  string;
+  customerEmail:  string;
   city?:          string;
   district?:      string;
   address?:       string;
@@ -87,7 +92,10 @@ export async function POST(req: NextRequest) {
   if (!body.items?.length) {
     return NextResponse.json({ error: '購物車是空的' }, { status: 400 });
   }
-  if (!body.name || !body.phone || !body.email) {
+  if (!body.buyerName || !body.buyerPhone || !body.buyerEmail) {
+    return NextResponse.json({ error: '請填寫購買人資訊' }, { status: 400 });
+  }
+  if (!body.customerName || !body.customerPhone || !body.customerEmail) {
     return NextResponse.json({ error: '請填寫收件人資訊' }, { status: 400 });
   }
   if (!memberId && body.items.some(i => i.is_redeem)) {
@@ -382,12 +390,12 @@ export async function POST(req: NextRequest) {
     .insert({
       order_no:       orderNo,
       member_id:      memberId ?? null,
-      buyer_name:     body.name,
-      buyer_phone:    body.phone,
-      buyer_email:    body.email,
-      customer_name:  body.name,
-      customer_email: body.email,
-      customer_phone: body.phone,
+      buyer_name:     body.buyerName,
+      buyer_phone:    body.buyerPhone,
+      buyer_email:    body.buyerEmail,
+      customer_name:  body.customerName,
+      customer_email: body.customerEmail,
+      customer_phone: body.customerPhone,
       ship_method: body.ship_method,
       city:        body.city ?? null,
       district:    body.district ?? null,

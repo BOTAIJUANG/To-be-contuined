@@ -151,6 +151,22 @@
   margin-top: 20px;
 }
 
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary, #1E1C1A);
+  cursor: pointer;
+}
+
 .sectionTitleMdSpaced {
   composes: sectionTitle;
   margin-top: 24px;

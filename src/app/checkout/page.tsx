@@ -122,9 +122,15 @@ export default function CheckoutPage() {
 
   // Step 2 欄位
   const [shipMethod, setShipMethod] = useState('home');
-  const [name,       setName]       = useState('');
-  const [phone,      setPhone]      = useState('');
-  const [email,      setEmail]      = useState('');
+  // 購買人
+  const [buyerName,     setBuyerName]     = useState('');
+  const [buyerPhone,    setBuyerPhone]    = useState('');
+  const [buyerEmail,    setBuyerEmail]    = useState('');
+  // 收件人
+  const [sameAsBuyer,   setSameAsBuyer]   = useState(true);
+  const [customerName,  setCustomerName]  = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [city,       setCity]       = useState('');
   const [district,   setDistrict]   = useState('');
   const [address,    setAddress]    = useState('');
@@ -137,6 +143,16 @@ export default function CheckoutPage() {
   const [discount,   setDiscount]   = useState(0);
   const [payMethod,  setPayMethod]  = useState('credit');
   const [submitting, setSubmitting] = useState(false);
+
+  // 勾選「與購買人相同」時，把購買人值複製到收件人（僅在勾選瞬間複製）
+  const handleSameAsBuyer = (checked: boolean) => {
+    setSameAsBuyer(checked);
+    if (checked) {
+      setCustomerName(buyerName);
+      setCustomerPhone(buyerPhone);
+      setCustomerEmail(buyerEmail);
+    }
+  };
   const [orderNo,    setOrderNo]    = useState(() => {
     if (typeof window === 'undefined') return '';
     return sessionStorage.getItem('checkout_orderNo') ?? '';
@@ -188,12 +204,16 @@ export default function CheckoutPage() {
         // 自動帶入預設地址
         const def = (addrs ?? []).find((a: any) => a.is_default) ?? addrs?.[0];
         if (def) {
-          setName(def.name ?? '');
-          setPhone(def.phone ?? '');
+          // 預設帶入購買人（收件人透過 checkbox 同步）
+          setBuyerName(def.name ?? '');
+          setBuyerPhone(def.phone ?? '');
+          setCustomerName(def.name ?? '');
+          setCustomerPhone(def.phone ?? '');
           if (def.type === 'home') { setCity(def.city ?? ''); setDistrict(def.district ?? ''); setAddress(def.address ?? ''); }
         }
         // 帶入 Email
-        setEmail(session.user.email ?? '');
+        setBuyerEmail(session.user.email ?? '');
+        setCustomerEmail(session.user.email ?? '');
       }
     };
     load();
@@ -257,18 +277,19 @@ export default function CheckoutPage() {
   // 帶入已儲存地址（再點一次同一個 = 取消選取，清空欄位）
   const applyAddress = (addr: any) => {
     if (selectedAddrId === addr.id) {
-      // 取消選取，清空欄位
       setSelectedAddrId(null);
-      setName('');
-      setPhone('');
+      setCustomerName('');
+      setCustomerPhone('');
       setCity('');
       setDistrict('');
       setAddress('');
+      setSameAsBuyer(false);
       return;
     }
     setSelectedAddrId(addr.id);
-    setName(addr.name ?? '');
-    setPhone(addr.phone ?? '');
+    setCustomerName(addr.name ?? '');
+    setCustomerPhone(addr.phone ?? '');
+    setSameAsBuyer(false);
     if (addr.type === 'home') {
       setShipMethod('home');
       setCity(addr.city ?? '');
@@ -359,7 +380,11 @@ export default function CheckoutPage() {
   }, [step]);
 
   const validateStep2 = () => {
-    if (!name || !phone || !email) { alert('請填寫收件人資訊'); return; }
+    if (!buyerName || !buyerPhone || !buyerEmail) { alert('請填寫購買人資訊'); return; }
+    const finalCustomerName  = sameAsBuyer ? buyerName  : customerName;
+    const finalCustomerPhone = sameAsBuyer ? buyerPhone : customerPhone;
+    const finalCustomerEmail = sameAsBuyer ? buyerEmail : customerEmail;
+    if (!finalCustomerName || !finalCustomerPhone || !finalCustomerEmail) { alert('請填寫收件人資訊'); return; }
     if (isHomeDelivery && (!city || !address)) { alert('請填寫完整收件地址'); return; }
     if (isCvsPickup && (!cvsStoreName || !cvsStoreAddr)) { alert('請填寫取貨門市名稱與地址'); return; }
     if (noIntersection) { alert('您的購物車商品無法安排在同一天出貨，請分開下單。'); return; }
@@ -418,21 +443,24 @@ export default function CheckoutPage() {
         headers,
         body: JSON.stringify({
           items: orderItems,
-          ship_method:   shipMethod,
-          name,
-          phone,
-          email,
-          city:          city || undefined,
-          district:      district || undefined,
-          address:       isCvsPickup ? `${cvsStoreName} ${cvsStoreAddr}` : (address || undefined),
+          ship_method:    shipMethod,
+          buyerName,
+          buyerPhone,
+          buyerEmail,
+          customerName:   sameAsBuyer ? buyerName  : customerName,
+          customerPhone:  sameAsBuyer ? buyerPhone : customerPhone,
+          customerEmail:  sameAsBuyer ? buyerEmail : customerEmail,
+          city:           city || undefined,
+          district:       district || undefined,
+          address:        isCvsPickup ? `${cvsStoreName} ${cvsStoreAddr}` : (address || undefined),
           cvs_store_name: isCvsPickup ? cvsStoreName : undefined,
           cvs_store_addr: isCvsPickup ? cvsStoreAddr : undefined,
-          ship_date:     finalShipDate,
-          note:          note || undefined,
-          coupon_code:   coupon || undefined,
-          pay_method:    payMethod,
-          redemption_id: redeemItem?.redemptionId,
-          promotion_ids: promoResult.discounts.map(d => d.promotion_id),
+          ship_date:      finalShipDate,
+          note:           note || undefined,
+          coupon_code:    coupon || undefined,
+          pay_method:     payMethod,
+          redemption_id:  redeemItem?.redemptionId,
+          promotion_ids:  promoResult.discounts.map(d => d.promotion_id),
         }),
       });
 
@@ -682,17 +710,12 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <div className={s.sectionTitle}>配送方式</div>
-          {availableShipOptions.map(opt => (
-            <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
-          ))}
-
-          <div className={s.sectionTitleSpaced}>收件人資訊</div>
+          <div className={s.sectionTitle}>購買人資訊</div>
           <div className={s.grid2}>
             {[
-              { label: '姓名 *',   type: 'text',  val: name,  set: setName,  ph: '收件人姓名' },
-              { label: '手機 *',   type: 'tel',   val: phone, set: setPhone, ph: '0912-345-678' },
-              { label: 'Email *',  type: 'email', val: email, set: setEmail, ph: '用於寄送訂單確認信' },
+              { label: '姓名 *',  type: 'text',  val: buyerName,  set: setBuyerName,  ph: '購買人姓名' },
+              { label: '手機 *',  type: 'tel',   val: buyerPhone, set: setBuyerPhone, ph: '0912-345-678' },
+              { label: 'Email *', type: 'email', val: buyerEmail, set: setBuyerEmail, ph: '用於寄送訂單確認信' },
             ].map(({ label, type, val, set, ph }) => (
               <div key={label} className={s.fieldGroup}>
                 <label className={s.label}>{label}</label>
@@ -700,6 +723,31 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
+
+          <div className={s.sectionTitle}>配送方式</div>
+          {availableShipOptions.map(opt => (
+            <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
+          ))}
+
+          <div className={s.sectionTitleSpaced}>收件人資訊</div>
+          <label className={s.checkboxLabel}>
+            <input type="checkbox" checked={sameAsBuyer} onChange={e => handleSameAsBuyer(e.target.checked)} className={s.checkbox} />
+            與購買人相同
+          </label>
+          {!sameAsBuyer && (
+            <div className={s.grid2}>
+              {[
+                { label: '姓名 *',  type: 'text',  val: customerName,  set: setCustomerName,  ph: '收件人姓名' },
+                { label: '手機 *',  type: 'tel',   val: customerPhone, set: setCustomerPhone, ph: '0912-345-678' },
+                { label: 'Email *', type: 'email', val: customerEmail, set: setCustomerEmail, ph: '收件人 Email' },
+              ].map(({ label, type, val, set, ph }) => (
+                <div key={`customer-${label}`} className={s.fieldGroup}>
+                  <label className={s.label}>{label}</label>
+                  <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
+                </div>
+              ))}
+            </div>
+          )}
 
           {isHomeDelivery && (
             <>

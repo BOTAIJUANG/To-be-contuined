@@ -42,7 +42,7 @@ export default function AdminLogisticsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('id, order_no, buyer_name, buyer_phone, ship_method, address, ship_date, status, pay_status, tracking_no, carrier, shipped_at, created_at, order_items(name, qty)')
+      .select('id, order_no, buyer_name, buyer_phone, customer_name, customer_phone, ship_method, address, ship_date, status, pay_status, tracking_no, carrier, shipped_at, created_at, order_items(name, qty)')
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
 
@@ -127,7 +127,7 @@ export default function AdminLogisticsPage() {
   };
 
   const filtered = orders.filter(o => {
-    const matchSearch = !search || o.order_no.includes(search.toUpperCase()) || (o.buyer_name ?? '').includes(search);
+    const matchSearch = !search || o.order_no.includes(search.toUpperCase()) || (o.buyer_name ?? '').includes(search) || (o.customer_name ?? '').includes(search);
     const matchFilter = !filter || o.status === filter;
     return matchSearch && matchFilter;
   });
@@ -189,10 +189,10 @@ export default function AdminLogisticsPage() {
                   )}
                 </td>
 
-                {/* 買家 */}
+                {/* 收件人 */}
                 <td className={s.td}>
-                  <div className={p.buyerName}>{order.buyer_name}</div>
-                  <div className={p.buyerPhone}>{order.buyer_phone}</div>
+                  <div className={p.buyerName}>{order.customer_name ?? order.buyer_name}</div>
+                  <div className={p.buyerPhone}>{order.customer_phone ?? order.buyer_phone}</div>
                 </td>
 
                 {/* 配送方式 */}
@@ -280,8 +280,8 @@ export default function AdminLogisticsPage() {
                 <span className={`${s.cardValue} ${p.cardOrderNo}`}>{order.order_no}</span>
               </div>
               <div className={s.cardRow}>
-                <span className={s.cardLabel}>買家</span>
-                <span className={s.cardValue}>{order.buyer_name}</span>
+                <span className={s.cardLabel}>收件人</span>
+                <span className={s.cardValue}>{order.customer_name ?? order.buyer_name}</span>
               </div>
               <div className={s.cardRow}>
                 <span className={s.cardLabel}>配送</span>

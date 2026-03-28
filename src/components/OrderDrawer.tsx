@@ -75,15 +75,30 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
             {/* 抽屜內容（可捲動）*/}
             <div className={s.body}>
 
-              {/* 買家資訊 */}
+              {/* 購買人資訊 */}
               <div className={s.section}>
-                <div className={s.sectionTitle}>買家資訊</div>
+                <div className={s.sectionTitle}>購買人資訊</div>
                 {[
                   { label: '姓名', value: order.buyer_name },
                   { label: '電話', value: order.buyer_phone },
                   { label: 'Email', value: order.buyer_email },
                 ].map(({ label, value }) => (
                   <div key={label} className={s.row}>
+                    <span className={s.rowLabel}>{label}</span>
+                    <span className={s.rowValue}>{value ?? '—'}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 收件人資訊 */}
+              <div className={s.section}>
+                <div className={s.sectionTitle}>收件人資訊</div>
+                {[
+                  { label: '姓名', value: order.customer_name },
+                  { label: '電話', value: order.customer_phone },
+                  { label: 'Email', value: order.customer_email },
+                ].map(({ label, value }) => (
+                  <div key={`customer-${label}`} className={s.row}>
                     <span className={s.rowLabel}>{label}</span>
                     <span className={s.rowValue}>{value ?? '—'}</span>
                   </div>

@@ -188,7 +188,7 @@ export default function AdminOrdersPage() {
     let list = data ?? [];
     if (kw) {
       const kwl = kw.toLowerCase();
-      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kwl) || (o.buyer_name ?? '').includes(kwl) || (o.buyer_phone ?? '').includes(kwl));
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kwl) || (o.buyer_name ?? '').includes(kwl) || (o.buyer_phone ?? '').includes(kwl) || (o.customer_name ?? '').includes(kwl) || (o.customer_phone ?? '').includes(kwl));
     }
     setOrders(list);
     setLoading(false);
@@ -228,7 +228,7 @@ export default function AdminOrdersPage() {
     let list = data ?? [];
     if (shipKeyword) {
       const kw = shipKeyword.toLowerCase();
-      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw));
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw) || (o.customer_name ?? '').includes(kw) || (o.customer_phone ?? '').includes(kw));
     }
     setShipOrders(list);
     setShipSelected(new Set());
@@ -262,7 +262,7 @@ export default function AdminOrdersPage() {
     let list = data ?? [];
     if (shippedKeyword) {
       const kw = shippedKeyword.toLowerCase();
-      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw));
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw) || (o.customer_name ?? '').includes(kw) || (o.customer_phone ?? '').includes(kw));
     }
     setShippedOrders(list);
     setShippedLoading(false);
@@ -273,7 +273,7 @@ export default function AdminOrdersPage() {
     const BOM = '\uFEFF';
     const headers = ['訂單編號', '下單日期', '收件人', '電話', '地址', '配送方式', '指定出貨日', '指定到店日', '商品名稱', '數量', '單價', '小計', '備註'];
     const rows = list.flatMap(o => (o.order_items ?? []).map((item: any) => [
-      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'), o.buyer_name, o.buyer_phone,
+      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'), o.customer_name ?? o.buyer_name, o.customer_phone ?? o.buyer_phone,
       o.address || (o.ship_method === 'store' ? '門市自取' : '—'), SHIP_LABEL[o.ship_method] ?? o.ship_method,
       o.ship_method !== 'store' ? (o.ship_date ?? '') : '',
       o.ship_method === 'store' ? (o.ship_date ?? '') : '',
@@ -490,12 +490,15 @@ export default function AdminOrdersPage() {
                       <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
                       <td className={s.tdBuyer}>
                         <div className={s.buyerName}>
-                          {o.buyer_name}
+                          {o.customer_name ?? o.buyer_name}
                           <span className={s.buyerBadge} style={{ background: o.member_id ? '#ebf5ef' : '#f7f0e7', borderColor: o.member_id ? '#cfe4d4' : '#e9d9c6', color: o.member_id ? '#4a7a56' : '#8a6b4d' }}>
                             {o.member_id ? '會員' : '訪客'}
                           </span>
                         </div>
-                        <div className={s.buyerPhone}>{o.buyer_phone}</div>
+                        <div className={s.buyerPhone}>{o.customer_phone ?? o.buyer_phone}</div>
+                        {o.customer_name && o.customer_name !== o.buyer_name && (
+                          <div className={s.buyerPhone} style={{ fontSize: 11, color: '#999' }}>購買人：{o.buyer_name}</div>
+                        )}
                       </td>
                       <td className={s.tdItems}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</td>
                       <td className={s.tdAmount}>NT$ {o.total.toLocaleString()}</td>
@@ -542,7 +545,7 @@ export default function AdminOrdersPage() {
                     </div>
                     <div className={s.cardMid}>
                       <div className={s.cardBuyer}>
-                        {o.buyer_name}
+                        {o.customer_name ?? o.buyer_name}
                         <span className={s.buyerBadge} style={{ background: o.member_id ? '#ebf5ef' : '#f7f0e7', borderColor: o.member_id ? '#cfe4d4' : '#e9d9c6', color: o.member_id ? '#4a7a56' : '#8a6b4d' }}>
                           {o.member_id ? '會員' : '訪客'}
                         </span>
@@ -628,7 +631,7 @@ export default function AdminOrdersPage() {
                       <td className={s.tdCheck} onClick={e => e.stopPropagation()}><input type="checkbox" className={s.checkbox} checked={shipSelected.has(o.id)} onChange={() => toggleShipSelect(o.id)} /></td>
                       <td className={s.tdOrderNo}>{o.order_no}</td>
                       <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
-                      <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
+                      <td className={s.tdBuyer}><div className={s.buyerName}>{o.customer_name ?? o.buyer_name}</div><div className={s.buyerPhone}>{o.customer_phone ?? o.buyer_phone}</div></td>
                       <td className={s.tdAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</td>
                       <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
                       <td className={s.tdQtyCell}>{totalQty(o.order_items)}</td>
@@ -651,7 +654,7 @@ export default function AdminOrdersPage() {
                       <span className={s.shipCardOrderNo}>{o.order_no}</span>
                       <span className={s.shipCardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</span>
                     </div>
-                    <div className={s.shipCardRecipient}>{o.buyer_name} ・ {o.buyer_phone}</div>
+                    <div className={s.shipCardRecipient}>{o.customer_name ?? o.buyer_name} ・ {o.customer_phone ?? o.buyer_phone}</div>
                     <div className={s.shipCardAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</div>
                     <div className={s.shipCardProduct}>{productSummary(o.order_items)}（共 {totalQty(o.order_items)} 件）</div>
                     {o.note && <div className={s.shipCardNote}>備註：{o.note}</div>}
@@ -696,7 +699,7 @@ export default function AdminOrdersPage() {
                       <td className={s.tdOrderNo}>{o.order_no}</td>
                       <td className={s.tdShippedDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</td>
                       <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
-                      <td className={s.tdBuyer}><div className={s.buyerName}>{o.buyer_name}</div><div className={s.buyerPhone}>{o.buyer_phone}</div></td>
+                      <td className={s.tdBuyer}><div className={s.buyerName}>{o.customer_name ?? o.buyer_name}</div><div className={s.buyerPhone}>{o.customer_phone ?? o.buyer_phone}</div></td>
                       <td className={s.tdAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</td>
                       <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
                       <td className={s.tdNote} title={o.note ?? ''}>{o.note || '—'}</td>
@@ -717,7 +720,7 @@ export default function AdminOrdersPage() {
                       <span className={s.shipCardOrderNo}>{o.order_no}</span>
                       <span className={s.shipCardDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</span>
                     </div>
-                    <div className={s.shipCardRecipient}>{o.buyer_name} ・ {o.buyer_phone}</div>
+                    <div className={s.shipCardRecipient}>{o.customer_name ?? o.buyer_name} ・ {o.customer_phone ?? o.buyer_phone}</div>
                     <div className={s.shipCardAddress}>{o.address || (o.ship_method === 'store' ? '門市自取' : '—')}</div>
                     <div className={s.shipCardProduct}>{productSummary(o.order_items)}</div>
                     {o.note && <div className={s.shipCardNote}>備註：{o.note}</div>}
@@ -865,7 +868,7 @@ export default function AdminOrdersPage() {
               {cancelTarget.order_no}
             </div>
             <div className={s.modalOrderInfo}>
-              {cancelTarget.buyer_name} ・ NT$ {cancelTarget.total?.toLocaleString()}
+              {cancelTarget.customer_name ?? cancelTarget.buyer_name} ・ NT$ {cancelTarget.total?.toLocaleString()}
             </div>
 
             {/* 信用卡已付款 → 自動退款提示 */}
@@ -913,7 +916,7 @@ export default function AdminOrdersPage() {
               {shipOrders.filter(o => shipSelected.has(o.id)).map(o => (
                 <div key={o.id} className={s.shipModalItem}>
                   <span className={s.shipModalOrderNo}>{o.order_no}</span>
-                  <span className={s.shipModalBuyer}>{o.buyer_name}</span>
+                  <span className={s.shipModalBuyer}>{o.customer_name ?? o.buyer_name}</span>
                 </div>
               ))}
             </div>

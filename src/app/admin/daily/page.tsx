@@ -152,7 +152,7 @@ export default function AdminDailyPage() {
             >
               <div className={p.orderMeta}>
                 <span className={p.orderNo}>{order.order_no}</span>
-                <span className={p.buyerName}>{order.buyer_name}</span>
+                <span className={p.buyerName}>{order.customer_name ?? order.buyer_name}</span>
                 <span className={p.shipLabel}>{SHIP_LABEL[order.ship_method] ?? order.ship_method}</span>
                 <span className={s.badge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
                   {STATUS_LABEL[order.status]}
@@ -170,8 +170,12 @@ export default function AdminDailyPage() {
             {expandedOrder === order.id && (
               <div className={p.orderExpanded}>
                 <div className={p.orderDetail}>
-                  <div><span className={p.detailLabel}>電話：</span>{order.buyer_phone}</div>
-                  <div><span className={p.detailLabel}>Email：</span>{order.buyer_email}</div>
+                  <div><span className={p.detailLabel}>收件人：</span>{order.customer_name ?? order.buyer_name}</div>
+                  <div><span className={p.detailLabel}>收件電話：</span>{order.customer_phone ?? order.buyer_phone}</div>
+                  <div><span className={p.detailLabel}>收件 Email：</span>{order.customer_email ?? order.buyer_email}</div>
+                  {order.customer_name && order.customer_name !== order.buyer_name && (
+                    <div><span className={p.detailLabel}>購買人：</span>{order.buyer_name}（{order.buyer_phone}）</div>
+                  )}
                   {order.address && <div className={p.detailFullWidth}><span className={p.detailLabel}>地址：</span>{order.address}</div>}
                   {order.note    && <div className={p.detailFullWidth}><span className={p.detailLabel}>備註：</span>{order.note}</div>}
                 </div>

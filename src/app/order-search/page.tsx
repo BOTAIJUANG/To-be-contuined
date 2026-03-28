@@ -36,12 +36,13 @@ export default function OrderSearchPage() {
       .select(`
         order_no, status, created_at, total,
         buyer_name, buyer_email, buyer_phone,
+        customer_name, customer_email, customer_phone,
         ship_method, address, ship_date,
         tracking_no, carrier, shipped_at,
         order_items ( name, price, qty )
       `)
       .eq('order_no', orderNum.trim().toUpperCase())
-      .or(`buyer_email.eq.${contact.trim()},buyer_phone.eq.${contact.trim()}`)
+      .or(`buyer_email.eq.${contact.trim()},buyer_phone.eq.${contact.trim()},customer_email.eq.${contact.trim()},customer_phone.eq.${contact.trim()}`)
       .single();
 
     setLoading(false);

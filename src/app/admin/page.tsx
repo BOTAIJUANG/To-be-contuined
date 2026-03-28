@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
         supabase.from('orders').select('*', { count: 'exact', head: true }),
         supabase.from('orders').select('total').eq('pay_status', 'paid'),
         supabase.from('members').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('order_no, buyer_name, total, status, pay_status, created_at').order('created_at', { ascending: false }).limit(5),
+        supabase.from('orders').select('order_no, buyer_name, customer_name, total, status, pay_status, created_at').order('created_at', { ascending: false }).limit(5),
         // 低庫存商品（可售庫存 <= 安全庫存 且 安全庫存 > 0）
         supabase.from('inventory').select('*, products(name)').filter('safety_stock', 'gt', 0),
         // 低庫存原料（有設安全庫存的）
@@ -213,7 +213,7 @@ export default function AdminDashboardPage() {
                 {recentOrders.map(order => (
                   <tr key={order.order_no} className={s.tr} onClick={() => router.push('/admin/orders')}>
                     <td className={s.tdOrderNo}>{order.order_no}</td>
-                    <td className={s.tdName}>{order.buyer_name}</td>
+                    <td className={s.tdName}>{order.customer_name ?? order.buyer_name}</td>
                     <td className={s.tdAmount}>NT$ {order.total.toLocaleString()}</td>
                     <td className={s.tdPay} style={{ color: order.pay_status === 'paid' ? '#2ab85a' : '#b87a2a' }}>
                       {order.pay_status === 'paid' ? '已付款' : order.pay_status === 'failed' ? '失敗' : '待付款'}
@@ -238,7 +238,7 @@ export default function AdminDashboardPage() {
                     <span className={s.cardDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
                   </div>
                   <div className={s.cardMid}>
-                    <span className={s.cardName}>{order.buyer_name}</span>
+                    <span className={s.cardName}>{order.customer_name ?? order.buyer_name}</span>
                     <span className={s.cardAmount}>NT$ {order.total.toLocaleString()}</span>
                   </div>
                   <div className={s.cardBottom}>
