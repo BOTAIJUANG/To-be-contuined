@@ -35,7 +35,7 @@ const STATUS_COLOR: Record<string, string> = { processing: '#7a5846', shipped: '
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const PAY_COLOR: Record<string, string>    = { pending: '#8b6722', paid: '#4a7a56', failed: '#b55245' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '失敗' };
-const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家' };
+const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨' };
 const SORT_OPTIONS = [
   { value: 'newest', label: '最新優先' }, { value: 'oldest', label: '最舊優先' },
   { value: 'amount_desc', label: '金額高到低' }, { value: 'amount_asc', label: '金額低到高' },
@@ -280,10 +280,11 @@ export default function AdminOrdersPage() {
       '指定出貨日', '指定到店日',
       '商品名稱', '數量', '單價', '小計', '備註',
     ];
+    const txtPhone = (v: string | null | undefined) => v ? `="${v}"` : '';
     const rows = list.flatMap(o => (o.order_items ?? []).map((item: any) => [
       o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'),
-      o.buyer_name ?? '', o.buyer_phone ?? '', o.buyer_email ?? '',
-      o.customer_name ?? o.buyer_name ?? '', o.customer_phone ?? o.buyer_phone ?? '', o.customer_email ?? o.buyer_email ?? '',
+      o.buyer_name ?? '', txtPhone(o.buyer_phone), o.buyer_email ?? '',
+      o.customer_name ?? o.buyer_name ?? '', txtPhone(o.customer_phone ?? o.buyer_phone), o.customer_email ?? o.buyer_email ?? '',
       SHIP_LABEL[o.ship_method] ?? o.ship_method,
       o.ship_method === 'store' ? '門市自取' : (o.cvs_store_name ? '' : (o.address ?? '')),
       o.cvs_store_brand ?? '', o.cvs_store_name ?? '', o.cvs_store_id ?? '', o.cvs_store_address ?? '',
