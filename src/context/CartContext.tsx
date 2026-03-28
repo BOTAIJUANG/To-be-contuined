@@ -20,6 +20,7 @@ export interface CartItem {
   qty:              number;
   isPreorder?:      boolean;
   preorderShipDate?: string;
+  preorderBatchId?: number;    // 預購批次 ID（對應 preorder_batches.id）
   variantId?:       number;
   variantName?:     string;
   isRedeemItem?:    boolean;

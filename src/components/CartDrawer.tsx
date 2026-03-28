@@ -60,24 +60,48 @@ export default function CartDrawer() {
 
   // 載入購物車商品的可售庫存（用於限制 + 按鈕）
   const [stockMap, setStockMap] = useState<Record<string, number>>({});
+  // 預購批次剩餘量 map（batch_id → remaining）
+  const [batchStockMap, setBatchStockMap] = useState<Record<number, number>>({});
+
   useEffect(() => {
     if (!isOpen || items.length === 0) return;
-    const productIds = [...new Set(items.map(i => i.productRealId ?? parseInt(i.id)))];
-    fetch(`/api/stock?product_ids=${productIds.join(',')}`)
-      .then(r => r.json())
-      .then(({ data }) => {
-        if (!data) return;
-        const map: Record<string, number> = {};
-        data.forEach((inv: any) => {
-          const key = inv.variant_id ? `${inv.product_id}_${inv.variant_id}` : `${inv.product_id}`;
-          map[key] = inv.available;
-        });
-        setStockMap(map);
-      })
-      .catch(() => {});
+
+    // 一般商品庫存
+    const productIds = [...new Set(items.filter(i => !i.isPreorder).map(i => i.productRealId ?? parseInt(i.id)))];
+    if (productIds.length > 0) {
+      fetch(`/api/stock?product_ids=${productIds.join(',')}`)
+        .then(r => r.json())
+        .then(({ data }) => {
+          if (!data) return;
+          const map: Record<string, number> = {};
+          data.forEach((inv: any) => {
+            const key = inv.variant_id ? `${inv.product_id}_${inv.variant_id}` : `${inv.product_id}`;
+            map[key] = inv.available;
+          });
+          setStockMap(map);
+        })
+        .catch(() => {});
+    }
+
+    // 預購批次庫存
+    const batchIds = [...new Set(items.filter(i => i.isPreorder && i.preorderBatchId).map(i => i.preorderBatchId!))];
+    if (batchIds.length > 0) {
+      fetch(`/api/batch-stock?batch_ids=${batchIds.join(',')}`)
+        .then(r => r.json())
+        .then(({ data }) => {
+          if (!data) return;
+          const map: Record<number, number> = {};
+          data.forEach((b: any) => { map[b.batch_id] = b.remaining; });
+          setBatchStockMap(map);
+        })
+        .catch(() => {});
+    }
   }, [isOpen, items]);
 
   const getMaxQty = (item: any) => {
+    if (item.isPreorder && item.preorderBatchId) {
+      return batchStockMap[item.preorderBatchId] ?? Infinity;
+    }
     const key = item.variantId ? `${item.productRealId ?? parseInt(item.id)}_${item.variantId}` : `${item.productRealId ?? parseInt(item.id)}`;
     return stockMap[key] ?? Infinity;
   };

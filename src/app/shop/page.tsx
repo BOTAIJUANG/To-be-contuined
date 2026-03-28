@@ -42,8 +42,10 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     });
 
     // 沒有庫存記錄 或 可售數量 <= 0 → 售完
+    // 預購商品不走庫存判斷（由詳情頁的批次邏輯決定能不能買）
+    const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
     for (const pid of productIds) {
-      if ((availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+      if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }
   }
 

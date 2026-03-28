@@ -63,8 +63,10 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       availableByProduct[inv.product_id] = (availableByProduct[inv.product_id] ?? 0) + Math.max(0, avail);
     });
 
+    // 預購商品不走庫存判斷（由詳情頁的批次邏輯決定能不能買）
+    const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
     for (const pid of productIds) {
-      if ((availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+      if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }
   }
 

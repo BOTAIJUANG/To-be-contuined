@@ -62,6 +62,38 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const activeBatches = product.is_preorder ? await getActiveBatches(product.id) : [];
   const hasBatches    = activeBatches.length > 0;
+
+  // 計算每個批次的剩餘可訂量
+  let batchRemainingMap: Record<number, number> = {};
+  if (hasBatches) {
+    const batchIds = activeBatches.map((b: any) => b.id);
+    // 查詢已訂數量（排除已取消訂單）
+    const { data: batchItems } = await supabaseAdmin
+      .from('order_items')
+      .select('preorder_batch_id, qty, order_id')
+      .in('preorder_batch_id', batchIds);
+
+    const orderIds = [...new Set((batchItems ?? []).map(i => i.order_id))];
+    let cancelledIds = new Set<number>();
+    if (orderIds.length > 0) {
+      const { data: cancelled } = await supabaseAdmin
+        .from('orders')
+        .select('id')
+        .in('id', orderIds)
+        .eq('status', 'cancelled');
+      cancelledIds = new Set((cancelled ?? []).map(o => o.id));
+    }
+
+    const orderedByBatch: Record<number, number> = {};
+    (batchItems ?? []).forEach((i: any) => {
+      if (!i.preorder_batch_id || cancelledIds.has(i.order_id)) return;
+      orderedByBatch[i.preorder_batch_id] = (orderedByBatch[i.preorder_batch_id] ?? 0) + i.qty;
+    });
+
+    activeBatches.forEach((b: any) => {
+      batchRemainingMap[b.id] = Math.max(0, (b.limit_qty ?? 0) - (orderedByBatch[b.id] ?? 0));
+    });
+  }
   const preorderStatus = (() => {
     if (!product.is_preorder) return null;
     if (!hasBatches) return 'no_batch';
@@ -213,7 +245,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               slug:             product.slug,
               isSoldOut:        product.is_sold_out,
               isPreorder:       product.is_preorder,
-              preorderBatches:  activeBatches,
+              preorderBatches:  activeBatches.map((b: any) => ({
+                ...b,
+                remaining: batchRemainingMap[b.id] ?? 0,
+              })),
               preorderShipDate: activeBatches[0]?.ship_date ?? undefined,
               preorderStatus:   (preorderStatus as any) ?? undefined,
               variantLabel:     (product as any).variant_label ?? '規格',

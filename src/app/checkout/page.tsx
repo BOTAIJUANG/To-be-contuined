@@ -503,6 +503,7 @@ export default function CheckoutPage() {
         variant_id: item.variantId ?? null,
         qty:        item.qty,
         is_redeem:  item.isRedeemItem ?? false,
+        preorder_batch_id: item.preorderBatchId ?? null,
       }));
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };

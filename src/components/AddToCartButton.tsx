@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import s from './AddToCartButton.module.css';
 
-interface Batch { id: number; name: string; ship_date: string; ends_at?: string; limit_qty: number; }
+interface Batch { id: number; name: string; ship_date: string; ends_at?: string; limit_qty: number; remaining?: number; }
 interface Variant { id: number; name: string; price: number; stock?: number | null; }
 
 interface AddToCartButtonProps {
@@ -37,7 +37,18 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const isPreorder   = product.isPreorder ?? false;
   const batches      = product.preorderBatches ?? [];
 
-  // 計算這個商品/規格在購物車裡已經有幾件
+  // 計算這個商品/規格在購物車裡已經有幾件（預購還要比對批次）
+  const cartQtyForBatch = useMemo(() => {
+    if (!isPreorder || !selectedBatch) return 0;
+    return items
+      .filter(i => {
+        if (!i.isPreorder || i.preorderBatchId !== selectedBatch.id) return false;
+        const pid = i.productRealId ?? parseInt(i.id);
+        return pid === parseInt(product.id);
+      })
+      .reduce((sum, i) => sum + i.qty, 0);
+  }, [items, selectedBatch, isPreorder, product.id]);
+
   const currentKey = hasVariants
     ? `${product.id}_${selectedVariant?.id ?? ''}`
     : product.id;
@@ -51,14 +62,20 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       .reduce((sum, i) => sum + i.qty, 0);
   }, [items, currentKey]);
 
-  // 實際庫存
-  const realStock = hasVariants
-    ? (selectedVariant?.stock ?? null)
-    : (product.stock ?? null);
+  // 實際庫存或批次剩餘
+  const realStock = isPreorder
+    ? (selectedBatch?.remaining ?? null)
+    : hasVariants
+      ? (selectedVariant?.stock ?? null)
+      : (product.stock ?? null);
 
-  // 還可以再加入的數量 = 庫存 - 購物車已有
-  const remainingStock = realStock == null ? null : Math.max(0, realStock - cartQty);
+  // 預購：扣掉購物車裡同批次已有的數量；一般：扣掉購物車已有的數量
+  const cartQtyForLimit = isPreorder ? cartQtyForBatch : cartQty;
+  const remainingStock = realStock == null ? null : Math.max(0, realStock - cartQtyForLimit);
   const maxSelectableQty = remainingStock == null ? Infinity : remainingStock;
+
+  // 批次額滿
+  const batchFull = isPreorder && selectedBatch?.remaining != null && selectedBatch.remaining <= 0;
 
   const handleAdd = () => {
     if (product.isSoldOut) return;
@@ -70,12 +87,13 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       id: product.id, slug: product.slug, name: product.name,
       price: displayPrice, imageUrl: product.imageUrl,
       isPreorder, preorderShipDate: selectedBatch?.ship_date ?? product.preorderShipDate,
+      preorderBatchId: selectedBatch?.id,
       variantId: hasVariants ? selectedVariant?.id : variantId,
       variantName: hasVariants ? selectedVariant?.name : variantName,
-    }, qty, realStock);
+    }, qty, realStock != null ? realStock : undefined);
 
     if (!result.ok) {
-      alert(`此商品目前最多只能購買 ${result.maxStock} 件（購物車已有 ${cartQty} 件）`);
+      alert(`此批次目前最多只能購買 ${result.maxStock} 件（購物車已有 ${cartQtyForLimit} 件）`);
       return;
     }
 
@@ -131,22 +149,36 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
           <div className={s.batchList}>
             {batches.map(batch => {
               const sel = selectedBatch?.id === batch.id;
+              const isFull = batch.remaining != null && batch.remaining <= 0;
               return (
-                <div key={batch.id} className={`${s.batchItem} ${sel ? s.selected : ''}`} onClick={() => setSelectedBatch(batch)}>
+                <div
+                  key={batch.id}
+                  className={`${s.batchItem} ${sel ? s.selected : ''} ${isFull ? s.variantSoldOut : ''}`}
+                  onClick={() => { if (!isFull) { setSelectedBatch(batch); setQty(1); } }}
+                  style={isFull ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div className={`${s.batchRadio} ${sel ? s.selected : ''}`}>
                       {sel && <div className={s.batchDot} />}
                     </div>
                     <div>
-                      <div className={s.batchDate}>{batch.ship_date}</div>
-                      <div className={s.batchMeta}>{batch.name}{batch.ends_at ? ` · 截止 ${batch.ends_at}` : ''}</div>
+                      <div className={s.batchDate}>
+                        {batch.ship_date}
+                        {isFull && <span style={{ color: '#c0392b', marginLeft: 8, fontSize: '0.85em' }}>已額滿</span>}
+                      </div>
+                      <div className={s.batchMeta}>
+                        {batch.name}{batch.ends_at ? ` · 截止 ${batch.ends_at}` : ''}
+                        {!isFull && batch.remaining != null && (
+                          <span style={{ marginLeft: 8, color: '#888' }}>剩餘 {batch.remaining} 份</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
-          {selectedBatch && (
+          {selectedBatch && !batchFull && (
             <div className={s.batchInfo}>
               選擇出貨日：<strong>{selectedBatch.ship_date}</strong>，若與一般商品一起購買將統一出貨
             </div>
@@ -177,9 +209,9 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         <button
           className={`${s.addBtn} ${added ? s.added : ''}`}
           onClick={handleAdd}
-          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant) || variantSoldOut || maxSelectableQty <= 0}
+          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant) || variantSoldOut || batchFull || maxSelectableQty <= 0}
         >
-          {maxSelectableQty <= 0 ? '已達可購上限' : added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
+          {batchFull ? '此批次已額滿' : maxSelectableQty <= 0 ? '已達可購上限' : added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
         </button>
       </div>
     </div>

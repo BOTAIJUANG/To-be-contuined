@@ -50,11 +50,12 @@ function generateOrderNo(): string {
 
 // ── 前端送來的購物車商品格式 ─────────────────────
 interface CartItemInput {
-  product_id:   number;
-  variant_id?:  number | null;
-  qty:          number;
-  is_redeem?:   boolean;
-  is_gift?:     boolean;
+  product_id:         number;
+  variant_id?:        number | null;
+  qty:                number;
+  is_redeem?:         boolean;
+  is_gift?:           boolean;
+  preorder_batch_id?: number | null;
 }
 
 // ── 前端送來的完整訂單資料 ───────────────────────
@@ -196,6 +197,7 @@ export async function POST(req: NextRequest) {
       price: unitPrice,
       qty: item.qty,
       is_gift: false,
+      preorder_batch_id: item.preorder_batch_id ?? null,
     });
   }
 
@@ -394,6 +396,61 @@ export async function POST(req: NextRequest) {
         const pName = productMap.get(item.product_id)?.name ?? `ID ${item.product_id}`;
         return NextResponse.json(
           { error: `「${pName}」預購額度不足（剩餘 ${available} 件）` },
+          { status: 400 },
+        );
+      }
+    }
+  }
+
+  // ── 8.5 預購批次額度預檢 ──
+  const preorderItems = body.items.filter(i => i.preorder_batch_id);
+  if (preorderItems.length > 0) {
+    // 按 batch_id 加總本次訂單的需求量
+    const batchQtyMap: Record<number, number> = {};
+    preorderItems.forEach(i => {
+      batchQtyMap[i.preorder_batch_id!] = (batchQtyMap[i.preorder_batch_id!] ?? 0) + i.qty;
+    });
+
+    const batchIds = Object.keys(batchQtyMap).map(Number);
+
+    // 查詢批次上限
+    const { data: batchRows } = await supabaseAdmin
+      .from('preorder_batches')
+      .select('id, limit_qty')
+      .in('id', batchIds);
+
+    // 查詢已訂數量（排除已取消的訂單）
+    const { data: batchOrderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('preorder_batch_id, qty, order_id')
+      .in('preorder_batch_id', batchIds);
+
+    const batchOrderIds = [...new Set((batchOrderItems ?? []).map(i => i.order_id))];
+    let cancelledOrderIds = new Set<number>();
+    if (batchOrderIds.length > 0) {
+      const { data: cancelled } = await supabaseAdmin
+        .from('orders')
+        .select('id')
+        .in('id', batchOrderIds)
+        .eq('status', 'cancelled');
+      cancelledOrderIds = new Set((cancelled ?? []).map(o => o.id));
+    }
+
+    const orderedByBatch: Record<number, number> = {};
+    (batchOrderItems ?? []).forEach(i => {
+      if (!i.preorder_batch_id || cancelledOrderIds.has(i.order_id)) return;
+      orderedByBatch[i.preorder_batch_id] = (orderedByBatch[i.preorder_batch_id] ?? 0) + i.qty;
+    });
+
+    for (const batch of (batchRows ?? [])) {
+      const limitQty = batch.limit_qty ?? 0;
+      if (limitQty <= 0) continue; // 沒設上限就不擋
+      const ordered = orderedByBatch[batch.id] ?? 0;
+      const remaining = limitQty - ordered;
+      const needed = batchQtyMap[batch.id] ?? 0;
+      if (needed > remaining) {
+        return NextResponse.json(
+          { error: `預購批次額度不足（剩餘 ${remaining} 件，需要 ${needed} 件）` },
           { status: 400 },
         );
       }
