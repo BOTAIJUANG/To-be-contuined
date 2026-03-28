@@ -1,6 +1,9 @@
 // app/shop/[slug]/page.tsx  ──  分類頁（responsive）
 
+export const revalidate = 0;
+
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ShopSidebar from '@/components/ShopSidebar';
@@ -43,6 +46,28 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   if (!result) notFound();
   const { category, products } = result;
 
+  // 查詢即時庫存，判斷真實售完狀態
+  const soldOutSet = new Set<number>();
+  const productIds = products.map((p: any) => p.id);
+  if (productIds.length > 0) {
+    const { data: invData } = await supabaseAdmin
+      .from('inventory')
+      .select('product_id, stock, reserved, inventory_mode, max_preorder, reserved_preorder')
+      .in('product_id', productIds);
+
+    const availableByProduct: Record<number, number> = {};
+    (invData ?? []).forEach((inv: any) => {
+      const avail = inv.inventory_mode === 'stock'
+        ? (inv.stock ?? 0) - (inv.reserved ?? 0)
+        : (inv.max_preorder ?? 0) - (inv.reserved_preorder ?? 0);
+      availableByProduct[inv.product_id] = (availableByProduct[inv.product_id] ?? 0) + Math.max(0, avail);
+    });
+
+    for (const pid of productIds) {
+      if ((availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+    }
+  }
+
   const productList: Product[] = products.map((p: any) => ({
     id:         String(p.id),
     name:       p.name,
@@ -50,7 +75,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     price:      p.price,
     imageUrl:   p.image_url ?? undefined,
     category:   p.categories?.name ?? '',
-    isSoldOut:  p.is_sold_out  ?? false,
+    isSoldOut:  p.is_sold_out || soldOutSet.has(p.id),
     isPreorder: p.is_preorder  ?? false,
   }));
 

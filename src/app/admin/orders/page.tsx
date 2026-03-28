@@ -25,17 +25,17 @@ const SHIP_STATUS_OPTIONS = [
 const PAY_OPTIONS = [
   { value: '', label: '全部付款狀態' }, { value: 'pending', label: '待付款' },
   { value: 'paid', label: '已付款' }, { value: 'failed', label: '付款失敗' },
+  { value: 'refunded', label: '已退款' },
 ];
 const SHIP_OPTIONS = [
-  { value: '', label: '全部配送方式' }, { value: 'home_normal', label: '一般宅配' },
-  { value: 'home_cold', label: '低溫宅配' }, { value: 'cvs_711', label: '7-11取貨' },
-  { value: 'store', label: '門市自取' },
+  { value: '', label: '全部配送方式' }, { value: 'home', label: '宅配' },
+  { value: 'cvs_711', label: '7-11取貨' }, { value: 'store', label: '門市自取' },
 ];
-const STATUS_COLOR: Record<string, string> = { processing: '#7a5846', shipped: '#5a7a8a', done: '#4a7a56', cancelled: '#8b7d70' };
+const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
-const PAY_COLOR: Record<string, string>    = { pending: '#8b6722', paid: '#4a7a56', failed: '#b55245' };
-const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '失敗' };
-const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配' };
+const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b', refunded: '#5a7a8a' };
+const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款' };
+const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取' };
 const SORT_OPTIONS = [
   { value: 'newest', label: '最新優先' }, { value: 'oldest', label: '最舊優先' },
   { value: 'amount_desc', label: '金額高到低' }, { value: 'amount_asc', label: '金額低到高' },
@@ -354,6 +354,11 @@ export default function AdminOrdersPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          alert('庫存更新衝突，將自動重新整理資料');
+          loadOrders();
+          return;
+        }
         alert(data.error || '操作失敗');
         return;
       }
@@ -408,7 +413,7 @@ export default function AdminOrdersPage() {
           setCancelLoading(false);
           return;
         }
-        const localUpd = { status: 'cancelled' };
+        const localUpd = { status: 'cancelled', pay_status: 'failed' };
         setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...localUpd } : o));
         if (selectedOrder?.id === order.id) setSelectedOrder((prev: any) => ({ ...prev, ...localUpd }));
       }

@@ -16,13 +16,14 @@ const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }
   done:       { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
   cancelled:  { bg: '#f5f0ea', border: '#e7ddd0', color: '#8b7d70' },
 };
-const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗' };
+const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款' };
 const PAY_STYLE: Record<string, { bg: string; border: string; color: string }> = {
-  pending: { bg: '#f8f1e2', border: '#ead8aa', color: '#8b6722' },
-  paid:    { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
-  failed:  { bg: '#fcf1ef', border: '#e8b5a8', color: '#b55245' },
+  pending:  { bg: '#f8f1e2', border: '#ead8aa', color: '#8b6722' },
+  paid:     { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
+  failed:   { bg: '#fcf1ef', border: '#e8b5a8', color: '#b55245' },
+  refunded: { bg: '#f0f4f7', border: '#d0dfe8', color: '#5a7a8a' },
 };
-const SHIP_LABEL: Record<string, string>   = { home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配' };
+const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取' };
 
 const FALLBACK_STYLE = { bg: '#f5f0ea', border: '#e7ddd0', color: '#8b7d70' };
 
@@ -122,6 +123,7 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                   { label: '物流業者', value: order.carrier || '—' },
                   { label: '追蹤號碼', value: order.tracking_no || '—' },
                   { label: '實際出貨', value: order.shipped_at ? new Date(order.shipped_at).toLocaleDateString('zh-TW') : '—' },
+                  { label: '完成時間', value: order.completed_at ? new Date(order.completed_at).toLocaleDateString('zh-TW') : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} className={s.row}>
                     <span className={s.rowLabel}>{label}</span>

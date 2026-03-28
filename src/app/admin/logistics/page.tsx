@@ -14,10 +14,7 @@ import { fetchApi } from '@/lib/api';
 import s from '../_shared/admin-shared.module.css';
 import p from './logistics.module.css';
 
-const SHIP_LABEL: Record<string, string> = {
-  home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取',
-  home_normal: '一般宅配', home_cold: '低溫宅配',
-};
+const SHIP_LABEL: Record<string, string> = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取' };
 
 const CARRIERS = ['黑貓宅急便', '新竹貨運', '大榮貨運', '7-11 超商', '全家超商', '郵局', '其他'];
 
@@ -70,47 +67,50 @@ export default function AdminLogisticsPage() {
 
   useEffect(() => { load(); }, []);
 
-  // 更新訂單狀態（含庫存扣除/回補、集章/扣章等副作用）
+  // 更新訂單狀態（透過後端 API，含驗證、庫存、集章等副作用）
   const updateStatus = async (orderId: number, newStatus: string) => {
     try {
+      let url: string;
+      let method: string;
+      let reqBody: any = {};
+
+      if (newStatus === 'shipped') {
+        url = `/api/admin/orders/${orderId}/ship`;
+        method = 'POST';
+      } else if (newStatus === 'done') {
+        url = `/api/admin/orders/${orderId}/complete`;
+        method = 'POST';
+      } else if (newStatus === 'cancelled') {
+        url = `/api/admin/orders/${orderId}/cancel`;
+        method = 'POST';
+      } else if (newStatus === 'processing') {
+        url = `/api/admin/orders/${orderId}/status`;
+        method = 'PATCH';
+        reqBody = { field: 'status', value: 'processing' };
+      } else {
+        alert('不支援的狀態變更');
+        return;
+      }
+
+      const res = await fetchApi(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          alert('庫存更新衝突，將自動重新整理資料');
+          load();
+          return;
+        }
+        alert(data.error || '操作失敗');
+        return;
+      }
+
       const updateData: any = { status: newStatus };
       if (newStatus === 'shipped') updateData.shipped_at = new Date().toISOString();
-
-      const order = orders.find(o => o.id === orderId);
-
-      // 出貨或取消 → 庫存操作（API 自動查 order_items）
-      if (newStatus === 'shipped' || newStatus === 'cancelled') {
-        const action = newStatus === 'shipped' ? 'ship' : 'cancel';
-        const res = await fetchApi(`/api/inventory?action=${action}`, {
-          method: 'POST',
-          body: JSON.stringify({ order_id: orderId }),
-        });
-        if (!res.ok) {
-          const err = await res.text();
-          console.error('庫存操作失敗:', err);
-          alert('庫存操作失敗：' + err);
-        }
-      }
-
-      // 完成 → 自動加章
-      if (newStatus === 'done') {
-        const res = await fetchApi('/api/stamps?action=add', {
-          method: 'POST',
-          body: JSON.stringify({ order_id: orderId }),
-        });
-        if (!res.ok) console.error('集章失敗:', await res.text());
-      }
-
-      // 取消（且原本是已完成）→ 扣章
-      if (newStatus === 'cancelled' && order?.status === 'done') {
-        await fetchApi('/api/stamps?action=deduct', {
-          method: 'POST',
-          body: JSON.stringify({ order_id: orderId }),
-        });
-      }
-
-      const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
-      if (error) { alert('更新失敗：' + error.message); return; }
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updateData } : o));
     } catch (err) {
       console.error('updateStatus 錯誤:', err);
@@ -118,10 +118,11 @@ export default function AdminLogisticsPage() {
     }
   };
 
-  // 儲存追蹤號碼
+  // 儲存追蹤號碼（純欄位更新，無副作用）
   const saveTracking = async (orderId: number) => {
     const { tracking_no, carrier } = editing[orderId] ?? {};
-    await supabase.from('orders').update({ tracking_no, carrier }).eq('id', orderId);
+    const { error } = await supabase.from('orders').update({ tracking_no, carrier }).eq('id', orderId);
+    if (error) { alert('儲存失敗：' + error.message); return; }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, tracking_no, carrier } : o));
     alert('追蹤資訊已儲存');
   };

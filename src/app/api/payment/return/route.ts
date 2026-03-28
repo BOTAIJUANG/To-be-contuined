@@ -30,6 +30,9 @@ export async function GET() {
   return NextResponse.redirect(`${baseUrl}/order-search`, 303);
 }
 
+// ATM 取號成功的 RtnCode（不是失敗，不能取消訂單）
+const ATM_INFO_CODES = ['2', '800', '10100058', '10100073'];
+
 export async function POST(req: NextRequest) {
   // ── 1. 解析綠界送來的資料 ────────────────────────
   const formData = await req.formData();
@@ -44,37 +47,116 @@ export async function POST(req: NextRequest) {
   const paymentDate     = params.PaymentDate ?? '';
 
   // 還原訂單編號（加回 -）
-  // 格式是 WB(2碼) + YYYYMMDD(8碼) = 前10碼 + '-' + 後6碼
-  const orderNo = merchantTradeNo.slice(0, 10) + '-' + merchantTradeNo.slice(10);
+  // 格式是 WB(2碼) + YYYYMMDD(8碼) = 前10碼 + '-' + 後6碼（忽略重試後綴）
+  const orderNo = merchantTradeNo.slice(0, 10) + '-' + merchantTradeNo.slice(10, 16);
+
+  const isAtmInfo = ATM_INFO_CODES.includes(rtnCode);
 
   // ── 2. 驗證 CheckMacValue ───────────────────────
-  // 如果驗證成功且付款成功，順便更新訂單狀態
-  // （當作 webhook 的備案，尤其在本地測試時很有用）
-  if (verifyEcpayCallback(params) && rtnCode === '1') {
-    // 查詢訂單
+  // 當作 webhook 的備案，尤其在本地測試時很有用
+  if (verifyEcpayCallback(params)) {
     const { data: order } = await supabaseAdmin
       .from('orders')
-      .select('id, order_no, total, pay_status, member_id')
+      .select('id, order_no, total, pay_status, status, member_id')
       .eq('order_no', orderNo)
       .single();
 
-    // 如果訂單存在且還沒更新過，就更新付款狀態
-    if (order && order.pay_status !== 'paid') {
-      await supabaseAdmin
-        .from('orders')
-        .update({
-          pay_status:     'paid',
-          ecpay_trade_no: tradeNo,
-          paid_at:        paymentDate,
-        })
-        .eq('id', order.id);
+    if (order) {
+      if (rtnCode === '1' && order.pay_status !== 'paid') {
+        // 付款成功
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            pay_status:     'paid',
+            ecpay_trade_no: tradeNo,
+            paid_at:        paymentDate,
+          })
+          .eq('id', order.id);
 
-      // 自動集章（用共用函式，內建防重複機制）
-      if (order.member_id) {
-        await awardStampsForOrder(order.id, order.member_id, order.total);
+        // 自動集章（用共用函式，內建防重複機制）
+        if (order.member_id) {
+          await awardStampsForOrder(order.id, order.member_id, order.total);
+        }
+
+        console.log(`[return] 訂單 ${orderNo} 付款成功`);
+      } else if (isAtmInfo && order.pay_status !== 'paid' && order.status !== 'cancelled') {
+        // ATM 取號成功 → 儲存虛擬帳號資訊（不取消訂單，等待轉帳）
+        await supabaseAdmin.from('orders').update({
+          atm_bank_code:   params.BankCode ?? null,
+          atm_vaccount:    params.vAccount ?? null,
+          atm_expire_date: params.ExpireDate ?? null,
+          ecpay_trade_no:  tradeNo || undefined,
+        }).eq('id', order.id);
+
+        console.log(`[return] 訂單 ${orderNo} ATM 取號成功，等待轉帳`);
+      } else if (rtnCode !== '1' && !isAtmInfo && order.pay_status !== 'paid' && order.status !== 'cancelled') {
+        // 確定付款失敗 → 取消訂單 + 釋放預留庫存（記錄錯誤碼供除錯）
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            pay_status: 'failed',
+            status: 'cancelled',
+            ecpay_error_code: rtnCode ?? null,
+            ecpay_error_msg:  params.RtnMsg ?? null,
+          })
+          .eq('id', order.id);
+
+        const { data: orderItems } = await supabaseAdmin
+          .from('order_items')
+          .select('product_id, variant_id, qty')
+          .eq('order_id', order.id);
+
+        if (orderItems) {
+          const inventoryLogs: any[] = [];
+
+          for (const item of orderItems) {
+            let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
+            if (item.variant_id) query = query.eq('variant_id', item.variant_id);
+            else query = query.is('variant_id', null);
+
+            const { data: inv } = await query.single();
+            if (!inv) continue;
+
+            let qtyBefore: number;
+            let qtyAfter: number;
+
+            if (inv.inventory_mode === 'stock') {
+              qtyBefore = inv.reserved;
+              qtyAfter = Math.max(0, inv.reserved - item.qty);
+              await supabaseAdmin.from('inventory')
+                .update({ reserved: qtyAfter, updated_at: new Date().toISOString() })
+                .eq('id', inv.id);
+            } else if (inv.inventory_mode === 'preorder') {
+              qtyBefore = inv.reserved_preorder;
+              qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
+              await supabaseAdmin.from('inventory')
+                .update({ reserved_preorder: qtyAfter, updated_at: new Date().toISOString() })
+                .eq('id', inv.id);
+            } else {
+              continue;
+            }
+
+            inventoryLogs.push({
+              inventory_id: inv.id,
+              product_id:   item.product_id,
+              variant_id:   item.variant_id ?? null,
+              change_type:  'cancel',
+              qty_before:   qtyBefore,
+              qty_after:    qtyAfter,
+              qty_change:   qtyAfter - qtyBefore,
+              reason:       `訂單 #${order.id} 付款失敗自動取消`,
+              admin_name:   '系統',
+              order_id:     order.id,
+            });
+          }
+
+          if (inventoryLogs.length > 0) {
+            await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
+          }
+        }
+
+        console.log(`[return] 訂單 ${orderNo} 付款失敗，已取消並釋放庫存`);
       }
-
-      console.log(`[return] 訂單 ${orderNo} 付款狀態已更新`);
     }
   }
 

@@ -14,10 +14,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580',
 };
-const SHIP_LABEL: Record<string, string> = {
-  home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取',
-  home_normal: '一般宅配', home_cold: '低溫宅配',
-};
+const SHIP_LABEL: Record<string, string> = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取' };
 
 export default function OrderSearchPage() {
   const { settings } = useSettings();
@@ -39,6 +36,9 @@ export default function OrderSearchPage() {
         customer_name, customer_email, customer_phone,
         ship_method, address, ship_date,
         tracking_no, carrier, shipped_at,
+        cvs_store_id, cvs_store_name, cvs_store_address, cvs_store_brand,
+        atm_bank_code, atm_vaccount, atm_expire_date,
+        pay_status, pay_method,
         order_items ( name, price, qty )
       `)
       .eq('order_no', orderNum.trim().toUpperCase())
@@ -117,6 +117,8 @@ export default function OrderSearchPage() {
                   {[
                     { label: '下單日期', value: new Date(result.created_at).toLocaleDateString('zh-TW') },
                     { label: '配送方式', value: SHIP_LABEL[result.ship_method] ?? result.ship_method },
+                    ...(result.cvs_store_name ? [{ label: '取貨門市', value: `${result.cvs_store_brand ? result.cvs_store_brand + ' ' : ''}${result.cvs_store_name}` }] : []),
+                    ...(result.cvs_store_address ? [{ label: '門市地址', value: result.cvs_store_address }] : []),
                     { label: '合計',     value: `NT$ ${result.total.toLocaleString()}` },
                   ].map(({ label, value }) => (
                     <div key={label} className={s.infoRow}>
@@ -124,6 +126,18 @@ export default function OrderSearchPage() {
                       <span className={s.infoValue}>{value}</span>
                     </div>
                   ))}
+
+                  {/* ATM 轉帳資訊（有才顯示）*/}
+                  {result.pay_method === 'atm' && result.atm_vaccount && result.pay_status !== 'paid' && (
+                    <div className={s.trackingBox}>
+                      <div className={s.trackingLabel}>ATM 轉帳資訊</div>
+                      <div style={{ padding: '8px 0', fontSize: '14px', lineHeight: '1.8' }}>
+                        {result.atm_bank_code && <div>銀行代碼：<strong>{result.atm_bank_code}</strong></div>}
+                        <div>虛擬帳號：<strong>{result.atm_vaccount}</strong></div>
+                        {result.atm_expire_date && <div>繳費期限：{result.atm_expire_date}</div>}
+                      </div>
+                    </div>
+                  )}
 
                   {/* 追蹤號碼（有才顯示）*/}
                   {result.tracking_no && (

@@ -95,14 +95,18 @@ export async function POST(
       qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
     }
 
-    const { error: updErr } = await supabaseAdmin
+    const lockField = isStock ? 'stock' : 'reserved_preorder';
+    const lockValue  = isStock ? inv.stock : inv.reserved_preorder;
+    const { data: updated, error: updErr } = await supabaseAdmin
       .from('inventory')
       .update({ ...updateData, updated_at: new Date().toISOString() })
-      .eq('id', inv.id);
+      .eq('id', inv.id)
+      .eq(lockField, lockValue)
+      .select('id');
 
-    if (updErr) {
-      // Phase 2 失敗 → 記錄但繼續（前面預檢已確保數值合理）
-      console.error(`庫存扣減失敗 inv.id=${inv.id}:`, updErr.message);
+    if (updErr || !updated || updated.length === 0) {
+      console.error(`庫存扣減衝突 inv.id=${inv.id}`, updErr?.message);
+      return NextResponse.json({ error: '庫存更新衝突，請重試' }, { status: 409 });
     }
 
     inventoryLogs.push({

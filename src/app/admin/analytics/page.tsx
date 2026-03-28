@@ -56,31 +56,35 @@ export default function AdminAnalyticsPage() {
       setLoading(true);
       const { start, end } = getPeriodRange(period);
 
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('total, pay_status, buyer_email, created_at, order_items(name, qty, price)')
-        .gte('created_at', start)
-        .lte('created_at', end + 'T23:59:59');
-
-      const { count: newMembers } = await supabase
-        .from('members')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', start);
+      const [{ data: orders }, { count: newMembers }] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('total, pay_status, status, buyer_email, created_at, order_items(name, qty, price)')
+          .gte('created_at', start)
+          .lte('created_at', end + 'T23:59:59')
+          .neq('status', 'cancelled'),
+        supabase
+          .from('members')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', start),
+      ]);
 
       const list = orders ?? [];
       const paid = list.filter((o: any) => o.pay_status === 'paid');
       const totalRevenue  = list.reduce((acc: number, o: any) => acc + o.total, 0);
       const paidRevenue   = paid.reduce((acc: number, o: any) => acc + o.total, 0);
-      const emails        = [...new Set(list.map((o: any) => o.buyer_email))];
+      const paidEmails    = [...new Set(paid.map((o: any) => o.buyer_email))];
       const avgOrderValue = paid.length > 0 ? Math.round(paidRevenue / paid.length) : 0;
 
+      // 回購率：只看已付款訂單的 email
       const emailCount: Record<string, number> = {};
-      list.forEach((o: any) => { emailCount[o.buyer_email] = (emailCount[o.buyer_email] ?? 0) + 1; });
+      paid.forEach((o: any) => { emailCount[o.buyer_email] = (emailCount[o.buyer_email] ?? 0) + 1; });
       const repeatCustomers = Object.values(emailCount).filter(c => c > 1).length;
-      const repeatRate = emails.length > 0 ? Math.round(repeatCustomers / emails.length * 100) : 0;
+      const repeatRate = paidEmails.length > 0 ? Math.round(repeatCustomers / paidEmails.length * 100) : 0;
 
+      // 商品排行：只看已付款訂單
       const productMap: Record<string, { name: string; qty: number; amount: number }> = {};
-      list.forEach((order: any) => {
+      paid.forEach((order: any) => {
         order.order_items?.forEach((item: any) => {
           if (!productMap[item.name]) productMap[item.name] = { name: item.name, qty: 0, amount: 0 };
           productMap[item.name].qty    += item.qty;
@@ -89,6 +93,7 @@ export default function AdminAnalyticsPage() {
       });
       const sortedProducts = Object.values(productMap).sort((a, b) => b.amount - a.amount);
 
+      // 每日趨勢：訂單數算全部（不含取消），營收只算已付款
       const dailyMap: Record<string, { orders: number; revenue: number }> = {};
       list.forEach((o: any) => {
         const d = o.created_at.split('T')[0];
@@ -98,7 +103,7 @@ export default function AdminAnalyticsPage() {
       });
       const daily = Object.entries(dailyMap).map(([date, v]) => ({ date, ...v })).sort((a, b) => a.date.localeCompare(b.date));
 
-      setStats({ totalRevenue, paidRevenue, totalOrders: list.length, paidOrders: paid.length, uniqueCustomers: emails.length, newMembers: newMembers ?? 0, avgOrderValue, repeatRate });
+      setStats({ totalRevenue, paidRevenue, totalOrders: list.length, paidOrders: paid.length, uniqueCustomers: paidEmails.length, newMembers: newMembers ?? 0, avgOrderValue, repeatRate });
       setTopProducts(sortedProducts);
       setDailyData(daily);
       setLoading(false);
@@ -202,10 +207,10 @@ export default function AdminAnalyticsPage() {
                     <td className={`${s.td} ${p.tdRightEnd}`}>
                       <div className={`${s.flex} ${s.itemsCenter} ${s.gap8} ${p.justifyEnd}`}>
                         <div className={p.progressBarWrap}>
-                          <div className={p.progressBarFill} style={{ width: `${stats.totalRevenue > 0 ? Math.round(prod.amount / stats.totalRevenue * 100) : 0}%` }} />
+                          <div className={p.progressBarFill} style={{ width: `${stats.paidRevenue > 0 ? Math.round(prod.amount / stats.paidRevenue * 100) : 0}%` }} />
                         </div>
                         <span className={p.percentLabel}>
-                          {stats.totalRevenue > 0 ? Math.round(prod.amount / stats.totalRevenue * 100) : 0}%
+                          {stats.paidRevenue > 0 ? Math.round(prod.amount / stats.paidRevenue * 100) : 0}%
                         </span>
                       </div>
                     </td>

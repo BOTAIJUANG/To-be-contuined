@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
     payMethod:   order.pay_method as 'credit' | 'atm',
     returnUrl:   `${baseUrl}/api/payment/notify`,
     clientBackUrl: `${baseUrl}/api/payment/return`,
+    paymentInfoUrl: `${baseUrl}/api/payment/notify`,  // ATM 取號成功也送到 notify
   });
 
   console.log('ECPay 送出參數:', JSON.stringify(params));

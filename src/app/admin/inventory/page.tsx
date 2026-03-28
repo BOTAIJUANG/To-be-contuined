@@ -28,12 +28,12 @@ const Toggle = ({ val, onChange }: { val: boolean; onChange: () => void }) => (
 const CHANGE_TYPE_LABEL: Record<string, string> = {
   purchase: '進貨', damage: '損耗', restock: '補貨',
   order: '接單預留', ship: '出貨扣庫存', cancel: '取消釋放',
-  audit: '盤點修正', adjust: '手動調整',
+  refund: '退款回補', audit: '盤點修正', adjust: '手動調整',
 };
 const CHANGE_TYPE_COLOR: Record<string, string> = {
   purchase: '#2ab85a', damage: '#c0392b', restock: '#2ab85a',
   order: '#b87a2a', ship: '#2a7ab8', cancel: '#888580',
-  audit: '#555250', adjust: '#b87a2a',
+  refund: '#5a7a8a', audit: '#555250', adjust: '#b87a2a',
 };
 
 export default function AdminInventoryPage() {

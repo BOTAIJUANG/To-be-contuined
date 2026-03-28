@@ -109,11 +109,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '兌換品僅限會員使用，請先登入' }, { status: 400 });
   }
   // ── 配送方式白名單 + 條件必填驗證 ──
-  const ALLOWED_SHIP_METHODS = ['home', 'home_normal', 'home_cold', 'cvs_711', 'store'];
+  const ALLOWED_SHIP_METHODS = ['home', 'cvs_711', 'store'];
   if (!body.ship_method || !ALLOWED_SHIP_METHODS.includes(body.ship_method)) {
     return NextResponse.json({ error: '配送方式不合法' }, { status: 400 });
   }
-  const isHomeShip = ['home', 'home_normal', 'home_cold'].includes(body.ship_method);
+  const isHomeShip = body.ship_method === 'home';
   const isCvsShip  = body.ship_method === 'cvs_711';
   if (isHomeShip && (!body.city || !body.district || !body.address)) {
     return NextResponse.json({ error: '宅配需填寫完整收件地址（縣市 + 區域 + 地址）' }, { status: 400 });
@@ -388,8 +388,8 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
-    } else if (inv.inventory_mode === 'preorder' && inv.preorder_limit) {
-      const available = inv.preorder_limit - inv.reserved_preorder;
+    } else if (inv.inventory_mode === 'preorder' && inv.max_preorder) {
+      const available = inv.max_preorder - inv.reserved_preorder;
       if (available < item.qty) {
         const pName = productMap.get(item.product_id)?.name ?? `ID ${item.product_id}`;
         return NextResponse.json(
@@ -405,7 +405,7 @@ export async function POST(req: NextRequest) {
 
   // ── 10. 寫入訂單 ──
   const orderNo = generateOrderNo();
-  const isHome = ['home', 'home_normal', 'home_cold'].includes(body.ship_method);
+  const isHome = body.ship_method === 'home';
   const fullAddress = isHome
     ? `${body.city ?? ''}${body.district ?? ''}${body.address ?? ''}`
     : body.ship_method === 'store' ? null : (body.address ?? null);

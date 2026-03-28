@@ -12,13 +12,17 @@ export async function GET(req: NextRequest) {
 
   const { data } = await supabaseAdmin
     .from('inventory')
-    .select('product_id, variant_id, stock, reserved')
+    .select('product_id, variant_id, stock, reserved, inventory_mode, max_preorder, reserved_preorder')
     .in('product_id', productIds);
 
-  const result = (data ?? []).map(inv => ({
+  const result = (data ?? []).map((inv: any) => ({
     product_id: inv.product_id,
     variant_id: inv.variant_id,
-    available: Math.max(0, (inv.stock ?? 0) - (inv.reserved ?? 0)),
+    available: Math.max(0,
+      inv.inventory_mode === 'preorder'
+        ? (inv.max_preorder ?? 0) - (inv.reserved_preorder ?? 0)
+        : (inv.stock ?? 0) - (inv.reserved ?? 0)
+    ),
   }));
 
   return NextResponse.json({ data: result });

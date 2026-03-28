@@ -59,6 +59,8 @@ export async function GET(req: NextRequest) {
       .eq('order_id', order.id);
 
     if (items) {
+      const inventoryLogs: any[] = [];
+
       for (const item of items) {
         let query = supabaseAdmin
           .from('inventory')
@@ -70,15 +72,53 @@ export async function GET(req: NextRequest) {
         const { data: inv } = await query.single();
         if (!inv) continue;
 
+        let qtyBefore: number;
+        let qtyAfter: number;
+
         if (inv.inventory_mode === 'stock') {
-          await supabaseAdmin.from('inventory')
-            .update({ reserved: Math.max(0, inv.reserved - item.qty), updated_at: now.toISOString() })
-            .eq('id', inv.id);
+          qtyBefore = inv.reserved;
+          qtyAfter = Math.max(0, inv.reserved - item.qty);
+          const { data: updated } = await supabaseAdmin.from('inventory')
+            .update({ reserved: qtyAfter, updated_at: now.toISOString() })
+            .eq('id', inv.id)
+            .eq('reserved', inv.reserved)
+            .select('id');
+          if (!updated || updated.length === 0) {
+            console.warn(`庫存鎖定衝突 inv.id=${inv.id}，跳過`);
+            continue;
+          }
         } else if (inv.inventory_mode === 'preorder') {
-          await supabaseAdmin.from('inventory')
-            .update({ reserved_preorder: Math.max(0, inv.reserved_preorder - item.qty), updated_at: now.toISOString() })
-            .eq('id', inv.id);
+          qtyBefore = inv.reserved_preorder;
+          qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
+          const { data: updated } = await supabaseAdmin.from('inventory')
+            .update({ reserved_preorder: qtyAfter, updated_at: now.toISOString() })
+            .eq('id', inv.id)
+            .eq('reserved_preorder', inv.reserved_preorder)
+            .select('id');
+          if (!updated || updated.length === 0) {
+            console.warn(`庫存鎖定衝突 inv.id=${inv.id}，跳過`);
+            continue;
+          }
+        } else {
+          continue;
         }
+
+        inventoryLogs.push({
+          inventory_id: inv.id,
+          product_id:   item.product_id,
+          variant_id:   item.variant_id ?? null,
+          change_type:  'cancel',
+          qty_before:   qtyBefore,
+          qty_after:    qtyAfter,
+          qty_change:   qtyAfter - qtyBefore,
+          reason:       `訂單 #${order.id} 逾時未付款自動取消`,
+          admin_name:   '系統',
+          order_id:     order.id,
+        });
+      }
+
+      if (inventoryLogs.length > 0) {
+        await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
       }
     }
 

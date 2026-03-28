@@ -45,7 +45,7 @@ const ECPAY_URL = process.env.ECPAY_API_URL
 //   5. 全部轉小寫
 //   6. 用 SHA256 雜湊
 //   7. 全部轉大寫
-function generateCheckMacValue(params: Record<string, string>): string {
+export function generateCheckMacValue(params: Record<string, string>): string {
   // 步驟 1：按照 key 排序
   const sorted = Object.keys(params)
     .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
@@ -86,6 +86,7 @@ export function buildEcpayParams(options: {
   payMethod:   'credit' | 'atm';  // 付款方式
   returnUrl:   string;    // 付款完成後，綠界「主動通知」我們的網址（webhook）
   clientBackUrl: string;  // 付款完成後，使用者「被導回」的網址
+  paymentInfoUrl?: string; // ATM/CVS 取號成功時，綠界通知我們的網址
 }): { url: string; params: Record<string, string> } {
   // 產生交易時間（格式：yyyy/MM/dd HH:mm:ss）
   const now = new Date();
@@ -122,9 +123,12 @@ export function buildEcpayParams(options: {
     EncryptType:       '1',             // 固定值，代表 SHA256
   };
 
-  // ATM 付款要設定「付款期限」（幾天內要轉帳）
+  // ATM 付款要設定「付款期限」和「取號通知網址」
   if (options.payMethod === 'atm') {
     params.ExpireDate = '3';  // 3 天內要轉帳，否則訂單自動取消
+    if (options.paymentInfoUrl) {
+      params.PaymentInfoURL = options.paymentInfoUrl;  // ATM 取號成功通知
+    }
   }
 
   // 產生 CheckMacValue（數位簽章）

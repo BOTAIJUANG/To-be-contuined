@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, total, pay_status, member_id')
+    .select('id, order_no, total, status, pay_status, member_id')
     .eq('order_no', orderNo)
     .single();
 
@@ -80,11 +80,16 @@ export async function POST(req: NextRequest) {
   }
 
   // 已經處理過的不要重複處理（綠界可能會重發通知）
-  if (order.pay_status === 'paid') {
+  // 也跳過已取消的訂單，避免延遲到的 webhook 把取消的訂單改回 paid
+  if (order.pay_status === 'paid' || order.status === 'cancelled') {
     return new NextResponse('1|OK', { status: 200 });
   }
 
   // ── 5. 更新訂單付款狀態 ──────────────────────────
+  // ATM 取號成功的 RtnCode（2, 10100058 等）不是失敗，不能取消訂單
+  const ATM_INFO_CODES = ['2', '800', '10100058', '10100073'];
+  const isAtmInfo = ATM_INFO_CODES.includes(rtnCode);
+
   if (rtnCode === '1') {
     // 付款成功！
     const { error: updateErr } = await supabaseAdmin
@@ -108,11 +113,30 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`訂單 ${order.order_no} 付款成功`);
+  } else if (isAtmInfo) {
+    // ATM 取號成功 → 儲存虛擬帳號資訊，但不取消訂單
+    const bankCode  = params.BankCode ?? null;
+    const vAccount  = params.vAccount ?? null;
+    const expireDate = params.ExpireDate ?? null;
+
+    await supabaseAdmin.from('orders').update({
+      atm_bank_code:   bankCode,
+      atm_vaccount:    vAccount,
+      atm_expire_date: expireDate,
+      ecpay_trade_no:  tradeNo || undefined,
+    }).eq('id', order.id);
+
+    console.log(`訂單 ${order.order_no} ATM 取號成功: 銀行=${bankCode}, 帳號=${vAccount}, 期限=${expireDate}`);
   } else {
-    // 付款失敗 → 取消訂單 + 釋放預留庫存
+    // 確定是付款失敗 → 取消訂單 + 釋放預留庫存（記錄錯誤碼供除錯）
     await supabaseAdmin
       .from('orders')
-      .update({ pay_status: 'failed', status: 'cancelled' })
+      .update({
+        pay_status: 'failed',
+        status: 'cancelled',
+        ecpay_error_code: rtnCode ?? null,
+        ecpay_error_msg:  rtnMsg ?? null,
+      })
       .eq('id', order.id);
 
     // 釋放預留庫存
@@ -122,6 +146,8 @@ export async function POST(req: NextRequest) {
       .eq('order_id', order.id);
 
     if (orderItems) {
+      const inventoryLogs: any[] = [];
+
       for (const item of orderItems) {
         let query = supabaseAdmin
           .from('inventory')
@@ -133,15 +159,41 @@ export async function POST(req: NextRequest) {
         const { data: inv } = await query.single();
         if (!inv) continue;
 
+        let qtyBefore: number;
+        let qtyAfter: number;
+
         if (inv.inventory_mode === 'stock') {
+          qtyBefore = inv.reserved;
+          qtyAfter = Math.max(0, inv.reserved - item.qty);
           await supabaseAdmin.from('inventory')
-            .update({ reserved: Math.max(0, inv.reserved - item.qty), updated_at: new Date().toISOString() })
+            .update({ reserved: qtyAfter, updated_at: new Date().toISOString() })
             .eq('id', inv.id);
         } else if (inv.inventory_mode === 'preorder') {
+          qtyBefore = inv.reserved_preorder;
+          qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
           await supabaseAdmin.from('inventory')
-            .update({ reserved_preorder: Math.max(0, inv.reserved_preorder - item.qty), updated_at: new Date().toISOString() })
+            .update({ reserved_preorder: qtyAfter, updated_at: new Date().toISOString() })
             .eq('id', inv.id);
+        } else {
+          continue;
         }
+
+        inventoryLogs.push({
+          inventory_id: inv.id,
+          product_id:   item.product_id,
+          variant_id:   item.variant_id ?? null,
+          change_type:  'cancel',
+          qty_before:   qtyBefore,
+          qty_after:    qtyAfter,
+          qty_change:   qtyAfter - qtyBefore,
+          reason:       `訂單 #${order.id} 付款失敗自動取消`,
+          admin_name:   '系統',
+          order_id:     order.id,
+        });
+      }
+
+      if (inventoryLogs.length > 0) {
+        await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
       }
     }
 

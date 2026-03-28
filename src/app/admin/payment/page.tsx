@@ -44,7 +44,7 @@ export default function AdminPaymentPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, refund_sync_note, ecpay_trade_no, paid_at, created_at')
+      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, ecpay_trade_no, ecpay_error_code, ecpay_error_msg, paid_at, created_at')
       .order('created_at', { ascending: false });
     const list = data ?? [];
     const today = new Date().toISOString().split('T')[0];
@@ -185,7 +185,14 @@ export default function AdminPaymentPage() {
                 </td>
                 <td className={`${s.td} ${p.tdNoWrap}`}>NT$ {order.total.toLocaleString()}</td>
                 <td className={`${s.td} ${p.tdPayMethod}`}>{PAY_METHOD[order.pay_method] ?? order.pay_method ?? '—'}</td>
-                <td className={`${s.td} ${p.tdEcpay}`}>{order.ecpay_trade_no ?? '—'}</td>
+                <td className={`${s.td} ${p.tdEcpay}`}>
+                  {order.ecpay_trade_no ?? '—'}
+                  {order.pay_status === 'failed' && order.ecpay_error_msg && (
+                    <div style={{ fontSize: '0.75rem', color: '#c0392b', marginTop: 2 }}>
+                      {order.ecpay_error_code && `[${order.ecpay_error_code}] `}{order.ecpay_error_msg}
+                    </div>
+                  )}
+                </td>
 
                 {/* 付款狀態（唯讀 badge）*/}
                 <td className={s.td}>
@@ -205,7 +212,6 @@ export default function AdminPaymentPage() {
                       <div>
                         <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
                         {order.refund_amount > 0 && <div className={p.refundAmount}>NT$ {order.refund_amount.toLocaleString()}</div>}
-                        {order.refund_sync_note && <div className={p.refundAmount} style={{ color: '#c0392b' }}>{order.refund_sync_note}</div>}
                       </div>
                     );
                   })() : (
@@ -257,7 +263,6 @@ export default function AdminPaymentPage() {
                     <span>
                       <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
                       {order.refund_amount > 0 && <span className={p.refundAmountInline}> NT$ {order.refund_amount.toLocaleString()}</span>}
-                      {order.refund_sync_note && <div className={p.refundAmount} style={{ color: '#c0392b' }}>{order.refund_sync_note}</div>}
                     </span>
                   );
                 })() : order.pay_status === 'paid' ? (

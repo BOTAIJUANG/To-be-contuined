@@ -15,40 +15,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { requireAdmin } from '@/lib/auth';
-import crypto from 'crypto';
+import { generateCheckMacValue } from '@/lib/ecpay';
 
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
   ?? 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction';
-
-function generateCheckMacValue(params: Record<string, string>): string {
-  const HASH_KEY = (process.env.ECPAY_HASH_KEY ?? 'pwFHCqoQZGmho4w6').trim();
-  const HASH_IV  = (process.env.ECPAY_HASH_IV  ?? 'EkRm7iFT261dpevs').trim();
-
-  const sorted = Object.keys(params)
-    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-    .map(key => `${key}=${params[key]}`)
-    .join('&');
-
-  const raw = `HashKey=${HASH_KEY}&${sorted}&HashIV=${HASH_IV}`;
-
-  let encoded = encodeURIComponent(raw)
-    .replace(/%20/g, '+')
-    .replace(/%2d/g, '-')
-    .replace(/%5f/g, '_')
-    .replace(/%2e/g, '.')
-    .replace(/%21/g, '!')
-    .replace(/%2a/g, '*')
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')');
-
-  encoded = encoded.toLowerCase();
-
-  return crypto
-    .createHash('sha256')
-    .update(encoded)
-    .digest('hex')
-    .toUpperCase();
-}
 
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req);
@@ -63,7 +33,7 @@ export async function POST(req: NextRequest) {
   // ── 1. 取得完整訂單資料 ────────────────────────
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, total, status, pay_status, pay_method, ecpay_trade_no, member_id, redemption_id')
+    .select('id, order_no, total, status, pay_status, pay_method, ecpay_trade_no, member_id, redemption_id, refund_status')
     .eq('id', order_id)
     .single();
 
@@ -75,11 +45,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '此訂單已退款' }, { status: 400 });
   }
 
+  // 防止併發退款：如果已在處理中或已完成，拒絕重複請求
+  if (order.refund_status && !['failed'].includes(order.refund_status)) {
+    return NextResponse.json({ error: '此訂單正在退款或已退款完成' }, { status: 400 });
+  }
+
   if (order.pay_status !== 'paid') {
     return NextResponse.json({ error: '此訂單尚未付款，無法退款' }, { status: 400 });
   }
 
   const amount = refund_amount ?? order.total;
+  if (amount <= 0 || amount > order.total) {
+    return NextResponse.json({ error: '退款金額不得超過訂單金額' }, { status: 400 });
+  }
   const reason = refund_reason ?? '';
 
   // ── 2. 先標記為 processing ──────────────────────
@@ -149,43 +127,74 @@ export async function POST(req: NextRequest) {
       .eq('order_id', order.id);
 
     if (orderItems && orderItems.length > 0) {
+      const inventoryLogs: any[] = [];
+
       for (const item of orderItems) {
-        const { data: inv } = await supabaseAdmin
+        let invQuery = supabaseAdmin
           .from('inventory')
           .select('*')
-          .eq('product_id', item.product_id)
-          .eq('variant_id', item.variant_id ?? 0)
-          .single();
+          .eq('product_id', item.product_id);
+        if (item.variant_id) invQuery = invQuery.eq('variant_id', item.variant_id);
+        else invQuery = invQuery.is('variant_id', null);
+
+        const { data: inv } = await invQuery.single();
 
         if (!inv) continue;
 
         const isStock = inv.inventory_mode === 'stock';
+        let qtyBefore: number;
+        let qtyAfter: number;
 
         if (wasShipped) {
           if (isStock) {
+            qtyBefore = inv.stock;
+            qtyAfter = inv.stock + item.qty;
             await supabaseAdmin.from('inventory').update({
-              stock: inv.stock + item.qty,
+              stock: qtyAfter,
               updated_at: new Date().toISOString(),
             }).eq('id', inv.id);
           } else {
+            qtyBefore = inv.reserved_preorder;
+            qtyAfter = inv.reserved_preorder + item.qty;
             await supabaseAdmin.from('inventory').update({
-              reserved_preorder: inv.reserved_preorder + item.qty,
+              reserved_preorder: qtyAfter,
               updated_at: new Date().toISOString(),
             }).eq('id', inv.id);
           }
         } else {
           if (isStock) {
+            qtyBefore = inv.reserved;
+            qtyAfter = Math.max(0, inv.reserved - item.qty);
             await supabaseAdmin.from('inventory').update({
-              reserved: Math.max(0, inv.reserved - item.qty),
+              reserved: qtyAfter,
               updated_at: new Date().toISOString(),
             }).eq('id', inv.id);
           } else {
+            qtyBefore = inv.reserved_preorder;
+            qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
             await supabaseAdmin.from('inventory').update({
-              reserved_preorder: Math.max(0, inv.reserved_preorder - item.qty),
+              reserved_preorder: qtyAfter,
               updated_at: new Date().toISOString(),
             }).eq('id', inv.id);
           }
         }
+
+        inventoryLogs.push({
+          inventory_id: inv.id,
+          product_id:   item.product_id,
+          variant_id:   item.variant_id ?? null,
+          change_type:  'refund',
+          qty_before:   qtyBefore,
+          qty_after:    qtyAfter,
+          qty_change:   qtyAfter - qtyBefore,
+          reason:       `訂單 #${order.id} 退款`,
+          admin_name:   '系統',
+          order_id:     order.id,
+        });
+      }
+
+      if (inventoryLogs.length > 0) {
+        await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
       }
     }
   } catch (err) {
@@ -193,57 +202,79 @@ export async function POST(req: NextRequest) {
     warnings.push('庫存回補失敗');
   }
 
-  // 4b. 扣章
+  // 4b. 扣章（先確認該訂單是否真的有集章紀錄，避免扣到沒發過的章）
   if (order.member_id && order.status === 'done') {
     try {
-      const { data: settings } = await supabaseAdmin
-        .from('store_settings')
-        .select('stamp_enabled, stamp_threshold')
-        .eq('id', 1).single();
+      const { data: awardLog } = await supabaseAdmin
+        .from('stamp_logs')
+        .select('id, change')
+        .eq('order_id', order.id)
+        .eq('reason', '訂單付款完成自動集章')
+        .maybeSingle();
 
-      if (settings?.stamp_enabled) {
-        const threshold = settings.stamp_threshold ?? 200;
-        const stampsToDeduct = Math.floor(order.total / threshold);
+      if (awardLog && awardLog.change > 0) {
+        const stampsToDeduct = awardLog.change; // 扣回實際集到的章數
 
-        if (stampsToDeduct > 0) {
-          const { data: member } = await supabaseAdmin
-            .from('members')
-            .select('id, stamps')
-            .eq('id', order.member_id).single();
+        const { data: member } = await supabaseAdmin
+          .from('members')
+          .select('id, stamps')
+          .eq('id', order.member_id).single();
 
-          if (member) {
-            const stampsBefore = member.stamps ?? 0;
-            const stampsAfter = Math.max(0, stampsBefore - stampsToDeduct);
+        if (member) {
+          const stampsBefore = member.stamps ?? 0;
+          const stampsAfter = Math.max(0, stampsBefore - stampsToDeduct);
 
-            await supabaseAdmin.from('members').update({
-              stamps: stampsAfter,
-              stamp_last_updated: new Date().toISOString(),
-            }).eq('id', order.member_id);
+          await supabaseAdmin.from('members').update({
+            stamps: stampsAfter,
+            stamp_last_updated: new Date().toISOString(),
+          }).eq('id', order.member_id);
 
-            await supabaseAdmin.from('stamp_logs').insert({
-              member_id:     order.member_id,
-              order_id:      order.id,
-              change:        -stampsToDeduct,
-              stamps_before: stampsBefore,
-              stamps_after:  stampsAfter,
-              reason:        '退款扣章',
-            });
-          }
+          await supabaseAdmin.from('stamp_logs').insert({
+            member_id:     order.member_id,
+            order_id:      order.id,
+            change:        -stampsToDeduct,
+            stamps_before: stampsBefore,
+            stamps_after:  stampsAfter,
+            reason:        '退款扣章',
+          });
         }
       }
     } catch (err) {
       console.error('退款扣章失敗:', err);
-      warnings.push('會員章數回補失敗');
+      warnings.push('會員章數扣除失敗');
     }
   }
 
-  // 4c. 取消兌換
+  // 4c. 取消兌換 + 解凍集章
   if (order.redemption_id) {
     try {
-      await supabaseAdmin.from('redemptions').update({
-        status: 'cancelled',
-        updated_at: new Date().toISOString(),
-      }).eq('id', order.redemption_id);
+      const { data: redemption } = await supabaseAdmin
+        .from('redemptions')
+        .select('id, member_id, stamps_cost, status')
+        .eq('id', order.redemption_id)
+        .single();
+
+      if (redemption) {
+        await supabaseAdmin.from('redemptions').update({
+          status: 'released',
+          updated_at: new Date().toISOString(),
+        }).eq('id', order.redemption_id);
+
+        // 解凍被凍結的章數（若兌換尚未正式扣章，章還在 stamps_frozen 裡）
+        if (redemption.stamps_cost > 0 && redemption.status !== 'used') {
+          const { data: member } = await supabaseAdmin
+            .from('members')
+            .select('stamps_frozen')
+            .eq('id', redemption.member_id)
+            .single();
+
+          if (member) {
+            await supabaseAdmin.from('members').update({
+              stamps_frozen: Math.max(0, (member.stamps_frozen ?? 0) - redemption.stamps_cost),
+            }).eq('id', redemption.member_id);
+          }
+        }
+      }
     } catch (err) {
       console.error('退款取消兌換失敗:', err);
       warnings.push('兌換狀態同步失敗');
@@ -261,7 +292,6 @@ export async function POST(req: NextRequest) {
     refund_status:    finalRefundStatus,
     refund_amount:    amount,
     refund_reason:    reason,
-    refund_sync_note: warnings.length > 0 ? warnings.join('；') : null,
   }).eq('id', order.id);
 
   return NextResponse.json({

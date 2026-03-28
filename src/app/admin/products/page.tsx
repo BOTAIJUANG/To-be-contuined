@@ -48,9 +48,9 @@ export default function AdminProductsPage() {
   // 規格選項
   const [hasVariants,   setHasVariants]   = useState(false);
   const [variantLabel,  setVariantLabel]  = useState('規格');
-  const [variants,      setVariants]      = useState<{ id?: number; name: string; price: string; sku: string; stock: string; is_available: boolean }[]>([]);
+  const [variants,      setVariants]      = useState<{ id?: number; name: string; price: string; sku: string; is_available: boolean }[]>([]);
 
-  const EMPTY_VARIANT = { name: '', price: '', sku: '', stock: '', is_available: true };
+  const EMPTY_VARIANT = { name: '', price: '', sku: '', is_available: true };
 
   // 可出貨日設定
   const [shipDates,      setShipDates]      = useState<ShipDate[]>([]);
@@ -109,7 +109,7 @@ export default function AdminProductsPage() {
     const vData = variantData ?? [];
     setHasVariants(vData.length > 0);
     setVariantLabel((prod as any).variant_label ?? '規格');
-    setVariants(vData.map((v: any) => ({ id: v.id, name: v.name, price: String(v.price ?? (prod.price + (v.price_diff ?? 0))), sku: v.sku ?? '', stock: String(v.stock ?? 0), is_available: v.is_available })));
+    setVariants(vData.map((v: any) => ({ id: v.id, name: v.name, price: String(v.price ?? (prod.price + (v.price_diff ?? 0))), sku: v.sku ?? '', is_available: v.is_available })));
     setEditingId(prod.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -171,7 +171,6 @@ export default function AdminProductsPage() {
             price:        Number(v.price) || form.price,
             price_diff:   (Number(v.price) || form.price) - form.price,
             sku:          v.sku || null,
-            stock:        Number(v.stock) || 0,
             is_available: v.is_available,
             sort_order:   i + 1,
           };
@@ -264,6 +263,18 @@ export default function AdminProductsPage() {
             if (!validVariantIds.includes(inv.variant_id)) {
               await supabase.from('inventory').delete().eq('id', inv.id);
             }
+          }
+        } else {
+          // 沒有規格 → 確保 base inventory (variant_id=null) 存在
+          const mode = form.is_preorder ? 'preorder' : 'stock';
+          const { data: exists } = await supabase.from('inventory')
+            .select('id').eq('product_id', productId).is('variant_id', null).maybeSingle();
+          if (!exists) {
+            await supabase.from('inventory').insert({
+              product_id: productId, variant_id: null,
+              inventory_mode: mode, stock: 0, reserved: 0,
+              safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
+            });
           }
         }
       }

@@ -63,9 +63,17 @@ export async function POST(
         qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
       }
 
-      await supabaseAdmin.from('inventory')
+      const lockField = isStock ? 'reserved' : 'reserved_preorder';
+      const { data: updated, error: updErr } = await supabaseAdmin.from('inventory')
         .update({ ...updateData, updated_at: new Date().toISOString() })
-        .eq('id', inv.id);
+        .eq('id', inv.id)
+        .eq(lockField, isStock ? inv.reserved : inv.reserved_preorder)
+        .select('id');
+
+      if (updErr || !updated || updated.length === 0) {
+        console.error(`庫存釋放衝突 inv.id=${inv.id}`, updErr?.message);
+        return NextResponse.json({ error: '庫存更新衝突，請重試' }, { status: 409 });
+      }
 
       await supabaseAdmin.from('inventory_logs').insert({
         inventory_id: inv.id,
@@ -82,42 +90,42 @@ export async function POST(
     }
   }
 
-  // ── 扣章（若訂單之前已完成且有會員）──
+  // ── 扣章（若訂單之前已完成且有會員，且確認有集章紀錄）──
   if (order.status === 'done' && order.member_id) {
     try {
-      const { data: settings } = await supabaseAdmin
-        .from('store_settings')
-        .select('stamp_enabled, stamp_threshold')
-        .eq('id', 1).single();
+      // 先確認這筆訂單是否真的有集過章
+      const { data: awardLog } = await supabaseAdmin
+        .from('stamp_logs')
+        .select('id, change')
+        .eq('order_id', orderId)
+        .eq('reason', '訂單付款完成自動集章')
+        .maybeSingle();
 
-      if (settings?.stamp_enabled) {
-        const threshold = settings.stamp_threshold ?? 200;
-        const stampsToDeduct = Math.floor(order.total / threshold);
+      if (awardLog && awardLog.change > 0) {
+        const stampsToDeduct = awardLog.change; // 扣回實際集到的章數
 
-        if (stampsToDeduct > 0) {
-          const { data: member } = await supabaseAdmin
-            .from('members')
-            .select('id, stamps')
-            .eq('id', order.member_id).single();
+        const { data: member } = await supabaseAdmin
+          .from('members')
+          .select('id, stamps')
+          .eq('id', order.member_id).single();
 
-          if (member) {
-            const stampsBefore = member.stamps ?? 0;
-            const stampsAfter = Math.max(0, stampsBefore - stampsToDeduct);
+        if (member) {
+          const stampsBefore = member.stamps ?? 0;
+          const stampsAfter = Math.max(0, stampsBefore - stampsToDeduct);
 
-            await supabaseAdmin.from('members').update({
-              stamps: stampsAfter,
-              stamp_last_updated: new Date().toISOString(),
-            }).eq('id', order.member_id);
+          await supabaseAdmin.from('members').update({
+            stamps: stampsAfter,
+            stamp_last_updated: new Date().toISOString(),
+          }).eq('id', order.member_id);
 
-            await supabaseAdmin.from('stamp_logs').insert({
-              member_id:     order.member_id,
-              order_id:      orderId,
-              change:        -stampsToDeduct,
-              stamps_before: stampsBefore,
-              stamps_after:  stampsAfter,
-              reason:        '訂單取消扣章',
-            });
-          }
+          await supabaseAdmin.from('stamp_logs').insert({
+            member_id:     order.member_id,
+            order_id:      orderId,
+            change:        -stampsToDeduct,
+            stamps_before: stampsBefore,
+            stamps_after:  stampsAfter,
+            reason:        '訂單取消扣章',
+          });
         }
       }
     } catch (err) {
@@ -129,7 +137,7 @@ export async function POST(
   if (order.redemption_id) {
     try {
       await supabaseAdmin.from('redemptions').update({
-        status: 'cancelled',
+        status: 'released',
         updated_at: new Date().toISOString(),
       }).eq('id', order.redemption_id);
     } catch (err) {
@@ -140,6 +148,7 @@ export async function POST(
   // ── 更新訂單狀態 ──
   await supabaseAdmin.from('orders').update({
     status: 'cancelled',
+    pay_status: 'failed',
   }).eq('id', orderId);
 
   return NextResponse.json({ ok: true });
