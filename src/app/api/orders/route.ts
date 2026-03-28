@@ -108,11 +108,28 @@ export async function POST(req: NextRequest) {
   if (!memberId && body.redemption_id) {
     return NextResponse.json({ error: '兌換品僅限會員使用，請先登入' }, { status: 400 });
   }
-  if (!body.ship_method) {
-    return NextResponse.json({ error: '請選擇配送方式' }, { status: 400 });
+  // ── 配送方式白名單 + 條件必填驗證 ──
+  const ALLOWED_SHIP_METHODS = ['home', 'home_normal', 'home_cold', 'cvs_711', 'cvs_family', 'store'];
+  if (!body.ship_method || !ALLOWED_SHIP_METHODS.includes(body.ship_method)) {
+    return NextResponse.json({ error: '配送方式不合法' }, { status: 400 });
+  }
+  const isHomeShip = ['home', 'home_normal', 'home_cold'].includes(body.ship_method);
+  const isCvsShip  = ['cvs_711', 'cvs_family'].includes(body.ship_method);
+  if (isHomeShip && (!body.city || !body.address)) {
+    return NextResponse.json({ error: '宅配需填寫完整收件地址（縣市 + 地址）' }, { status: 400 });
+  }
+  if (isCvsShip && (!body.cvs_store_name || !body.cvs_store_address)) {
+    return NextResponse.json({ error: '超商取貨需選擇取貨門市' }, { status: 400 });
   }
   if (!body.pay_method || !['credit', 'atm'].includes(body.pay_method)) {
     return NextResponse.json({ error: '請選擇付款方式' }, { status: 400 });
+  }
+
+  // ── 每個商品的 qty 必須是正整數 ──
+  for (const item of body.items) {
+    if (!item.qty || !Number.isInteger(item.qty) || item.qty <= 0) {
+      return NextResponse.json({ error: `商品數量不合法（須為正整數）` }, { status: 400 });
+    }
   }
 
   // ── 3. 並行查詢：商品、規格、運費設定、優惠活動、折扣碼 ──
@@ -124,7 +141,7 @@ export async function POST(req: NextRequest) {
     supabaseAdmin.from('products').select('id, name, slug, price, image_url').in('id', productIds),
     // 規格真實價格
     variantIds.length > 0
-      ? supabaseAdmin.from('product_variants').select('id, name, price, price_diff').in('id', variantIds)
+      ? supabaseAdmin.from('product_variants').select('id, product_id, name, price, price_diff').in('id', variantIds)
       : Promise.resolve({ data: [] as any[] }),
     // 運費設定
     supabaseAdmin.from('store_settings').select('*').eq('id', 1).single(),
@@ -143,7 +160,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '找不到商品資料' }, { status: 400 });
   }
 
-  const variantsMap: Record<number, { name: string; price: number | null; price_diff: number }> = {};
+  const variantsMap: Record<number, { product_id: number; name: string; price: number | null; price_diff: number }> = {};
   (variantsRes.data ?? []).forEach((v: any) => { variantsMap[v.id] = v; });
 
   const productMap = new Map(products.map(p => [p.id, p]));
@@ -160,6 +177,12 @@ export async function POST(req: NextRequest) {
     }
 
     const variant = item.variant_id ? variantsMap[item.variant_id] : null;
+    if (item.variant_id && !variant) {
+      return NextResponse.json({ error: `規格 ID ${item.variant_id} 不存在` }, { status: 400 });
+    }
+    if (variant && variant.product_id !== item.product_id) {
+      return NextResponse.json({ error: `規格 ID ${item.variant_id} 不屬於商品 ID ${item.product_id}` }, { status: 400 });
+    }
     const variantPrice = variant
       ? (variant.price ?? (product.price + (variant.price_diff ?? 0)))
       : product.price;
@@ -181,17 +204,17 @@ export async function POST(req: NextRequest) {
   const isOuterIsland = OUTER_ISLAND_CITIES.includes(body.city ?? '');
 
   let shippingFee = 0;
-  if (body.ship_method === 'home') {
+  if (isHomeShip) {
     shippingFee = isOuterIsland
       ? ((settings as any)?.fee_home_outer_island ?? 250)
       : ((settings as any)?.fee_home ?? 100);
-  } else if (body.ship_method === 'cvs_711') {
+  } else if (isCvsShip) {
     shippingFee = (settings as any)?.fee_cvs_711 ?? 60;
   } else if (body.ship_method === 'store') {
     shippingFee = (settings as any)?.fee_store ?? 0;
   }
 
-  if (body.ship_method === 'home' || body.ship_method === 'cvs_711') {
+  if (isHomeShip || isCvsShip) {
     const threshold = isOuterIsland
       ? ((settings as any)?.free_ship_outer_island_amount ?? 0)
       : ((settings as any)?.free_ship_mainland_amount ?? 0);
@@ -463,6 +486,7 @@ export async function POST(req: NextRequest) {
 
   // ── 12. 預留庫存（並行更新 + 批次寫 log）──
   const inventoryLogs: any[] = [];
+  const lockFailures: number[] = [];
 
   await Promise.all(allItemsForInventory.map(async (item) => {
     const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
@@ -476,11 +500,18 @@ export async function POST(req: NextRequest) {
       const available = inv.stock - inv.reserved;
       if (!item.is_redeem && available < item.qty) return; // 前面已預檢過
 
-      await supabaseAdmin
+      const { data: updated } = await supabaseAdmin
         .from('inventory')
         .update({ reserved: inv.reserved + item.qty, updated_at: new Date().toISOString() })
         .eq('id', inv.id)
-        .eq('reserved', inv.reserved); // 樂觀鎖
+        .eq('reserved', inv.reserved) // 樂觀鎖
+        .select('id');
+
+      if (!updated || updated.length === 0) {
+        // 樂觀鎖失敗：庫存被其他請求搶先修改
+        lockFailures.push(item.product_id);
+        return;
+      }
 
       inventoryLogs.push({
         inventory_id: inv.id,
@@ -495,11 +526,17 @@ export async function POST(req: NextRequest) {
         order_id: order.id,
       });
     } else if (isPreorder) {
-      await supabaseAdmin
+      const { data: updated } = await supabaseAdmin
         .from('inventory')
         .update({ reserved_preorder: inv.reserved_preorder + item.qty, updated_at: new Date().toISOString() })
         .eq('id', inv.id)
-        .eq('reserved_preorder', inv.reserved_preorder); // 樂觀鎖
+        .eq('reserved_preorder', inv.reserved_preorder) // 樂觀鎖
+        .select('id');
+
+      if (!updated || updated.length === 0) {
+        lockFailures.push(item.product_id);
+        return;
+      }
 
       inventoryLogs.push({
         inventory_id: inv.id,
@@ -515,6 +552,13 @@ export async function POST(req: NextRequest) {
       });
     }
   }));
+
+  // 樂觀鎖失敗 → 回滾訂單
+  if (lockFailures.length > 0) {
+    await supabaseAdmin.from('order_items').delete().eq('order_id', order.id);
+    await supabaseAdmin.from('orders').delete().eq('id', order.id);
+    return NextResponse.json({ error: '庫存已被其他訂單搶先預留，請重新下單' }, { status: 409 });
+  }
 
   // 批次寫入所有庫存 log（一次 insert）
   if (inventoryLogs.length > 0) {

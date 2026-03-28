@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import crypto from 'crypto';
 
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
@@ -51,7 +51,7 @@ function generateCheckMacValue(params: Record<string, string>): string {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req);
+  const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
 
   const { order_id, refund_amount, refund_reason } = await req.json();
@@ -146,6 +146,10 @@ export async function POST(req: NextRequest) {
   }).eq('id', order.id);
 
   // ── 5. 副作用：回補庫存 ────────────────────────
+  // 根據退款前的訂單狀態決定庫存操作：
+  //   - processing（未出貨）→ 釋放預留（reserved -= qty）
+  //   - shipped / done（已出貨）→ 回補實體庫存（stock += qty），因為出貨時已扣過 reserved 和 stock
+  const wasShipped = order.status === 'shipped' || order.status === 'done';
   try {
     const { data: orderItems } = await supabaseAdmin
       .from('order_items')
@@ -164,16 +168,34 @@ export async function POST(req: NextRequest) {
         if (!inv) continue;
 
         const isStock = inv.inventory_mode === 'stock';
-        if (isStock) {
-          await supabaseAdmin.from('inventory').update({
-            reserved: Math.max(0, inv.reserved - item.qty),
-            updated_at: new Date().toISOString(),
-          }).eq('id', inv.id);
+
+        if (wasShipped) {
+          // 已出貨：出貨時已經 stock -= qty, reserved -= qty，所以退款要 stock += qty
+          if (isStock) {
+            await supabaseAdmin.from('inventory').update({
+              stock: inv.stock + item.qty,
+              updated_at: new Date().toISOString(),
+            }).eq('id', inv.id);
+          } else {
+            // 預購模式出貨只扣了 reserved_preorder，退款要加回
+            await supabaseAdmin.from('inventory').update({
+              reserved_preorder: inv.reserved_preorder + item.qty,
+              updated_at: new Date().toISOString(),
+            }).eq('id', inv.id);
+          }
         } else {
-          await supabaseAdmin.from('inventory').update({
-            reserved_preorder: Math.max(0, inv.reserved_preorder - item.qty),
-            updated_at: new Date().toISOString(),
-          }).eq('id', inv.id);
+          // 未出貨：下單時只做了 reserved += qty，退款要 reserved -= qty
+          if (isStock) {
+            await supabaseAdmin.from('inventory').update({
+              reserved: Math.max(0, inv.reserved - item.qty),
+              updated_at: new Date().toISOString(),
+            }).eq('id', inv.id);
+          } else {
+            await supabaseAdmin.from('inventory').update({
+              reserved_preorder: Math.max(0, inv.reserved_preorder - item.qty),
+              updated_at: new Date().toISOString(),
+            }).eq('id', inv.id);
+          }
         }
       }
     }

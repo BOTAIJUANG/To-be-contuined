@@ -363,17 +363,6 @@ export default function AdminOrdersPage() {
         }
       }
 
-      // 退款申請通過時也扣章（若訂單已完成）
-      if (field === 'refund_status' && value === 'approved') {
-        const prevOrder = orders.find(o => o.id === orderId);
-        if (prevOrder?.status === 'done') {
-          await fetchApi('/api/stamps?action=deduct', {
-            method: 'POST',
-            body: JSON.stringify({ order_id: orderId }),
-          });
-        }
-      }
-
       const { error } = await supabase.from('orders').update(upd).eq('id', orderId);
       if (error) { alert('更新失敗：' + error.message); return; }
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...upd } : o));
@@ -387,8 +376,10 @@ export default function AdminOrdersPage() {
   const handleCancelOrder = async (order: any) => {
     setCancelLoading(true);
     try {
-      // 信用卡已付款 → 呼叫綠界退款 API
-      if (order.pay_method === 'credit' && order.pay_status === 'paid') {
+      const isPaid = order.pay_status === 'paid';
+
+      if (isPaid) {
+        // 已付款 → 呼叫退款 API（內部已處理所有副作用：庫存、扣章、兌換）
         const res = await fetchApi('/api/payment/refund', {
           method: 'POST',
           body: JSON.stringify({ order_id: order.id }),
@@ -400,15 +391,21 @@ export default function AdminOrdersPage() {
           return;
         }
         if (data.message) alert(data.message);
+
+        // 退款 API 已更新 DB，只需同步本地狀態
+        const localUpd = {
+          status: 'cancelled',
+          pay_status: 'refunded',
+          refund_status: data.refund_status ?? 'done',
+          refund_amount: order.total,
+        };
+        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...localUpd } : o));
+        if (selectedOrder?.id === order.id) setSelectedOrder((prev: any) => ({ ...prev, ...localUpd }));
+      } else {
+        // 未付款 → 直接透過 updateStatus 取消（會處理庫存回補）
+        await updateStatus(order.id, 'status', 'cancelled');
       }
 
-      // ATM 已付款 → 提示需手動退款
-      if (order.pay_method === 'atm' && order.pay_status === 'paid') {
-        alert('此訂單為 ATM虛擬帳號付款，退款將以銀行轉帳方式另行辦理，請手動處理退款。');
-      }
-
-      // 更新訂單狀態為已取消（會觸發庫存回補、扣章等邏輯）
-      await updateStatus(order.id, 'status', 'cancelled');
       setCancelTarget(null);
     } catch (err) {
       console.error('取消訂單失敗:', err);
