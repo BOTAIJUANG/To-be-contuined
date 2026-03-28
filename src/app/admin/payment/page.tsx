@@ -18,10 +18,11 @@ const PAY_STATUS_MAP: Record<string, { label: string; color: string }> = {
   refunded: { label: '已退款',   color: '#5a7a8a' },
 };
 const REFUND_STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  processing: { label: '退款處理中', color: '#b87a2a' },
-  done:       { label: '退款完成',   color: '#2ab85a' },
-  manual:     { label: '需人工退款', color: '#2a7ab8' },
-  failed:     { label: '退款失敗',   color: '#c0392b' },
+  processing:        { label: '退款處理中',       color: '#b87a2a' },
+  done:              { label: '退款完成',         color: '#2ab85a' },
+  done_with_warning: { label: '退款完成（同步異常）', color: '#b87a2a' },
+  manual:            { label: '需人工退款',       color: '#2a7ab8' },
+  failed:            { label: '退款失敗',         color: '#c0392b' },
 };
 const PAY_METHOD: Record<string, string> = { credit: '信用卡', atm: 'ATM 轉帳' };
 
@@ -43,7 +44,7 @@ export default function AdminPaymentPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, ecpay_trade_no, paid_at, created_at')
+      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, refund_sync_note, ecpay_trade_no, paid_at, created_at')
       .order('created_at', { ascending: false });
     const list = data ?? [];
     const today = new Date().toISOString().split('T')[0];
@@ -204,6 +205,7 @@ export default function AdminPaymentPage() {
                       <div>
                         <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
                         {order.refund_amount > 0 && <div className={p.refundAmount}>NT$ {order.refund_amount.toLocaleString()}</div>}
+                        {order.refund_sync_note && <div className={p.refundAmount} style={{ color: '#c0392b' }}>{order.refund_sync_note}</div>}
                       </div>
                     );
                   })() : (
@@ -255,6 +257,7 @@ export default function AdminPaymentPage() {
                     <span>
                       <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
                       {order.refund_amount > 0 && <span className={p.refundAmountInline}> NT$ {order.refund_amount.toLocaleString()}</span>}
+                      {order.refund_sync_note && <div className={p.refundAmount} style={{ color: '#c0392b' }}>{order.refund_sync_note}</div>}
                     </span>
                   );
                 })() : order.pay_status === 'paid' ? (

@@ -22,7 +22,7 @@ const PAY_STYLE: Record<string, { bg: string; border: string; color: string }> =
   paid:    { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
   failed:  { bg: '#fcf1ef', border: '#e8b5a8', color: '#b55245' },
 };
-const SHIP_LABEL: Record<string, string>   = { home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨' };
+const SHIP_LABEL: Record<string, string>   = { home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配' };
 
 const FALLBACK_STYLE = { bg: '#f5f0ea', border: '#e7ddd0', color: '#8b7d70' };
 

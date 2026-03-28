@@ -10,7 +10,7 @@ import p from './daily.module.css';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
-const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家' };
+const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配' };
 
 export default function AdminDailyPage() {
   const router = useRouter();

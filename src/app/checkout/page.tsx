@@ -188,7 +188,7 @@ export default function CheckoutPage() {
     if (pickupPollRef.current) { clearInterval(pickupPollRef.current); pickupPollRef.current = null; }
 
     // 取得 E-map 表單 HTML
-    const subtype = shipMethod === 'cvs_family' ? 'FAMI' : 'UNIMART';
+    const subtype = 'UNIMART';
     const res = await fetch('/api/ecpay/cvs-map', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -455,7 +455,7 @@ export default function CheckoutPage() {
     const finalCustomerPhone = sameAsBuyer ? buyerPhone : customerPhone;
     const finalCustomerEmail = sameAsBuyer ? buyerEmail : customerEmail;
     if (!finalCustomerName || !finalCustomerPhone || !finalCustomerEmail) { alert('請填寫收件人資訊'); return; }
-    if (isHomeDelivery && (!city || !address)) { alert('請填寫完整收件地址'); return; }
+    if (isHomeDelivery && (!city || !district || !address)) { alert('請填寫完整收件地址（縣市 + 區域 + 地址）'); return; }
     if (isCvsPickup && (!cvsStoreName || !cvsStoreAddr)) { alert('請先選擇取貨門市'); return; }
     if (noIntersection) { alert('您的購物車商品無法安排在同一天出貨，請分開下單。'); return; }
     if (!date && availableDates.length > 0) { alert('請選擇出貨日期'); return; }
@@ -833,7 +833,7 @@ export default function CheckoutPage() {
                   </select>
                 </div>
                 <div className={s.fieldGroup}>
-                  <label className={s.label}>鄉鎮市區</label>
+                  <label className={s.label}>鄉鎮市區 *</label>
                   <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="鄉鎮市區" className={s.input} />
                 </div>
                 <div className={s.fieldGroupFull}>

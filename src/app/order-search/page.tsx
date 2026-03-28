@@ -16,7 +16,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 const SHIP_LABEL: Record<string, string> = {
   home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取',
-  home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨',
+  home_normal: '一般宅配', home_cold: '低溫宅配',
 };
 
 export default function OrderSearchPage() {

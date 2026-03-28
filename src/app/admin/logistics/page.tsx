@@ -16,7 +16,7 @@ import p from './logistics.module.css';
 
 const SHIP_LABEL: Record<string, string> = {
   home: '一般宅配', cvs_711: '7-11取貨', store: '門市自取',
-  home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨',
+  home_normal: '一般宅配', home_cold: '低溫宅配',
 };
 
 const CARRIERS = ['黑貓宅急便', '新竹貨運', '大榮貨運', '7-11 超商', '全家超商', '郵局', '其他'];

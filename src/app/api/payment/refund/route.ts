@@ -1,12 +1,12 @@
 // ════════════════════════════════════════════════
 // app/api/payment/refund/route.ts  ──  統一退款 API
 //
-// 一次完成所有退款流程：
-//   1. 信用卡 → 呼叫綠界 DoAction 刷退
-//      ATM   → 標記為手動退款（manual）
-//   2. 更新訂單：pay_status=refunded, status=cancelled,
-//      refund_status=done/manual, refund_amount, refund_reason
-//   3. 副作用：回補庫存、扣章、取消兌換
+// 流程：
+//   1. 驗證訂單（已付款、未退過）
+//   2. 標記 refund_status=processing
+//   3. 信用卡 → 綠界 DoAction 刷退；ATM → 標記手動
+//   4. 副作用：回補庫存、扣章、取消兌換（收集 warnings）
+//   5. 最後才更新訂單最終狀態
 //
 // POST /api/payment/refund
 // Body: { order_id, refund_amount?, refund_reason? }
@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
   }).eq('id', order.id);
 
   // ── 3. 信用卡 → 呼叫綠界退款 ───────────────────
+  const isATM = order.pay_method === 'atm';
+
   if (order.pay_method === 'credit') {
     if (!order.ecpay_trade_no) {
       await supabaseAdmin.from('orders').update({ refund_status: 'failed' }).eq('id', order.id);
@@ -135,20 +137,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 4. 更新訂單狀態（信用卡退款成功 / ATM 標記手動）───
-  const isATM = order.pay_method === 'atm';
-  await supabaseAdmin.from('orders').update({
-    pay_status:    'refunded',
-    status:        'cancelled',
-    refund_status: isATM ? 'manual' : 'done',
-    refund_amount: amount,
-    refund_reason: reason,
-  }).eq('id', order.id);
+  // ── 4. 副作用（收集 warnings）─────────────────
+  const warnings: string[] = [];
 
-  // ── 5. 副作用：回補庫存 ────────────────────────
-  // 根據退款前的訂單狀態決定庫存操作：
-  //   - processing（未出貨）→ 釋放預留（reserved -= qty）
-  //   - shipped / done（已出貨）→ 回補實體庫存（stock += qty），因為出貨時已扣過 reserved 和 stock
+  // 4a. 回補庫存
   const wasShipped = order.status === 'shipped' || order.status === 'done';
   try {
     const { data: orderItems } = await supabaseAdmin
@@ -170,21 +162,18 @@ export async function POST(req: NextRequest) {
         const isStock = inv.inventory_mode === 'stock';
 
         if (wasShipped) {
-          // 已出貨：出貨時已經 stock -= qty, reserved -= qty，所以退款要 stock += qty
           if (isStock) {
             await supabaseAdmin.from('inventory').update({
               stock: inv.stock + item.qty,
               updated_at: new Date().toISOString(),
             }).eq('id', inv.id);
           } else {
-            // 預購模式出貨只扣了 reserved_preorder，退款要加回
             await supabaseAdmin.from('inventory').update({
               reserved_preorder: inv.reserved_preorder + item.qty,
               updated_at: new Date().toISOString(),
             }).eq('id', inv.id);
           }
         } else {
-          // 未出貨：下單時只做了 reserved += qty，退款要 reserved -= qty
           if (isStock) {
             await supabaseAdmin.from('inventory').update({
               reserved: Math.max(0, inv.reserved - item.qty),
@@ -201,9 +190,10 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error('退款庫存回補失敗:', err);
+    warnings.push('庫存回補失敗');
   }
 
-  // ── 6. 副作用：扣章（如果訂單已完成且有會員）─────
+  // 4b. 扣章
   if (order.member_id && order.status === 'done') {
     try {
       const { data: settings } = await supabaseAdmin
@@ -243,10 +233,11 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       console.error('退款扣章失敗:', err);
+      warnings.push('會員章數回補失敗');
     }
   }
 
-  // ── 7. 副作用：取消兌換紀錄 ─────────────────────
+  // 4c. 取消兌換
   if (order.redemption_id) {
     try {
       await supabaseAdmin.from('redemptions').update({
@@ -255,14 +246,32 @@ export async function POST(req: NextRequest) {
       }).eq('id', order.redemption_id);
     } catch (err) {
       console.error('退款取消兌換失敗:', err);
+      warnings.push('兌換狀態同步失敗');
     }
   }
+
+  // ── 5. 最後才更新訂單最終狀態 ─────────────────
+  const finalRefundStatus = isATM
+    ? 'manual'
+    : (warnings.length > 0 ? 'done_with_warning' : 'done');
+
+  await supabaseAdmin.from('orders').update({
+    pay_status:       'refunded',
+    status:           'cancelled',
+    refund_status:    finalRefundStatus,
+    refund_amount:    amount,
+    refund_reason:    reason,
+    refund_sync_note: warnings.length > 0 ? warnings.join('；') : null,
+  }).eq('id', order.id);
 
   return NextResponse.json({
     ok: true,
     message: isATM
       ? 'ATM 訂單已標記退款，請手動以銀行轉帳方式辦理。'
-      : '信用卡退款成功',
-    refund_status: isATM ? 'manual' : 'done',
+      : (warnings.length > 0
+        ? `信用卡退款成功，但有部分同步異常：${warnings.join('、')}`
+        : '信用卡退款成功'),
+    refund_status: finalRefundStatus,
+    warnings,
   });
 }

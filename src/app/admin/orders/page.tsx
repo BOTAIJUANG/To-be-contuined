@@ -29,13 +29,13 @@ const PAY_OPTIONS = [
 const SHIP_OPTIONS = [
   { value: '', label: '全部配送方式' }, { value: 'home_normal', label: '一般宅配' },
   { value: 'home_cold', label: '低溫宅配' }, { value: 'cvs_711', label: '7-11取貨' },
-  { value: 'cvs_family', label: '全家取貨' }, { value: 'store', label: '門市自取' },
+  { value: 'store', label: '門市自取' },
 ];
 const STATUS_COLOR: Record<string, string> = { processing: '#7a5846', shipped: '#5a7a8a', done: '#4a7a56', cancelled: '#8b7d70' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const PAY_COLOR: Record<string, string>    = { pending: '#8b6722', paid: '#4a7a56', failed: '#b55245' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '失敗' };
-const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配', cvs_family: '全家取貨' };
+const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取', home_normal: '一般宅配', home_cold: '低溫宅配' };
 const SORT_OPTIONS = [
   { value: 'newest', label: '最新優先' }, { value: 'oldest', label: '最舊優先' },
   { value: 'amount_desc', label: '金額高到低' }, { value: 'amount_asc', label: '金額低到高' },
@@ -325,47 +325,41 @@ export default function AdminOrdersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'report') loadReport(); }, [tab, reportPeriod, reportCustomStart, reportCustomEnd]);
 
+  // ── 純前端狀態更新：所有業務邏輯都在後端 API ──
   const updateStatus = async (orderId: number, field: string, value: string) => {
     try {
+      let url: string;
+      let method: string;
+      let reqBody: any;
+
+      if (field === 'status' && value === 'shipped') {
+        url = `/api/admin/orders/${orderId}/ship`;
+        method = 'POST';
+        reqBody = {};
+      } else if (field === 'status' && value === 'done') {
+        url = `/api/admin/orders/${orderId}/complete`;
+        method = 'POST';
+        reqBody = {};
+      } else {
+        url = `/api/admin/orders/${orderId}/status`;
+        method = 'PATCH';
+        reqBody = { field, value };
+      }
+
+      const res = await fetchApi(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || '操作失敗');
+        return;
+      }
+
       const upd: any = { [field]: value };
-      if (field === 'status' && value === 'shipped') upd.shipped_at = new Date().toISOString();
-
-      // 出貨或取消 → 庫存操作（API 自動查 order_items）
-      if (field === 'status' && (value === 'shipped' || value === 'cancelled')) {
-        const action = value === 'shipped' ? 'ship' : 'cancel';
-        const res = await fetchApi(`/api/inventory?action=${action}`, {
-          method: 'POST',
-          body: JSON.stringify({ order_id: orderId }),
-        });
-        if (!res.ok) {
-          const err = await res.text();
-          console.error('庫存操作失敗:', err);
-          alert('庫存操作失敗：' + err);
-        }
-      }
-
-      // 訂單狀態改為「已完成」→ 自動加章
-      if (field === 'status' && value === 'done') {
-        const res = await fetchApi('/api/stamps?action=add', {
-          method: 'POST',
-          body: JSON.stringify({ order_id: orderId }),
-        });
-        if (!res.ok) console.error('集章失敗:', await res.text());
-      }
-
-      // 訂單狀態改為「已取消」→ 扣章（若之前已完成並加過章）
-      if (field === 'status' && value === 'cancelled') {
-        const prevOrder = orders.find(o => o.id === orderId);
-        if (prevOrder?.status === 'done') {
-          await fetchApi('/api/stamps?action=deduct', {
-            method: 'POST',
-            body: JSON.stringify({ order_id: orderId }),
-          });
-        }
-      }
-
-      const { error } = await supabase.from('orders').update(upd).eq('id', orderId);
-      if (error) { alert('更新失敗：' + error.message); return; }
+      if (value === 'shipped') upd.shipped_at = new Date().toISOString();
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...upd } : o));
       if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, ...upd }));
     } catch (err) {
@@ -380,7 +374,7 @@ export default function AdminOrdersPage() {
       const isPaid = order.pay_status === 'paid';
 
       if (isPaid) {
-        // 已付款 → 呼叫退款 API（內部已處理所有副作用：庫存、扣章、兌換）
+        // 已付款 → 退款 API（內部處理所有副作用）
         const res = await fetchApi('/api/payment/refund', {
           method: 'POST',
           body: JSON.stringify({ order_id: order.id }),
@@ -393,7 +387,6 @@ export default function AdminOrdersPage() {
         }
         if (data.message) alert(data.message);
 
-        // 退款 API 已更新 DB，只需同步本地狀態
         const localUpd = {
           status: 'cancelled',
           pay_status: 'refunded',
@@ -403,8 +396,21 @@ export default function AdminOrdersPage() {
         setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...localUpd } : o));
         if (selectedOrder?.id === order.id) setSelectedOrder((prev: any) => ({ ...prev, ...localUpd }));
       } else {
-        // 未付款 → 直接透過 updateStatus 取消（會處理庫存回補）
-        await updateStatus(order.id, 'status', 'cancelled');
+        // 未付款 → 取消 API（內部處理庫存釋放 + 扣章）
+        const res = await fetchApi(`/api/admin/orders/${order.id}/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert('取消失敗：' + (data.error ?? '未知錯誤'));
+          setCancelLoading(false);
+          return;
+        }
+        const localUpd = { status: 'cancelled' };
+        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...localUpd } : o));
+        if (selectedOrder?.id === order.id) setSelectedOrder((prev: any) => ({ ...prev, ...localUpd }));
       }
 
       setCancelTarget(null);

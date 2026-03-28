@@ -109,14 +109,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '兌換品僅限會員使用，請先登入' }, { status: 400 });
   }
   // ── 配送方式白名單 + 條件必填驗證 ──
-  const ALLOWED_SHIP_METHODS = ['home', 'home_normal', 'home_cold', 'cvs_711', 'cvs_family', 'store'];
+  const ALLOWED_SHIP_METHODS = ['home', 'home_normal', 'home_cold', 'cvs_711', 'store'];
   if (!body.ship_method || !ALLOWED_SHIP_METHODS.includes(body.ship_method)) {
     return NextResponse.json({ error: '配送方式不合法' }, { status: 400 });
   }
   const isHomeShip = ['home', 'home_normal', 'home_cold'].includes(body.ship_method);
-  const isCvsShip  = ['cvs_711', 'cvs_family'].includes(body.ship_method);
-  if (isHomeShip && (!body.city || !body.address)) {
-    return NextResponse.json({ error: '宅配需填寫完整收件地址（縣市 + 地址）' }, { status: 400 });
+  const isCvsShip  = body.ship_method === 'cvs_711';
+  if (isHomeShip && (!body.city || !body.district || !body.address)) {
+    return NextResponse.json({ error: '宅配需填寫完整收件地址（縣市 + 區域 + 地址）' }, { status: 400 });
   }
   if (isCvsShip && (!body.cvs_store_name || !body.cvs_store_address)) {
     return NextResponse.json({ error: '超商取貨需選擇取貨門市' }, { status: 400 });
