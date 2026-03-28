@@ -271,10 +271,22 @@ export default function AdminOrdersPage() {
   // ── CSV 匯出 ──
   const exportCSV = (list: any[], filename: string) => {
     const BOM = '\uFEFF';
-    const headers = ['訂單編號', '下單日期', '收件人', '電話', '地址', '配送方式', '指定出貨日', '指定到店日', '商品名稱', '數量', '單價', '小計', '備註'];
+    const headers = [
+      '訂單編號', '下單日期',
+      '購買人', '購買人電話', '購買人Email',
+      '收件人', '收件人電話', '收件人Email',
+      '配送方式', '收件地址',
+      '超商品牌', '超商門市名稱', '超商門市店號', '超商門市地址',
+      '指定出貨日', '指定到店日',
+      '商品名稱', '數量', '單價', '小計', '備註',
+    ];
     const rows = list.flatMap(o => (o.order_items ?? []).map((item: any) => [
-      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'), o.customer_name ?? o.buyer_name, o.customer_phone ?? o.buyer_phone,
-      o.cvs_store_name ? `${o.cvs_store_brand ?? ''} ${o.cvs_store_name}`.trim() : (o.address || (o.ship_method === 'store' ? '門市自取' : '—')), SHIP_LABEL[o.ship_method] ?? o.ship_method,
+      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'),
+      o.buyer_name ?? '', o.buyer_phone ?? '', o.buyer_email ?? '',
+      o.customer_name ?? o.buyer_name ?? '', o.customer_phone ?? o.buyer_phone ?? '', o.customer_email ?? o.buyer_email ?? '',
+      SHIP_LABEL[o.ship_method] ?? o.ship_method,
+      o.ship_method === 'store' ? '門市自取' : (o.cvs_store_name ? '' : (o.address ?? '')),
+      o.cvs_store_brand ?? '', o.cvs_store_name ?? '', o.cvs_store_id ?? '', o.cvs_store_address ?? '',
       o.ship_method !== 'store' ? (o.ship_date ?? '') : '',
       o.ship_method === 'store' ? (o.ship_date ?? '') : '',
       item.name, item.qty, item.price, item.price * item.qty, o.note ?? '',
@@ -514,8 +526,8 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className={s.tdShipMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
                       <td className={s.tdShipStatus} onClick={e => e.stopPropagation()}>
-                        {o.status === 'cancelled' ? (
-                          <span className={s.cancelledBadge}>已取消</span>
+                        {o.status === 'cancelled' || o.pay_status === 'refunded' ? (
+                          <span className={s.cancelledBadge}>{o.pay_status === 'refunded' ? '已取消（已退款）' : '已取消'}</span>
                         ) : (
                           <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
                             {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
@@ -524,7 +536,7 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className={s.tdActions}>
                         <button onClick={e => { e.stopPropagation(); setSelectedOrder(o); }} className={s.btnDetail}>詳細</button>
-                        {o.status !== 'cancelled' && (
+                        {o.status !== 'cancelled' && o.pay_status !== 'refunded' && (
                           <button onClick={e => { e.stopPropagation(); setCancelTarget(o); }} className={s.btnCancel}>取消</button>
                         )}
                       </td>
@@ -575,7 +587,7 @@ export default function AdminOrdersPage() {
                     <div className={s.cardItems}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</div>
                     <div className={s.cardActions} onClick={e => e.stopPropagation()}>
                       <button onClick={() => setSelectedOrder(o)} className={s.btnDetail}>詳細</button>
-                      {o.status !== 'cancelled' && (
+                      {o.status !== 'cancelled' && o.pay_status !== 'refunded' && (
                         <>
                           <select value={o.status} onChange={e => updateStatus(o.id, 'status', e.target.value)} className={s.statusSelect} style={{ color: STATUS_COLOR[o.status] }}>
                             {SHIP_STATUS_OPTIONS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}

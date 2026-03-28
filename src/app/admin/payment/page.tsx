@@ -3,7 +3,7 @@
 // app/admin/payment/page.tsx  ──  金流狀態（含退款）
 //
 // 付款狀態由綠界 ECPay 自動更新（透過 webhook / return），不可手動修改。
-// 退款流程：申請退款 → 核准（信用卡自動呼叫綠界刷退 API）→ 完成
+// 退款流程：按「退款」→ 填金額/原因 → 確認 → API 一次完成所有操作
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -17,11 +17,12 @@ const PAY_STATUS_MAP: Record<string, { label: string; color: string }> = {
   failed:   { label: '付款失敗', color: '#c0392b' },
   refunded: { label: '已退款',   color: '#5a7a8a' },
 };
-const REFUND_STATUS = [
-  { value: 'pending',  label: '退款申請中', color: '#b87a2a' },
-  { value: 'approved', label: '退款已核准', color: '#2a7ab8' },
-  { value: 'done',     label: '退款完成',   color: '#2ab85a' },
-];
+const REFUND_STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  processing: { label: '退款處理中', color: '#b87a2a' },
+  done:       { label: '退款完成',   color: '#2ab85a' },
+  manual:     { label: '需人工退款', color: '#2a7ab8' },
+  failed:     { label: '退款失敗',   color: '#c0392b' },
+};
 const PAY_METHOD: Record<string, string> = { credit: '信用卡', atm: 'ATM 轉帳' };
 
 export default function AdminPaymentPage() {
@@ -54,7 +55,7 @@ export default function AdminPaymentPage() {
       refunded:  list.filter(o => o.pay_status === 'refunded').length,
       totalPaid: list.filter(o => o.pay_status === 'paid').reduce((sum, o) => sum + o.total, 0),
       todayPaid,
-      refunding: list.filter(o => o.refund_status === 'pending').length,
+      refunding: list.filter(o => o.refund_status === 'processing' || o.refund_status === 'manual').length,
     });
     setOrders(list);
     setLoading(false);
@@ -62,7 +63,7 @@ export default function AdminPaymentPage() {
 
   useEffect(() => { load(); }, []);
 
-  // ── 申請退款（記錄到 DB，等待核准）──────────────────
+  // ── 開啟退款 Modal ──────────────────────────────
   const openRefund = (order: any) => {
     setRefundOrder(order);
     setRefundAmount(order.total);
@@ -70,83 +71,37 @@ export default function AdminPaymentPage() {
     setShowRefund(true);
   };
 
-  const saveRefund = async () => {
+  // ── 確認退款（一鍵完成：呼叫 API → 退款+取消+副作用）──
+  const confirmRefund = async () => {
     if (!refundOrder) return;
     setSavingRefund(true);
-    await supabase.from('orders').update({
-      refund_status: 'pending',
-      refund_amount: refundAmount,
-      refund_reason: refundReason,
-    }).eq('id', refundOrder.id);
-    setSavingRefund(false);
-    setShowRefund(false);
-    load();
-  };
-
-  // ── 退款狀態變更（核准時呼叫綠界退款 + 副作用）──────
-  const updateRefundStatus = async (orderId: number, refund_status: string) => {
-    const order = orders.find(o => o.id === orderId);
-    if (!order) return;
 
     try {
-      if (refund_status === 'approved') {
-        // 信用卡已付款 → 呼叫綠界退款 API（跟訂單管理的取消邏輯一樣）
-        if (order.pay_method === 'credit' && order.pay_status === 'paid') {
-          const res = await fetchApi('/api/payment/refund', {
-            method: 'POST',
-            body: JSON.stringify({ order_id: orderId }),
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            alert('綠界退款失敗：' + (data.error ?? '未知錯誤'));
-            return;
-          }
-          if (data.message) alert(data.message);
-        }
+      const res = await fetchApi('/api/payment/refund', {
+        method: 'POST',
+        body: JSON.stringify({
+          order_id:      refundOrder.id,
+          refund_amount: refundAmount,
+          refund_reason: refundReason,
+        }),
+      });
+      const data = await res.json();
 
-        // ATM 已付款 → 提示需手動退款
-        if (order.pay_method === 'atm' && order.pay_status === 'paid') {
-          alert('此訂單為 ATM 付款，退款將以銀行轉帳方式另行辦理，請手動處理退款。');
-        }
-
-        // 副作用：扣章、回補庫存、取消兌換
-        const { data: fullOrder } = await supabase
-          .from('orders')
-          .select('id, status, member_id, redemption_id')
-          .eq('id', orderId)
-          .single();
-
-        if (fullOrder) {
-          // 1. 扣章（如果訂單已完成且有加過章）
-          if (fullOrder.status === 'done') {
-            await fetchApi('/api/stamps?action=deduct', {
-              method: 'POST',
-              body: JSON.stringify({ order_id: orderId }),
-            });
-          }
-
-          // 2. 回補庫存（API 自動查 order_items）
-          await fetchApi('/api/inventory?action=cancel', {
-            method: 'POST',
-            body: JSON.stringify({ order_id: orderId }),
-          });
-
-          // 3. 取消兌換紀錄
-          if (fullOrder.redemption_id) {
-            await supabase.from('redemptions').update({
-              status: 'cancelled',
-              updated_at: new Date().toISOString(),
-            }).eq('id', fullOrder.redemption_id);
-          }
-        }
+      if (!res.ok) {
+        alert('退款失敗：' + (data.error ?? '未知錯誤'));
+        setSavingRefund(false);
+        return;
       }
 
-      await supabase.from('orders').update({ refund_status }).eq('id', orderId);
-      load(); // 重新載入以反映退款後的 pay_status 變化
+      alert(data.message ?? '退款完成');
+      setShowRefund(false);
+      load();
     } catch (err) {
-      console.error('退款狀態更新失敗:', err);
+      console.error('退款失敗:', err);
       alert('操作失敗，請稍後再試');
     }
+
+    setSavingRefund(false);
   };
 
   // ── 篩選 ──────────────────────────────────────────
@@ -203,7 +158,7 @@ export default function AdminPaymentPage() {
             <option key={value} value={value}>{label}</option>
           ))}
           <option disabled>── 退款 ──</option>
-          {REFUND_STATUS.map(st => <option key={`r_${st.value}`} value={st.value}>{st.label}</option>)}
+          {Object.entries(REFUND_STATUS_LABEL).map(([value, { label }]) => <option key={`r_${value}`} value={value}>{label}</option>)}
         </select>
       </div>
 
@@ -243,16 +198,17 @@ export default function AdminPaymentPage() {
 
                 {/* 退款狀態 */}
                 <td className={s.td}>
-                  {order.refund_status ? (
-                    <div>
-                      <select value={order.refund_status} onChange={e => updateRefundStatus(order.id, e.target.value)} className={`${p.inlineSelect} ${p.refundSelectBlock}`} style={{ color: REFUND_STATUS.find(st => st.value === order.refund_status)?.color ?? 'var(--text-light)' }}>
-                        {REFUND_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
-                      </select>
-                      {order.refund_amount > 0 && <div className={p.refundAmount}>NT$ {order.refund_amount.toLocaleString()}</div>}
-                    </div>
-                  ) : (
+                  {order.refund_status ? (() => {
+                    const rs = REFUND_STATUS_LABEL[order.refund_status];
+                    return (
+                      <div>
+                        <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
+                        {order.refund_amount > 0 && <div className={p.refundAmount}>NT$ {order.refund_amount.toLocaleString()}</div>}
+                      </div>
+                    );
+                  })() : (
                     order.pay_status === 'paid' && (
-                      <button onClick={() => openRefund(order)} className={p.refundBtn}>申請退款</button>
+                      <button onClick={() => openRefund(order)} className={p.refundBtn}>退款</button>
                     )
                   )}
                 </td>
@@ -293,12 +249,16 @@ export default function AdminPaymentPage() {
               )}
               <div className={s.cardRow}>
                 <span className={s.cardLabel}>退款</span>
-                {order.refund_status ? (
-                  <select value={order.refund_status} onChange={e => updateRefundStatus(order.id, e.target.value)} className={p.inlineSelect} style={{ color: REFUND_STATUS.find(st => st.value === order.refund_status)?.color }}>
-                    {REFUND_STATUS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
-                  </select>
-                ) : order.pay_status === 'paid' ? (
-                  <button onClick={() => openRefund(order)} className={p.refundBtn}>申請退款</button>
+                {order.refund_status ? (() => {
+                  const rs = REFUND_STATUS_LABEL[order.refund_status];
+                  return (
+                    <span>
+                      <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
+                      {order.refund_amount > 0 && <span className={p.refundAmountInline}> NT$ {order.refund_amount.toLocaleString()}</span>}
+                    </span>
+                  );
+                })() : order.pay_status === 'paid' ? (
+                  <button onClick={() => openRefund(order)} className={p.refundBtn}>退款</button>
                 ) : <span className={p.cardDash}>—</span>}
               </div>
               <div className={s.cardRow}>
@@ -316,7 +276,7 @@ export default function AdminPaymentPage() {
           <div onClick={() => setShowRefund(false)} className={s.modalOverlay} />
           <div className={`${s.modal} ${p.modalWidth}`}>
             <div className={s.modalHeader}>
-              <span className={s.modalTitle}>申請退款</span>
+              <span className={s.modalTitle}>確認退款</span>
               <button onClick={() => setShowRefund(false)} className={s.modalClose}>×</button>
             </div>
             <div className={s.modalBody}>
@@ -335,18 +295,18 @@ export default function AdminPaymentPage() {
               {/* 依付款方式顯示不同提示 */}
               {refundOrder.pay_method === 'credit' && (
                 <div className={p.refundWarning}>
-                  核准退款後，系統將自動透過綠界進行信用卡刷退。
+                  確認後將立即透過綠界進行信用卡刷退，訂單將自動取消。
                 </div>
               )}
               {refundOrder.pay_method === 'atm' && (
                 <div className={p.refundWarning}>
-                  ATM 付款無法自動退款，核准後請手動以銀行轉帳方式辦理退款。
+                  ATM 付款無法自動退款，確認後訂單將取消並標記為「需人工退款」，請手動以銀行轉帳方式辦理。
                 </div>
               )}
 
               <div className={s.btnActions}>
-                <button onClick={saveRefund} disabled={savingRefund} className={p.btnRefundConfirm}>
-                  {savingRefund ? '處理中...' : '確認退款申請'}
+                <button onClick={confirmRefund} disabled={savingRefund} className={p.btnRefundConfirm}>
+                  {savingRefund ? '退款處理中...' : '確認退款'}
                 </button>
                 <button onClick={() => setShowRefund(false)} className={s.btnCancel}>取消</button>
               </div>

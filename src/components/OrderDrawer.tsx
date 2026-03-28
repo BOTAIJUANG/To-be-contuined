@@ -175,8 +175,8 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                 <div className={s.actionsWrap}>
                   <div className={s.actionGroup}>
                     <label className={s.actionLabel}>配送狀態</label>
-                    {order.status === 'cancelled' ? (
-                      <span className={s.statusFixed}>已取消</span>
+                    {order.status === 'cancelled' || order.pay_status === 'refunded' ? (
+                      <span className={s.statusFixed}>{order.pay_status === 'refunded' ? '已取消（已退款）' : '已取消'}</span>
                     ) : (
                       <select value={order.status} onChange={e => onStatusChange(order.id, 'status', e.target.value)} className={s.select} style={{ color: ss.color }}>
                         {[{ value: 'processing', label: '處理中' }, { value: 'shipped', label: '已出貨' }, { value: 'done', label: '已完成' }].map(opt => (

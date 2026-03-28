@@ -124,3 +124,13 @@
   font-weight: 600;
   white-space: nowrap;
 }
+.refundBadge {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.refundAmountInline {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-left: 4px;
+}
