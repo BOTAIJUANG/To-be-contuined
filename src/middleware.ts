@@ -69,6 +69,9 @@ export async function middleware(req: NextRequest) {
     '/api/register',
     '/api/orders',
     '/api/payment/ecpay',
+    '/api/ecpay/cvs-map',
+    '/api/ecpay/cvs-callback',
+    '/api/pickup-session',
   ];
   const isPublicApi = publicApiPaths.some(p => pathname.startsWith(p));
 

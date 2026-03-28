@@ -127,7 +127,7 @@ export default function CheckoutPage() {
   const [buyerPhone,    setBuyerPhone]    = useState('');
   const [buyerEmail,    setBuyerEmail]    = useState('');
   // 收件人
-  const [sameAsBuyer,   setSameAsBuyer]   = useState(true);
+  const [sameAsBuyer,   setSameAsBuyer]   = useState(false);
   const [customerName,  setCustomerName]  = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -796,11 +796,6 @@ export default function CheckoutPage() {
             ))}
           </div>
 
-          <div className={s.sectionTitle}>配送方式</div>
-          {availableShipOptions.map(opt => (
-            <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
-          ))}
-
           <div className={s.sectionTitleSpaced}>收件人資訊</div>
           <label className={s.checkboxLabel}>
             <input type="checkbox" checked={sameAsBuyer} onChange={e => handleSameAsBuyer(e.target.checked)} className={s.checkbox} />
@@ -820,6 +815,11 @@ export default function CheckoutPage() {
               ))}
             </div>
           )}
+
+          <div className={s.sectionTitle}>配送方式</div>
+          {availableShipOptions.map(opt => (
+            <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
+          ))}
 
           {isHomeDelivery && (
             <>
