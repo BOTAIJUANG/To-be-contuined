@@ -36,13 +36,17 @@ export async function releaseBatchReserved(orderId: number) {
     const currentReserved = batch.reserved ?? 0;
     const newReserved = Math.max(0, currentReserved - qty);
 
-    // 樂觀鎖：確保 reserved 未被同時修改
-    const { data: updated } = await supabaseAdmin
+    // 樂觀鎖：確保 reserved 未被同時修改（NULL 和 0 需分別處理）
+    let lockQ = supabaseAdmin
       .from('preorder_batches')
       .update({ reserved: newReserved })
-      .eq('id', batchId)
-      .eq('reserved', currentReserved)
-      .select('id');
+      .eq('id', batchId);
+    if (batch.reserved === null || batch.reserved === undefined) {
+      lockQ = lockQ.is('reserved', null);
+    } else {
+      lockQ = lockQ.eq('reserved', currentReserved);
+    }
+    const { data: updated } = await lockQ.select('id');
 
     // 樂觀鎖失敗 → 重讀後重試一次
     if (!updated || updated.length === 0) {
@@ -52,12 +56,16 @@ export async function releaseBatchReserved(orderId: number) {
         .eq('id', batchId)
         .single();
       if (retry) {
-        const { data: retryResult } = await supabaseAdmin
+        let retryQ = supabaseAdmin
           .from('preorder_batches')
           .update({ reserved: Math.max(0, (retry.reserved ?? 0) - qty) })
-          .eq('id', batchId)
-          .eq('reserved', retry.reserved)
-          .select('id');
+          .eq('id', batchId);
+        if (retry.reserved === null || retry.reserved === undefined) {
+          retryQ = retryQ.is('reserved', null);
+        } else {
+          retryQ = retryQ.eq('reserved', retry.reserved);
+        }
+        const { data: retryResult } = await retryQ.select('id');
         if (!retryResult || retryResult.length === 0) {
           console.error(`[batch-stock] 批次 ${batchId} 預留釋放重試失敗，訂單 ${orderId}`);
         }

@@ -443,12 +443,17 @@ export async function POST(req: NextRequest) {
 
       // 樂觀鎖：只有 reserved 沒被別人改過才能成功
       const newReserved = currentReserved + needed;
-      const { data: updated, error: batchErr } = await supabaseAdmin
+      let lockQuery = supabaseAdmin
         .from('preorder_batches')
         .update({ reserved: newReserved })
-        .eq('id', batch.id)
-        .eq('reserved', currentReserved)
-        .select('id');
+        .eq('id', batch.id);
+      // NULL 和 0 在 PostgreSQL 中不同，需分別處理
+      if (batch.reserved === null || batch.reserved === undefined) {
+        lockQuery = lockQuery.is('reserved', null);
+      } else {
+        lockQuery = lockQuery.eq('reserved', currentReserved);
+      }
+      const { data: updated, error: batchErr } = await lockQuery.select('id');
 
       if (batchErr || !updated || updated.length === 0) {
         // 樂觀鎖失敗 → 回滾已成功的批次
@@ -494,11 +499,8 @@ export async function POST(req: NextRequest) {
         );
       }
     } else if (allPreorder && batchRows.length === 0) {
-      // 純預購但無有效批次資料 → 無法驗證出貨日
-      return NextResponse.json(
-        { error: '預購商品缺少有效批次資料，無法驗證出貨日' },
-        { status: 400 },
-      );
+      // 純預購但無批次資料（可能是舊購物車未帶 preorder_batch_id）→ 跳過驗證
+      console.warn('[orders] 純預購但無批次資料，跳過 ship_date 驗證', { shipDate, items: body.items.map((i: any) => ({ product_id: i.product_id, preorder_batch_id: i.preorder_batch_id })) });
     } else {
       // 一般 or 混購：計算合法日期集合
       const shipMinDays = settings?.ship_min_days ?? 1;

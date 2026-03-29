@@ -58,17 +58,18 @@ export default function AdminPreorderPage() {
     setProducts(prods ?? []);
     setBatches(batchData ?? []);
 
+    // 從 order_items 按 preorder_batch_id 統計各批次已接數量（排除已取消訂單）
     const stats: Record<string, number> = {};
     if (batchData && batchData.length > 0) {
-      const productIds = [...new Set(batchData.map((b: any) => b.product_id))];
-      const { data: invData } = await supabase
-        .from('inventory')
-        .select('product_id, variant_id, reserved_preorder')
-        .in('product_id', productIds)
-        .eq('inventory_mode', 'preorder');
-      (invData ?? []).forEach((i: any) => {
-        const key = `${i.product_id}_${i.variant_id ?? 'null'}`;
-        stats[key] = i.reserved_preorder ?? 0;
+      const batchIds = batchData.map((b: any) => b.id);
+      const { data: itemData } = await supabase
+        .from('order_items')
+        .select('preorder_batch_id, qty, orders!inner(status)')
+        .in('preorder_batch_id', batchIds)
+        .neq('orders.status', 'cancelled');
+      (itemData ?? []).forEach((i: any) => {
+        const key = `batch_${i.preorder_batch_id}`;
+        stats[key] = (stats[key] ?? 0) + (i.qty ?? 0);
       });
     }
     setOrderStats(stats);
@@ -122,6 +123,7 @@ export default function AdminPreorderPage() {
       ends_at:    batchForm.ends_at    || null,
       ship_date:  batchForm.ship_date,
       limit_qty:  batchForm.limit_qty,
+      reserved:   0,
       status:     batchForm.status,
       is_active:  batchForm.status === 'active',
       note:       batchForm.note || null,
@@ -377,7 +379,7 @@ function BatchList({ batches, orderStats, productId, getBatchStatus, onEdit, onT
     <div className={p.batchListGrid}>
       {batches.map(batch => {
         const status   = getBatchStatus(batch);
-        const reserved = batch.reserved ?? 0;
+        const reserved = orderStats[`batch_${batch.id}`] ?? 0;
         const pct      = batch.limit_qty > 0 ? Math.round(reserved / batch.limit_qty * 100) : 0;
         const isActive = batch.status === 'active';
         const isDraft  = batch.status === 'draft';
