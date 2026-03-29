@@ -42,7 +42,7 @@ const RadioCard = ({ value, title, sub, checked, onChange, fee }: { value: strin
 );
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clearCart, mixedShipDate } = useCart();
+  const { items, totalPrice, clearCart, mixedShipDate, unifiedShipDate } = useCart();
   const [step, _setStep] = useState<1|2|3|'done'>(() => {
     if (typeof window === 'undefined') return 1;
     const saved = sessionStorage.getItem('checkout_step');
@@ -59,7 +59,7 @@ export default function CheckoutPage() {
   // 兌換品相關
   const redeemItem    = items.find(i => i.isRedeemItem);           // 購物車裡的兌換品
   const regularItems  = items.filter(i => !i.isRedeemItem);        // 一般商品
-  const redeemStamps  = redeemItem ? 0 : 0;                        // 兌換品價格為 0
+  // 兌換品價格為 0，不計入金額
 
   // 可選出貨日期（從 API 取得）
   const [availableDates,  setAvailableDates]  = useState<string[]>([]);
@@ -402,7 +402,7 @@ export default function CheckoutPage() {
       }
     }
 
-    const amt = data.type === 'percent' ? Math.floor(totalPrice * data.value / 100) : data.value;
+    const amt = data.type === 'percent' ? Math.floor(totalPrice * data.value / 100) : Math.min(data.value, totalPrice);
     setDiscount(amt);
     setCouponMsg(`折扣碼已套用，折抵 NT$${amt}`);
   };
@@ -413,10 +413,11 @@ export default function CheckoutPage() {
     setNoIntersection(false);
     setDate('');
 
-    // 預購 / 混購時直接用 mixedShipDate
-    if ((hasMixed || items.every(i => i.isPreorder)) && mixedShipDate) {
-      setAvailableDates([mixedShipDate]);
-      setDate(mixedShipDate);
+    // 預購 / 混購時直接用統一出貨日
+    const fixedDate = unifiedShipDate || mixedShipDate;
+    if ((hasMixed || items.every(i => i.isPreorder)) && fixedDate) {
+      setAvailableDates([fixedDate]);
+      setDate(fixedDate);
       setDatesLoading(false);
       return;
     }
@@ -489,8 +490,9 @@ export default function CheckoutPage() {
       }
 
       // 2. 計算出貨日
-      const finalShipDate = (hasMixed || items.every(i => i.isPreorder)) && mixedShipDate
-        ? mixedShipDate
+      const fixedDate = unifiedShipDate || mixedShipDate;
+      const finalShipDate = (hasMixed || items.every(i => i.isPreorder)) && fixedDate
+        ? fixedDate
         : date || null;
 
       // 3. 呼叫後端 API 建立訂單
@@ -672,8 +674,11 @@ export default function CheckoutPage() {
             <p className={s.emptyCart}>購物車是空的，<Link href="/shop" className={s.emptyCartLink}>去選購</Link>。</p>
           ) : (
             <>
-              {items.map(item => (
-                <div key={item.id} className={s.cartRow}>
+              {items.map(item => {
+                let cartKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
+                if (item.preorderBatchId) cartKey += `_b${item.preorderBatchId}`;
+                return (
+                <div key={cartKey} className={s.cartRow}>
                   <div className={s.cartItemLeft}>
                     <div className={`${s.cartThumb} ${item.isRedeemItem ? s.cartThumbRedeem : ''}`}>
                       {item.imageUrl
@@ -693,7 +698,7 @@ export default function CheckoutPage() {
                     {item.isRedeemItem ? '免費' : `NT$ ${(item.price * item.qty).toLocaleString()}`}
                   </div>
                 </div>
-              ))}
+              )})}
               {/* 贈品顯示在購物車列表中 */}
               {promoResult.gifts.map(g => {
                 const info = giftProductNames[g.product_id];
@@ -741,9 +746,9 @@ export default function CheckoutPage() {
                 </div>
               )}
               {/* 混購提示條 */}
-              {hasMixed && mixedShipDate && (
+              {hasMixed && unifiedShipDate && (
                 <div className={s.mixedWarning}>
-                  此購物車包含預購商品，若一起結帳，所有商品將於 <strong>{mixedShipDate}</strong> 統一出貨。
+                  此購物車包含預購商品，若一起結帳，所有商品將於 <strong>{unifiedShipDate}</strong> 統一出貨。
                 </div>
               )}
               {!memberId && (
@@ -889,12 +894,12 @@ export default function CheckoutPage() {
               <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
               <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
             </div>
-          ) : (hasMixed || items.every(i => i.isPreorder)) && mixedShipDate ? (
+          ) : (hasMixed || items.every(i => i.isPreorder)) && (unifiedShipDate || mixedShipDate) ? (
             /* 預購 / 混購：固定顯示統一出貨日 */
             <div className={s.fixedDateWrap}>
               <div className={s.fixedDateBox}>
                 <div className={s.fixedDateLabel}>統一出貨日（固定）</div>
-                <div className={s.fixedDateValue}>{mixedShipDate}</div>
+                <div className={s.fixedDateValue}>{unifiedShipDate || mixedShipDate}</div>
                 <div className={s.fixedDateHint}>
                   {hasMixed ? '因購物車含預購商品，所有商品統一於此日出貨' : '預購批次固定出貨日，無法更改'}
                 </div>
@@ -956,12 +961,15 @@ export default function CheckoutPage() {
 
           <div className={s.sectionTitleSpaced}>訂單摘要</div>
           <div className={s.orderSummaryBox}>
-            {items.map(item => (
-              <div key={item.id} className={s.orderSummaryItem}>
+            {items.map(item => {
+              let summaryKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
+              if (item.preorderBatchId) summaryKey += `_b${item.preorderBatchId}`;
+              return (
+              <div key={summaryKey} className={s.orderSummaryItem}>
                 <span>{item.name} &times; {item.qty}</span>
                 <span>{item.isRedeemItem ? '免費' : `NT$ ${(item.price * item.qty).toLocaleString()}`}</span>
               </div>
-            ))}
+            )})}
             {promoResult.gifts.map(g => (
               <div key={`gift3-${g.promotion_id}-${g.product_id}`} className={s.orderSummaryItem} style={{ color: '#2ab85a' }}>
                 <span>{giftProductNames[g.product_id]?.name ?? `贈品 #${g.product_id}`} &times; {g.qty}（贈品）</span>
@@ -985,7 +993,7 @@ export default function CheckoutPage() {
           <div className={s.totalRow}>
             <span className={s.totalLabel}>應付金額</span>
             <span className={s.totalValue}>
-              NT$ {(totalPrice - discount - promoDiscount + shippingFee).toLocaleString()}
+              NT$ {(Math.max(0, totalPrice - discount - promoDiscount) + shippingFee).toLocaleString()}
             </span>
           </div>
 
@@ -1040,7 +1048,7 @@ export default function CheckoutPage() {
               </div>
               <div className={s.modalDateRowFinal}>
                 <span className={s.modalDateLabelFinal}>本筆訂單統一出貨日</span>
-                <span className={s.modalDateValueFinal}>{mixedShipDate}</span>
+                <span className={s.modalDateValueFinal}>{unifiedShipDate}</span>
               </div>
             </div>
             <p className={s.modalHint}>
@@ -1054,7 +1062,7 @@ export default function CheckoutPage() {
                 onChange={e => setMixedConfirmed(e.target.checked)}
                 className={s.modalCheckbox}
               />
-              我已了解本訂單將於 <strong>{mixedShipDate}</strong> 統一出貨
+              我已了解本訂單將於 <strong>{unifiedShipDate}</strong> 統一出貨
             </label>
             <div className={s.modalBtnRow}>
               <button

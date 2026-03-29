@@ -6,6 +6,7 @@
 import { usePathname } from 'next/navigation';
 import Nav from '@/components/Nav';
 import CartDrawer from '@/components/CartDrawer';
+import CartToast from '@/components/CartToast';
 import AnnouncementBar from '@/components/AnnouncementBar';
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
       {!isAdmin && <Nav />}
       {children}
       {!isAdmin && <CartDrawer />}
+      {!isAdmin && <CartToast />}
     </>
   );
 }

@@ -36,7 +36,11 @@ export async function getActivePromotionsMap(): Promise<Map<number, ProductPromo
   for (const p of promos) {
     // 檢查時間範圍
     if (p.start_at && new Date(p.start_at) > new Date(now)) continue;
-    if (p.end_at && new Date(p.end_at) < new Date(now)) continue;
+    if (p.end_at) {
+      const endDate = new Date(p.end_at);
+      endDate.setHours(23, 59, 59, 999);
+      if (endDate < new Date(now)) continue;
+    }
 
     const info: ProductPromoInfo = {
       id: p.id,

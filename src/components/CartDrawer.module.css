@@ -75,7 +75,12 @@
   border: none;
   font-size: 24px;
   color: var(--text-light);
-  padding: 4px 8px;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
@@ -189,8 +194,8 @@
   border: 1px solid var(--line);
 }
 .qtyBtn {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   background: transparent;
   border: none;
   font-size: 16px;
@@ -200,7 +205,7 @@
   justify-content: center;
 }
 @media (min-width: 640px) {
-  .qtyBtn { width: 28px; height: 28px; font-size: 14px; }
+  .qtyBtn { width: 34px; height: 34px; font-size: 14px; }
 }
 .qtyValue {
   width: 36px;
@@ -236,7 +241,12 @@
   color: var(--text-light);
   font-size: 18px;
   align-self: flex-start;
-  padding: 4px;
+  padding: 12px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 .cancelRedeemBtn {
@@ -245,7 +255,10 @@
   color: #c0392b;
   font-size: 11px;
   align-self: flex-start;
-  padding: 4px;
+  padding: 12px 8px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
   font-family: "Noto Sans TC", sans-serif;
   white-space: nowrap;
 }

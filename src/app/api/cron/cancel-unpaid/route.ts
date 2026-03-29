@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const creditCutoff = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
   const { data: creditOrders } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no')
+    .select('id, order_no, coupon_code')
     .eq('pay_status', 'pending')
     .eq('pay_method', 'credit')
     .neq('status', 'cancelled')
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   const atmCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const { data: atmOrders } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no')
+    .select('id, order_no, coupon_code')
     .eq('pay_status', 'pending')
     .eq('pay_method', 'atm')
     .neq('status', 'cancelled')
@@ -47,11 +47,18 @@ export async function GET(req: NextRequest) {
 
   // ── 3. 逐筆取消 + 釋放庫存 ────────────────────────
   for (const order of expiredOrders) {
-    // 更新訂單狀態
-    await supabaseAdmin
+    // 更新訂單狀態（加 pay_status 防護，避免與 webhook 同時處理時覆蓋 paid）
+    const { data: cancelledOrder } = await supabaseAdmin
       .from('orders')
       .update({ pay_status: 'failed', status: 'cancelled' })
-      .eq('id', order.id);
+      .eq('id', order.id)
+      .eq('pay_status', 'pending')
+      .select('id');
+
+    if (!cancelledOrder || cancelledOrder.length === 0) {
+      console.log(`訂單 ${order.order_no} 狀態已變更，跳過取消`);
+      continue;
+    }
 
     // 釋放預留庫存
     const { data: items } = await supabaseAdmin
@@ -125,6 +132,21 @@ export async function GET(req: NextRequest) {
 
     // 釋放預購批次預留量
     await releaseBatchReserved(order.id);
+
+    // 釋放折價券使用次數
+    if (order.coupon_code) {
+      const { data: coupon } = await supabaseAdmin
+        .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
+      if (coupon && (coupon.used_count ?? 0) > 0) {
+        const { data: couponUpdated } = await supabaseAdmin.from('coupons')
+          .update({ used_count: coupon.used_count - 1 })
+          .eq('id', coupon.id).eq('used_count', coupon.used_count)
+          .select('id');
+        if (!couponUpdated || couponUpdated.length === 0) {
+          console.warn(`[cron] 折價券釋放衝突 coupon=${coupon.id}，訂單=${order.order_no}`);
+        }
+      }
+    }
 
     cancelledCount++;
     console.log(`自動取消逾時訂單: ${order.order_no}`);

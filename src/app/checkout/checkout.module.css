@@ -974,6 +974,12 @@
   padding: 24px 20px;
 }
 
+@media (max-width: 360px) {
+  .modalBox {
+    padding: 16px 12px;
+  }
+}
+
 @media (min-width: 640px) {
   .modalBox {
     padding: 32px;

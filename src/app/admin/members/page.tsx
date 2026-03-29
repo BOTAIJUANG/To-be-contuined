@@ -66,6 +66,7 @@ export default function AdminMembersPage() {
   const [detailTab,     setDetailTab]     = useState<DetailTab>('profile');
   const [stampLogs,     setStampLogs]     = useState<StampLog[]>([]);
   const [redemptionLogs,setRedemptionLogs]= useState<RedemptionLog[]>([]);
+  const [detailAddresses, setDetailAddresses] = useState<any[]>([]);
   const [logsLoading,   setLogsLoading]   = useState(false);
 
   const loadMembers = async () => {
@@ -137,7 +138,13 @@ export default function AdminMembersPage() {
     setDetailMember(m);
     setDetailTab('profile');
     setShowDetail(true);
+    setDetailAddresses([]);
     setLogsLoading(true);
+
+    // 載入會員地址
+    supabase.from('addresses').select('*').eq('member_id', m.id).order('is_default', { ascending: false }).then(({ data }) => {
+      setDetailAddresses(data ?? []);
+    });
 
     const { data: logs } = await supabase
       .from('stamp_logs')
@@ -665,6 +672,7 @@ export default function AdminMembersPage() {
                 <div>
                   {[
                     { label: '姓名',     value: detailMember.name },
+                    { label: 'Email',    value: detailMember.email },
                     { label: '手機',     value: detailMember.phone },
                     { label: '生日',     value: detailMember.birthday },
                     { label: '身份',     value: detailMember.role === 'admin' ? 'Admin' : 'Member' },
@@ -676,6 +684,33 @@ export default function AdminMembersPage() {
                       <span className={p.profileValue}>{value ?? '—'}</span>
                     </div>
                   ))}
+
+                  {/* 地址 */}
+                  <div style={{ marginTop: 16, borderTop: '1px solid #eee', paddingTop: 12 }}>
+                    <span className={p.profileLabel}>收件地址</span>
+                    {detailAddresses.length === 0 ? (
+                      <div className={p.profileValue} style={{ marginTop: 4 }}>尚未設定地址</div>
+                    ) : (
+                      detailAddresses.map((addr: any, i: number) => (
+                        <div key={addr.id ?? i} style={{ marginTop: i === 0 ? 4 : 10, padding: '8px 0', borderBottom: i < detailAddresses.length - 1 ? '1px solid #f2f2f2' : 'none' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.9em' }}>{addr.label || `地址 ${i + 1}`}</span>
+                            {addr.is_default && <span style={{ fontSize: '0.75em', background: '#e8d5b0', color: '#6b5430', padding: '1px 6px', borderRadius: 4 }}>預設</span>}
+                            {addr.type === 'cvs' && <span style={{ fontSize: '0.75em', background: '#d0e8f0', color: '#2a5a6b', padding: '1px 6px', borderRadius: 4 }}>超商</span>}
+                          </div>
+                          <div style={{ fontSize: '0.85em', color: '#555' }}>
+                            {addr.name} {addr.phone}
+                          </div>
+                          <div style={{ fontSize: '0.85em', color: '#333' }}>
+                            {addr.type === 'cvs'
+                              ? `${addr.cvs_brand === '711' ? '7-11' : addr.cvs_brand} ${addr.store_name ?? ''} ${addr.store_address ?? ''}`
+                              : `${addr.city ?? ''}${addr.district ?? ''}${addr.address ?? ''}`
+                            }
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
 

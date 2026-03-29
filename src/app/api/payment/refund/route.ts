@@ -269,8 +269,8 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         }).eq('id', order.redemption_id);
 
-        // 解凍被凍結的章數（若兌換尚未正式扣章，章還在 stamps_frozen 裡）
-        if (redemption.stamps_cost > 0 && redemption.status !== 'used') {
+        // 解凍被凍結的章數（僅限章數仍凍結中的狀態：pending_cart / pending_order）
+        if (redemption.stamps_cost > 0 && ['pending_cart', 'pending_order'].includes(redemption.status)) {
           const { data: member } = await supabaseAdmin
             .from('members')
             .select('stamps_frozen')

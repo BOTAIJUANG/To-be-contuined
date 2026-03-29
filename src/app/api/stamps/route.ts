@@ -88,11 +88,15 @@ export async function POST(req: NextRequest) {
     stampsAfter = Math.max(0, stampsBefore - stampsToChange);
   }
 
-  // ── 5. 更新會員章數 ──────────────────────────────
-  await supabase.from('members').update({
+  // ── 5. 更新會員章數（樂觀鎖）──────────────────────
+  const { data: stampsUpdated } = await supabase.from('members').update({
     stamps:             stampsAfter,
     stamp_last_updated: new Date().toISOString(),
-  }).eq('id', order.member_id);
+  }).eq('id', order.member_id).eq('stamps', stampsBefore).select('id');
+
+  if (!stampsUpdated || stampsUpdated.length === 0) {
+    return NextResponse.json({ error: '章數更新衝突，請重試' }, { status: 409 });
+  }
 
   // ── 6. 寫入集章記錄 ──────────────────────────────
   await supabase.from('stamp_logs').insert({

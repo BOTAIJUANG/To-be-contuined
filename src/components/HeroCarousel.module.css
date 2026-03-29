@@ -155,8 +155,8 @@
   transform: translateY(-50%);
   background: rgba(247, 244, 239, 0.85);
   border: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   font-size: 20px;
   color: var(--text-dark);
@@ -200,16 +200,20 @@
   height: 6px;
   border-radius: 50%;
   border: none;
-  padding: 0;
+  padding: 16px 0;
+  background-clip: content-box;
   transition: all 0.3s;
   cursor: pointer;
+  box-sizing: content-box;
 }
 .dotActive {
   width: 18px;
   border-radius: 3px;
   background: #fff;
+  background-clip: content-box;
 }
 .dotInactive {
   width: 6px;
   background: rgba(255, 255, 255, 0.45);
+  background-clip: content-box;
 }

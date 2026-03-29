@@ -25,7 +25,7 @@ function getDisplayStatus(order: any): { label: string; color: string } {
   if (needPay && order.pay_status === 'refunded') return { label: '已退款', color: '#888580' };
   return { label: STATUS_LABEL[order.status] ?? order.status, color: STATUS_COLOR[order.status] ?? '#888' };
 }
-const CITIES = ['台北市','新北市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣'];
+const CITIES = ['台北市','新北市','基隆市','桃園市','台中市','台南市','高雄市','新竹縣','新竹市','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','嘉義市','屏東縣','宜蘭縣','花蓮縣','台東縣','澎湖縣','金門縣','連江縣'];
 
 interface MemberDashboardProps {
   userId:   string;
@@ -36,7 +36,7 @@ interface MemberDashboardProps {
 const EMPTY_ADDR = { label: '', name: '', phone: '', type: 'home', city: '', district: '', address: '', cvs_brand: '711', store_name: '', store_address: '', is_default: false };
 
 export default function MemberDashboard({ userId, userName, onLogout }: MemberDashboardProps) {
-  const { addItem } = useCart();
+  const { addItem, showToast, triggerBounce } = useCart();
   const [activeTab, setActiveTab] = useState<'profile'|'stamps'|'orders'|'address'>('profile');
 
   // 個人資料
@@ -208,7 +208,8 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
           setRedeemConfirmed(false);
           return;
         }
-        alert(`「${selectedReward.name}」已加入購物車，請前往結帳完成兌換。`);
+        showToast(`已加入購物車：${selectedReward.name} × 1`);
+        triggerBounce();
       }
 
       // 重新載入進行中的兌換

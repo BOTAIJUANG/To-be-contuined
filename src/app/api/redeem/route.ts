@@ -199,11 +199,20 @@ async function handleCreate({
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 8. 凍結章數
-  await supabase
+  // 8. 凍結章數（樂觀鎖）
+  const frozenBefore = member.stamps_frozen ?? 0;
+  const { data: frozenOk } = await supabase
     .from("members")
-    .update({ stamps_frozen: (member.stamps_frozen ?? 0) + reward.stamps })
-    .eq("id", member_id);
+    .update({ stamps_frozen: frozenBefore + reward.stamps })
+    .eq("id", member_id)
+    .eq("stamps_frozen", frozenBefore)
+    .select("id");
+
+  if (!frozenOk || frozenOk.length === 0) {
+    // 凍結失敗 → 回滾剛建立的 redemption
+    await supabase.from("redemptions").delete().eq("id", redemption.id);
+    return NextResponse.json({ error: "章數更新衝突，請重試" }, { status: 409 });
+  }
 
   return NextResponse.json({
     ok: true,
@@ -235,27 +244,37 @@ async function handleCancel({ redemption_id }: { redemption_id: number }) {
     return NextResponse.json({ error: "此兌換無法取消" }, { status: 400 });
   }
 
-  // 更新狀態
-  await supabase
+  // 更新狀態（樂觀鎖：確保狀態未被其他操作更改）
+  const { data: statusOk } = await supabase
     .from("redemptions")
     .update({ status: "released", updated_at: new Date().toISOString() })
-    .eq("id", redemption_id);
+    .eq("id", redemption_id)
+    .eq("status", redemption.status)
+    .select("id");
 
-  // 解凍章數
+  if (!statusOk || statusOk.length === 0) {
+    return NextResponse.json({ error: "狀態更新衝突，請重試" }, { status: 409 });
+  }
+
+  // 解凍章數（樂觀鎖）
   const { data: member } = await supabase
     .from("members")
     .select("stamps_frozen")
     .eq("id", redemption.member_id)
     .single();
-  await supabase
+  const frozenBefore = member?.stamps_frozen ?? 0;
+  const { data: frozenOk } = await supabase
     .from("members")
     .update({
-      stamps_frozen: Math.max(
-        0,
-        (member?.stamps_frozen ?? 0) - redemption.stamps_cost,
-      ),
+      stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
     })
-    .eq("id", redemption.member_id);
+    .eq("id", redemption.member_id)
+    .eq("stamps_frozen", frozenBefore)
+    .select("id");
+
+  if (!frozenOk || frozenOk.length === 0) {
+    console.error(`[redeem/cancel] 解凍衝突 member_id=${redemption.member_id}`);
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -286,8 +305,8 @@ async function handleUse({
     );
   }
 
-  // 更新 redemption
-  await supabase
+  // 更新 redemption（樂觀鎖）
+  const { data: statusOk } = await supabase
     .from("redemptions")
     .update({
       status: "used",
@@ -295,32 +314,44 @@ async function handleUse({
       used_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", redemption_id);
+    .eq("id", redemption_id)
+    .eq("status", "pending_order")
+    .select("id");
 
-  // 正式扣章：stamps -= X，stamps_frozen -= X
+  if (!statusOk || statusOk.length === 0) {
+    return NextResponse.json({ error: "狀態更新衝突，請重試" }, { status: 409 });
+  }
+
+  // 正式扣章：stamps -= X，stamps_frozen -= X（樂觀鎖）
   const { data: member } = await supabase
     .from("members")
     .select("stamps, stamps_frozen")
     .eq("id", redemption.member_id)
     .single();
-  await supabase
+  const stampsBefore = member?.stamps ?? 0;
+  const frozenBefore = member?.stamps_frozen ?? 0;
+  const stampsAfter = Math.max(0, stampsBefore - redemption.stamps_cost);
+  const frozenAfter = Math.max(0, frozenBefore - redemption.stamps_cost);
+
+  const { data: stampsOk } = await supabase
     .from("members")
-    .update({
-      stamps: Math.max(0, (member?.stamps ?? 0) - redemption.stamps_cost),
-      stamps_frozen: Math.max(
-        0,
-        (member?.stamps_frozen ?? 0) - redemption.stamps_cost,
-      ),
-    })
-    .eq("id", redemption.member_id);
+    .update({ stamps: stampsAfter, stamps_frozen: frozenAfter })
+    .eq("id", redemption.member_id)
+    .eq("stamps", stampsBefore)
+    .eq("stamps_frozen", frozenBefore)
+    .select("id");
+
+  if (!stampsOk || stampsOk.length === 0) {
+    console.error(`[redeem/use] 扣章衝突 member_id=${redemption.member_id}`);
+  }
 
   // 寫入 stamp_log
   await supabase.from("stamp_logs").insert({
     member_id: redemption.member_id,
     order_id,
     change: -redemption.stamps_cost,
-    stamps_before: member?.stamps ?? 0,
-    stamps_after: Math.max(0, (member?.stamps ?? 0) - redemption.stamps_cost),
+    stamps_before: stampsBefore,
+    stamps_after: stampsAfter,
     reason: "兌換獎勵扣章",
   });
 
@@ -350,32 +381,45 @@ async function handleRefund({ redemption_id }: { redemption_id: number }) {
     );
   }
 
-  // 更新狀態
-  await supabase
+  // 更新狀態（樂觀鎖）
+  const { data: statusOk } = await supabase
     .from("redemptions")
     .update({ status: "refunded", updated_at: new Date().toISOString() })
-    .eq("id", redemption_id);
+    .eq("id", redemption_id)
+    .eq("status", "used")
+    .select("id");
 
-  // 歸還章數（不動 stamps_frozen，因為已經是 used 狀態，frozen 早就歸 0）
+  if (!statusOk || statusOk.length === 0) {
+    return NextResponse.json({ error: "狀態更新衝突，請重試" }, { status: 409 });
+  }
+
+  // 歸還章數（樂觀鎖；不動 stamps_frozen，因為已經是 used 狀態，frozen 早就歸 0）
   const { data: member } = await supabase
     .from("members")
     .select("stamps")
     .eq("id", redemption.member_id)
     .single();
-  await supabase
+  const stampsBefore = member?.stamps ?? 0;
+  const stampsAfter = stampsBefore + redemption.stamps_cost;
+
+  const { data: stampsOk } = await supabase
     .from("members")
-    .update({
-      stamps: (member?.stamps ?? 0) + redemption.stamps_cost,
-    })
-    .eq("id", redemption.member_id);
+    .update({ stamps: stampsAfter })
+    .eq("id", redemption.member_id)
+    .eq("stamps", stampsBefore)
+    .select("id");
+
+  if (!stampsOk || stampsOk.length === 0) {
+    console.error(`[redeem/refund] 歸還章數衝突 member_id=${redemption.member_id}`);
+  }
 
   // 寫入 stamp_log
   await supabase.from("stamp_logs").insert({
     member_id: redemption.member_id,
     order_id: redemption.order_id,
     change: redemption.stamps_cost,
-    stamps_before: member?.stamps ?? 0,
-    stamps_after: (member?.stamps ?? 0) + redemption.stamps_cost,
+    stamps_before: stampsBefore,
+    stamps_after: stampsAfter,
     reason: "兌換退款歸還章數",
   });
 
@@ -406,14 +450,20 @@ async function handleUpdateOrder({
       { status: 400 },
     );
 
-  await supabase
+  const { data: statusOk } = await supabase
     .from("redemptions")
     .update({
       status: "pending_order",
       order_id,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", redemption_id);
+    .eq("id", redemption_id)
+    .eq("status", "pending_cart")
+    .select("id");
+
+  if (!statusOk || statusOk.length === 0) {
+    return NextResponse.json({ error: "狀態更新衝突，請重試" }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -455,30 +505,39 @@ async function handleVerify({
 
   // 檢查是否過期
   if (new Date(redemption.expires_at) < new Date()) {
-    // 自動過期處理
-    await supabase
+    // 自動過期處理（樂觀鎖 + 結果檢查，防止並行雙重解凍）
+    const { data: expiredOk } = await supabase
       .from("redemptions")
       .update({ status: "expired", updated_at: new Date().toISOString() })
-      .eq("id", redemption.id);
-    const { data: member } = await supabase
-      .from("members")
-      .select("stamps_frozen")
-      .eq("id", redemption.member_id)
-      .single();
-    await supabase
-      .from("members")
-      .update({
-        stamps_frozen: Math.max(
-          0,
-          (member?.stamps_frozen ?? 0) - redemption.stamps_cost,
-        ),
-      })
-      .eq("id", redemption.member_id);
+      .eq("id", redemption.id)
+      .eq("status", "pending_cart")
+      .select("id");
+
+    // 只有成功標記過期的那個請求才做解凍
+    if (expiredOk && expiredOk.length > 0) {
+      const { data: member } = await supabase
+        .from("members")
+        .select("stamps_frozen")
+        .eq("id", redemption.member_id)
+        .single();
+      const frozenBefore = member?.stamps_frozen ?? 0;
+      const { data: frozenOk } = await supabase
+        .from("members")
+        .update({
+          stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
+        })
+        .eq("id", redemption.member_id)
+        .eq("stamps_frozen", frozenBefore)
+        .select("id");
+      if (!frozenOk || frozenOk.length === 0) {
+        console.error(`[redeem/verify] 過期兌換解凍衝突 member_id=${redemption.member_id}`);
+      }
+    }
     return NextResponse.json({ error: "此兌換碼已過期" }, { status: 400 });
   }
 
-  // 核銷：直接 used（現場不需要 pending_order）
-  await supabase
+  // 核銷：直接 used（現場不需要 pending_order）（樂觀鎖）
+  const { data: statusOk } = await supabase
     .from("redemptions")
     .update({
       status: "used",
@@ -486,31 +545,43 @@ async function handleVerify({
       admin_id: admin_id ?? null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", redemption.id);
+    .eq("id", redemption.id)
+    .eq("status", "pending_cart")
+    .select("id");
 
-  // 正式扣章
+  if (!statusOk || statusOk.length === 0) {
+    return NextResponse.json({ error: "狀態更新衝突，請重試" }, { status: 409 });
+  }
+
+  // 正式扣章（樂觀鎖）
   const { data: member } = await supabase
     .from("members")
     .select("stamps, stamps_frozen")
     .eq("id", redemption.member_id)
     .single();
-  await supabase
+  const stampsBefore = member?.stamps ?? 0;
+  const frozenBefore = member?.stamps_frozen ?? 0;
+  const stampsAfter = Math.max(0, stampsBefore - redemption.stamps_cost);
+  const frozenAfter = Math.max(0, frozenBefore - redemption.stamps_cost);
+
+  const { data: stampsOk } = await supabase
     .from("members")
-    .update({
-      stamps: Math.max(0, (member?.stamps ?? 0) - redemption.stamps_cost),
-      stamps_frozen: Math.max(
-        0,
-        (member?.stamps_frozen ?? 0) - redemption.stamps_cost,
-      ),
-    })
-    .eq("id", redemption.member_id);
+    .update({ stamps: stampsAfter, stamps_frozen: frozenAfter })
+    .eq("id", redemption.member_id)
+    .eq("stamps", stampsBefore)
+    .eq("stamps_frozen", frozenBefore)
+    .select("id");
+
+  if (!stampsOk || stampsOk.length === 0) {
+    console.error(`[redeem/verify] 扣章衝突 member_id=${redemption.member_id}`);
+  }
 
   // 寫入 stamp_log
   await supabase.from("stamp_logs").insert({
     member_id: redemption.member_id,
     change: -redemption.stamps_cost,
-    stamps_before: member?.stamps ?? 0,
-    stamps_after: Math.max(0, (member?.stamps ?? 0) - redemption.stamps_cost),
+    stamps_before: stampsBefore,
+    stamps_after: stampsAfter,
     reason: `現場兌換核銷（${redeem_code}）`,
   });
 

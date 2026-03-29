@@ -21,7 +21,7 @@ interface GiftDisplay {
 
 export default function CartDrawer() {
   const router = useRouter();
-  const { items, totalPrice, totalCount, removeItem, updateQty, clearCart, isOpen, closeCart, cartType, mixedShipDate } = useCart();
+  const { items, totalPrice, totalCount, removeItem, updateQty, clearCart, isOpen, closeCart, cartType, mixedShipDate, unifiedShipDate } = useCart();
 
   const hasMixed = items.some(i => i.isPreorder) && items.some(i => !i.isPreorder);
 
@@ -137,9 +137,9 @@ export default function CartDrawer() {
         </div>
 
         {/* 混購提示條 */}
-        {hasMixed && mixedShipDate && (
+        {hasMixed && unifiedShipDate && (
           <div className={s.mixedBanner}>
-            此購物車包含預購商品，若一起結帳，將於 <strong>{mixedShipDate}</strong> 統一出貨。
+            此購物車包含預購商品，若一起結帳，將於 <strong>{unifiedShipDate}</strong> 統一出貨。
           </div>
         )}
 

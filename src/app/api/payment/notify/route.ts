@@ -216,9 +216,13 @@ export async function POST(req: NextRequest) {
       const { data: coupon } = await supabaseAdmin
         .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
       if (coupon && (coupon.used_count ?? 0) > 0) {
-        await supabaseAdmin.from('coupons')
+        const { data: couponUpdated } = await supabaseAdmin.from('coupons')
           .update({ used_count: coupon.used_count - 1 })
-          .eq('id', coupon.id).eq('used_count', coupon.used_count);
+          .eq('id', coupon.id).eq('used_count', coupon.used_count)
+          .select('id');
+        if (!couponUpdated || couponUpdated.length === 0) {
+          console.error(`[notify] 折價券釋放衝突 coupon=${coupon.id}，訂單=${order.order_no}`);
+        }
       }
     }
 

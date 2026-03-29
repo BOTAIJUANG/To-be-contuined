@@ -9,7 +9,13 @@
 // - addItem 時檢查是否與現有商品類型衝突
 // ════════════════════════════════════════════════
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+
+// Cart feedback: toast 通知
+export interface CartToastData {
+  id: number;
+  message: string;
+}
 
 export interface CartItem {
   id:               string;
@@ -41,7 +47,8 @@ interface CartContextType {
   totalCount:  number;
   totalPrice:  number;
   cartType:    'stock' | 'preorder' | null;  // 目前購物車類型
-  mixedShipDate: string | null;              // 混購時的統一出貨日
+  mixedShipDate: string | null;              // 預購商品最晚出貨日
+  unifiedShipDate: string | null;            // 混購統一出貨日（取所有日期最晚）
   addItem:     (item: Omit<CartItem, 'qty'>, qty?: number, maxStock?: number | null) => AddItemResult;
   removeItem:  (id: string, variantId?: number, preorderBatchId?: number) => void;
   updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number) => boolean;
@@ -49,6 +56,12 @@ interface CartContextType {
   isOpen:      boolean;
   openCart:    () => void;
   closeCart:   () => void;
+  // Cart feedback
+  toast:          CartToastData | null;
+  showToast:      (msg: string) => void;
+  clearToast:     () => void;
+  cartBounceKey:  number;
+  triggerBounce:  () => void;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -56,6 +69,18 @@ const CartContext = createContext<CartContextType | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items,  setItems]  = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Cart feedback state
+  const [toast, setToast] = useState<CartToastData | null>(null);
+  const [cartBounceKey, setCartBounceKey] = useState(0);
+  const toastIdRef = useRef(0);
+
+  const showToast = useCallback((msg: string) => {
+    toastIdRef.current += 1;
+    setToast({ id: toastIdRef.current, message: msg });
+  }, []);
+  const clearToast = useCallback(() => setToast(null), []);
+  const triggerBounce = useCallback(() => setCartBounceKey(k => k + 1), []);
 
   // mount 後從 localStorage 還原購物車（避免 SSR hydration 不一致）
   useEffect(() => {
@@ -76,11 +101,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const cartType: 'stock' | 'preorder' | null =
     items.length === 0 ? null : (items.some(i => i.isPreorder) ? 'preorder' : 'stock');
 
-  // 混購統一出貨日（預購商品的最晚出貨日）
+  // 預購商品最晚出貨日
   const mixedShipDate: string | null = (() => {
     const preorderDates = items.filter(i => i.isPreorder && i.preorderShipDate).map(i => i.preorderShipDate!);
     if (preorderDates.length === 0) return null;
     return preorderDates.sort().reverse()[0]; // 最晚日期
+  })();
+
+  // 混購統一出貨日：取「預購最晚日」與「一般商品最快可出貨日(明天)」中的最晚
+  const unifiedShipDate: string | null = (() => {
+    if (!mixedShipDate) return null;
+    const hasStock = items.some(i => !i.isPreorder && !i.isRedeemItem && !i.isGift);
+    if (!hasStock) return mixedShipDate; // 純預購，直接用預購日
+    // 一般商品最快 = 明天
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const stockDate = tomorrow.toISOString().split('T')[0];
+    // 取最晚
+    return mixedShipDate > stockDate ? mixedShipDate : stockDate;
   })();
 
   // 產生購物車 item 的唯一 key（含批次 ID，避免不同批次合併）
@@ -139,7 +177,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalPrice = items.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, totalCount, totalPrice, cartType, mixedShipDate, addItem, removeItem, updateQty, clearCart, isOpen, openCart, closeCart }}>
+    <CartContext.Provider value={{ items, totalCount, totalPrice, cartType, mixedShipDate, unifiedShipDate, addItem, removeItem, updateQty, clearCart, isOpen, openCart, closeCart, toast, showToast, clearToast, cartBounceKey, triggerBounce }}>
       {children}
     </CartContext.Provider>
   );

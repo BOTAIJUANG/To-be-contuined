@@ -22,7 +22,7 @@ export async function POST(
 
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, status, pay_status, member_id, total, redemption_id, coupon_code')
+    .select('id, order_no, status, pay_status, member_id, total, redemption_id, coupon_code')
     .eq('id', orderId)
     .single();
 
@@ -153,8 +153,8 @@ export async function POST(
           updated_at: new Date().toISOString(),
         }).eq('id', order.redemption_id);
 
-        // 解凍被凍結的章數（若兌換尚未正式扣章，章還在 stamps_frozen 裡）
-        if (redemption.stamps_cost > 0 && redemption.status !== 'used') {
+        // 解凍被凍結的章數（僅限章數仍凍結中的狀態：pending_cart / pending_order）
+        if (redemption.stamps_cost > 0 && ['pending_cart', 'pending_order'].includes(redemption.status)) {
           const { data: member } = await supabaseAdmin
             .from('members')
             .select('stamps_frozen')
@@ -186,9 +186,13 @@ export async function POST(
       const { data: coupon } = await supabaseAdmin
         .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
       if (coupon && (coupon.used_count ?? 0) > 0) {
-        await supabaseAdmin.from('coupons')
+        const { data: couponUpdated } = await supabaseAdmin.from('coupons')
           .update({ used_count: coupon.used_count - 1 })
-          .eq('id', coupon.id).eq('used_count', coupon.used_count);
+          .eq('id', coupon.id).eq('used_count', coupon.used_count)
+          .select('id');
+        if (!couponUpdated || couponUpdated.length === 0) {
+          console.error(`[cancel] 折價券釋放衝突 coupon=${coupon.id}，訂單=${order.order_no}`);
+        }
       }
     } catch (err) {
       console.error('折價券釋放失敗:', err);

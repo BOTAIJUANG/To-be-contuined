@@ -22,7 +22,7 @@ interface AddToCartButtonProps {
 }
 
 export default function AddToCartButton({ product, variantId, variantName }: AddToCartButtonProps) {
-  const { addItem, items } = useCart();
+  const { addItem, items, showToast, triggerBounce } = useCart();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(product.preorderBatches?.[0] ?? null);
@@ -101,9 +101,11 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       return;
     }
 
+    showToast(`已加入購物車：${product.name} × ${qty}`);
+    triggerBounce();
     setAdded(true);
     setQty(1);
-    setTimeout(() => setAdded(false), 2000);
+    setTimeout(() => setAdded(false), 1800);
   };
 
   if (product.isSoldOut) {

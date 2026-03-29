@@ -315,7 +315,7 @@ export async function POST(req: NextRequest) {
       couponStackable = coupon.stackable ?? true;
       discount = coupon.type === 'percent'
         ? Math.floor(subtotal * coupon.value / 100)
-        : coupon.value;
+        : Math.min(coupon.value, subtotal);
 
       const { data: claimed } = await supabaseAdmin
         .rpc('claim_coupon_usage', { p_coupon_id: coupon.id });
@@ -343,11 +343,15 @@ export async function POST(req: NextRequest) {
           const { data: cur } = await supabaseAdmin
             .from('coupons').select('used_count').eq('id', couponClaimedId).single();
           if (cur && cur.used_count > 0) {
-            await supabaseAdmin
+            const { data: releasedCoupon } = await supabaseAdmin
               .from('coupons')
               .update({ used_count: cur.used_count - 1 })
               .eq('id', couponClaimedId)
-              .eq('used_count', cur.used_count);
+              .eq('used_count', cur.used_count)
+              .select('id');
+            if (!releasedCoupon || releasedCoupon.length === 0) {
+              console.warn(`[orders] 折價券釋放衝突 coupon=${couponClaimedId}（堆疊衝突回滾時）`);
+            }
           }
         }
         discount = 0;
@@ -660,16 +664,22 @@ export async function POST(req: NextRequest) {
 
   // ── 13. 處理兌換品（僅會員）──
   if (memberId && body.redemption_id) {
-    await Promise.all([
-      supabaseAdmin
-        .from('redemptions')
-        .update({ status: 'pending_order', order_id: order.id, updated_at: new Date().toISOString() })
-        .eq('id', body.redemption_id),
-      supabaseAdmin
+    const { data: redeemLinked } = await supabaseAdmin
+      .from('redemptions')
+      .update({ status: 'pending_order', order_id: order.id, updated_at: new Date().toISOString() })
+      .eq('id', body.redemption_id)
+      .eq('member_id', memberId)
+      .eq('status', 'pending_cart')
+      .select('id');
+
+    if (redeemLinked && redeemLinked.length > 0) {
+      await supabaseAdmin
         .from('orders')
         .update({ redemption_id: body.redemption_id, redeem_stamps: 1 })
-        .eq('id', order.id),
-    ]);
+        .eq('id', order.id);
+    } else {
+      console.warn(`[orders] 兌換連結失敗 redemption_id=${body.redemption_id}，可能已過期或被取消`);
+    }
   }
 
   // ── 14. 回傳結果 ──

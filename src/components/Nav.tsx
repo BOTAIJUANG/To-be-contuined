@@ -37,7 +37,7 @@ const NAV_LINKS = [
 export default function Nav() {
   const router   = useRouter();
   const pathname = usePathname();
-  const { totalCount, openCart } = useCart();
+  const { totalCount, openCart, cartBounceKey } = useCart();
 
   const [storeName, setStoreName] = useState('未半甜點');
   const [userName,  setUserName]  = useState<string | null>(null);
@@ -158,7 +158,7 @@ export default function Nav() {
           <button className={s.cartBtn} onClick={openCart}>
             <CartIcon />
             <span className={s.cartLabel}>購物車</span>
-            {totalCount > 0 && <span className={s.cartBadge}>{totalCount}</span>}
+            {totalCount > 0 && <span key={cartBounceKey} className={s.cartBadge}>{totalCount}</span>}
           </button>
         </div>
       </nav>

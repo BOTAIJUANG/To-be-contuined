@@ -360,6 +360,8 @@
 .cardValue {
   font-size: 13px;
   color: var(--text-dark);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .cardTitle {
