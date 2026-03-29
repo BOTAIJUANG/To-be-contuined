@@ -38,7 +38,7 @@ async function getProduct(slug: string) {
 
 async function getActiveBatches(productId: number) {
   const today = new Date().toISOString().split('T')[0];
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('preorder_batches')
     .select('*')
     .eq('product_id', productId)

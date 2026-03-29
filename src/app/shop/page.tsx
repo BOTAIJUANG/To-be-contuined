@@ -55,12 +55,16 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
 
       // 按商品分組：有任一批次有餘量就不算售完
       const preorderHasAvail = new Set<number>();
+      const preorderHasBatch = new Set<number>();
       (batches ?? []).forEach((b: any) => {
+        preorderHasBatch.add(b.product_id);
         if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
       });
 
       for (const pid of preorderIds) {
-        if (!preorderHasAvail.has(pid)) soldOutSet.add(pid);
+        // 只有「有 active 批次但全部額滿」才算完售
+        // 沒有 active 批次的預購商品不標為完售（顯示為「預購中」）
+        if (preorderHasBatch.has(pid) && !preorderHasAvail.has(pid)) soldOutSet.add(pid);
       }
     }
 
