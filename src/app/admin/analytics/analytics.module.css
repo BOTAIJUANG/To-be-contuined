@@ -9,7 +9,9 @@
   .periodBar {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .periodBar::-webkit-scrollbar { display: none; }
 }
 
 .periodBtn {

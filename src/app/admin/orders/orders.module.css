@@ -21,7 +21,9 @@
   margin-bottom: 20px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   position: relative;
   padding: 12px 2px 14px;
