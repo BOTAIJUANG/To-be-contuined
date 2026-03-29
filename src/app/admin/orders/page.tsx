@@ -176,7 +176,7 @@ export default function AdminOrdersPage() {
     if (sort === 'amount_desc') { orderBy = 'total'; }
     if (sort === 'amount_asc') { orderBy = 'total'; ascending = true; }
 
-    let q = supabase.from('orders').select('*, order_items(name, qty, price)').order(orderBy, { ascending });
+    let q = supabase.from('orders').select('*, order_items(name, qty, price, preorder_batch_id)').order(orderBy, { ascending });
     if (sts.length > 0)  q = q.in('status', sts);
     if (pys.length > 0)  q = q.in('pay_status', pys);
     if (shs.length > 0)  q = q.in('ship_method', shs);
@@ -222,7 +222,7 @@ export default function AdminOrdersPage() {
     if (shipSort === 'ship_date_desc') { orderBy = 'ship_date'; ascending = false; }
 
     const { data } = await supabase.from('orders')
-      .select('*, order_items(name, qty, price, product_id, variant_id)')
+      .select('*, order_items(name, qty, price, product_id, variant_id, preorder_batch_id)')
       .eq('pay_status', 'paid').eq('status', 'processing')
       .order(orderBy, { ascending });
     let list = data ?? [];
@@ -256,7 +256,7 @@ export default function AdminOrdersPage() {
     setShippedLoading(true);
     const ascending = shippedSort === 'shipped_oldest';
     const { data } = await supabase.from('orders')
-      .select('*, order_items(name, qty, price)')
+      .select('*, order_items(name, qty, price, preorder_batch_id)')
       .in('status', ['shipped', 'done'])
       .order('shipped_at', { ascending });
     let list = data ?? [];

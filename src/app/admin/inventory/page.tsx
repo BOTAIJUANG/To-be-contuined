@@ -504,10 +504,10 @@ export default function AdminInventoryPage() {
                             {isStock ? 'STOCK' : 'PREORDER'}
                           </span>
                         </td>
-                        <td className={`${s.td} ${p.tdRightBold}`}>{isStock ? item.stock : item.reserved_preorder}</td>
+                        <td className={`${s.td} ${p.tdRightBold}`}>{isStock ? item.stock : '—'}</td>
                         <td className={`${s.td} ${p.tdRightLight}`}>{isStock ? item.reserved : '—'}</td>
-                        <td className={`${s.td} ${p.tdRightBold}`} style={{ color: available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a' }}>
-                          {isStock ? available : `${item.max_preorder === 0 ? '不限' : available}`}
+                        <td className={`${s.td} ${p.tdRightBold}`} style={{ color: isStock ? (available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a') : undefined }}>
+                          {isStock ? available : '—'}
                         </td>
                         <td className={`${s.td} ${p.tdRightLight}`}>{isStock ? item.safety_stock : '—'}</td>
                         <td className={s.td}>
@@ -551,12 +551,12 @@ export default function AdminInventoryPage() {
                       </div>
                       <div className={s.cardRow}>
                         <span className={s.cardLabel}>庫存</span>
-                        <span className={`${s.cardValue} ${p.cardValueBold}`}>{isStock ? item.stock : item.reserved_preorder}</span>
+                        <span className={`${s.cardValue} ${p.cardValueBold}`}>{isStock ? item.stock : '—'}</span>
                       </div>
                       <div className={s.cardRow}>
                         <span className={s.cardLabel}>可售</span>
-                        <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a' }}>
-                          {isStock ? available : `${item.max_preorder === 0 ? '不限' : available}`}
+                        <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: isStock ? (available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a') : undefined }}>
+                          {isStock ? available : '—'}
                         </span>
                       </div>
                       <div className={s.cardRow}>

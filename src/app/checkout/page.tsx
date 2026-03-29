@@ -463,7 +463,7 @@ export default function CheckoutPage() {
       setAvailableDates([]);
     } else if (hasMixed && dates.length === 0) {
       setNoIntersection(true);
-      setIntersectionMsg('混購商品無法安排共同出貨日，請分開下單或調整購物車。');
+      setIntersectionMsg('商品的出貨時間不同，無法安排同一天出貨，請將商品分開下單。');
       setAvailableDates([]);
     } else {
       setAvailableDates(dates);

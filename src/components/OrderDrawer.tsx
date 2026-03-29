@@ -6,7 +6,8 @@
 // 點擊訂單後從右側滑出，顯示完整訂單資訊
 // ════════════════════════════════════════════════
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import s from './OrderDrawer.module.css';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
@@ -48,6 +49,22 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
+
+  // 載入預購批次資訊（名稱 + 出貨日）
+  const [batchMap, setBatchMap] = useState<Record<number, { name: string; ship_date: string }>>({});
+  useEffect(() => {
+    if (!order?.order_items) { setBatchMap({}); return; }
+    const batchIds = [...new Set(
+      order.order_items.map((i: any) => i.preorder_batch_id).filter(Boolean)
+    )] as number[];
+    if (batchIds.length === 0) { setBatchMap({}); return; }
+    supabase.from('preorder_batches').select('id, name, ship_date').in('id', batchIds)
+      .then(({ data }) => {
+        const map: Record<number, { name: string; ship_date: string }> = {};
+        (data ?? []).forEach((b: any) => { map[b.id] = { name: b.name, ship_date: b.ship_date }; });
+        setBatchMap(map);
+      });
+  }, [order]);
 
   const ss = STATUS_STYLE[order?.status] ?? FALLBACK_STYLE;
   const ps = PAY_STYLE[order?.pay_status] ?? FALLBACK_STYLE;
@@ -143,12 +160,18 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
               {/* 商品明細 */}
               <div className={s.section}>
                 <div className={s.sectionTitle}>商品明細</div>
-                {order.order_items?.map((item: any, i: number) => (
-                  <div key={i} className={s.productRow}>
-                    <span className={s.productName}>{item.name} × {item.qty}</span>
-                    <span className={s.productPrice}>NT$ {(item.price * item.qty).toLocaleString()}</span>
-                  </div>
-                ))}
+                {order.order_items?.map((item: any, i: number) => {
+                  const batch = item.preorder_batch_id ? batchMap[item.preorder_batch_id] : null;
+                  const batchLabel = batch
+                    ? ` ${batch.name} ${parseInt(batch.ship_date?.split('-')[1])}/${parseInt(batch.ship_date?.split('-')[2])}`
+                    : '';
+                  return (
+                    <div key={i} className={s.productRow}>
+                      <span className={s.productName}>{item.name} ×{item.qty}{batchLabel}</span>
+                      <span className={s.productPrice}>NT$ {(item.price * item.qty).toLocaleString()}</span>
+                    </div>
+                  );
+                })}
                 {[
                   { label: '小計', value: `NT$ ${order.subtotal?.toLocaleString() ?? order.total.toLocaleString()}` },
                   ...(order.discount > 0 ? [{ label: '折扣', value: `− NT$ ${order.discount.toLocaleString()}` }] : []),
