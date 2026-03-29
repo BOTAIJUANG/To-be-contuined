@@ -422,12 +422,23 @@ export async function POST(req: NextRequest) {
 
     const batchIds = Object.keys(batchQtyMap).map(Number);
 
-    // 查詢批次（含 reserved + ship_date 欄位）
+    // 查詢批次（含 reserved + ship_date + product_id 欄位）
     const { data: batchData } = await supabaseAdmin
       .from('preorder_batches')
-      .select('id, limit_qty, reserved, ship_date')
+      .select('id, product_id, limit_qty, reserved, ship_date')
       .in('id', batchIds);
     batchRows = batchData ?? [];
+
+    // 驗證 preorder_batch_id 歸屬正確的 product_id
+    for (const item of preorderItems) {
+      const batch = batchRows.find((b: any) => b.id === item.preorder_batch_id);
+      if (!batch) {
+        return NextResponse.json({ error: `預購批次 ${item.preorder_batch_id} 不存在` }, { status: 400 });
+      }
+      if (batch.product_id !== item.product_id) {
+        return NextResponse.json({ error: `預購批次 ${item.preorder_batch_id} 不屬於商品 ${item.product_id}` }, { status: 400 });
+      }
+    }
 
     for (const batch of (batchRows ?? [])) {
       const limitQty = batch.limit_qty ?? 0;

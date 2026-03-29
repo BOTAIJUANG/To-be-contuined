@@ -162,9 +162,9 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                 <div className={s.sectionTitle}>商品明細</div>
                 {order.order_items?.map((item: any, i: number) => {
                   const batch = item.preorder_batch_id ? batchMap[item.preorder_batch_id] : null;
-                  const batchLabel = batch
-                    ? ` ${batch.name} ${parseInt(batch.ship_date?.split('-')[1])}/${parseInt(batch.ship_date?.split('-')[2])}`
-                    : '';
+                  const batchLabel = batch && batch.ship_date
+                    ? ` ${batch.name} ${parseInt(batch.ship_date.split('-')[1])}/${parseInt(batch.ship_date.split('-')[2])}`
+                    : batch ? ` ${batch.name}` : '';
                   return (
                     <div key={i} className={s.productRow}>
                       <span className={s.productName}>{item.name} ×{item.qty}{batchLabel}</span>
