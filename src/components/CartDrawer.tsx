@@ -139,7 +139,7 @@ export default function CartDrawer() {
         {/* 混購提示條 */}
         {hasMixed && unifiedShipDate && (
           <div className={s.mixedBanner}>
-            此購物車包含預購商品，若一起結帳，最早可統一出貨日為 <strong>{unifiedShipDate}</strong>。
+            若此訂單需統一出貨，可選出貨日期將於結帳時依商品與配送條件顯示。
           </div>
         )}
 

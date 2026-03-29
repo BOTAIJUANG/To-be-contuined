@@ -781,7 +781,7 @@ export default function CheckoutPage() {
               {/* 混購提示條 */}
               {hasMixed && unifiedShipDate && (
                 <div className={s.mixedWarning}>
-                  此購物車包含預購商品，若一起結帳，最早可統一出貨日為 <strong>{unifiedShipDate}</strong>，結帳時可選擇此日期或更晚日期。
+                  此訂單需統一出貨，可選出貨日期將於下一步依商品與配送條件顯示。
                 </div>
               )}
               {!memberId && (
@@ -944,7 +944,7 @@ export default function CheckoutPage() {
             <div className={s.datesWrap}>
               {hasMixed && unifiedShipDate && (
                 <div className={s.mixedDateHint}>
-                  最早可統一出貨日為 <strong>{unifiedShipDate}</strong>（含預購商品統一出貨）
+                  此訂單需統一出貨，以下為可選出貨日期。
                 </div>
               )}
               <div className={s.dateList}>
