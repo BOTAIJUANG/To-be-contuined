@@ -423,20 +423,31 @@ export async function POST(req: NextRequest) {
     const batchIds = Object.keys(batchQtyMap).map(Number);
 
     // 查詢批次（含 reserved + ship_date + product_id 欄位）
-    const { data: batchData } = await supabaseAdmin
+    const { data: batchData, error: batchQueryErr } = await supabaseAdmin
       .from('preorder_batches')
       .select('id, product_id, limit_qty, reserved, ship_date')
       .in('id', batchIds);
+    if (batchQueryErr) {
+      console.error('[orders] 查詢預購批次失敗', batchQueryErr);
+      return NextResponse.json({ error: '查詢預購批次失敗，請稍後再試' }, { status: 500 });
+    }
     batchRows = batchData ?? [];
 
     // 驗證 preorder_batch_id 歸屬正確的 product_id
     for (const item of preorderItems) {
-      const batch = batchRows.find((b: any) => b.id === item.preorder_batch_id);
+      const batchId = Number(item.preorder_batch_id);
+      const batch = batchRows.find((b: any) => Number(b.id) === batchId);
       if (!batch) {
-        return NextResponse.json({ error: `預購批次 ${item.preorder_batch_id} 不存在` }, { status: 400 });
+        return NextResponse.json(
+          { error: `預購批次資料已變更，請重新整理頁面後再下單` },
+          { status: 400 },
+        );
       }
-      if (batch.product_id !== item.product_id) {
-        return NextResponse.json({ error: `預購批次 ${item.preorder_batch_id} 不屬於商品 ${item.product_id}` }, { status: 400 });
+      if (Number(batch.product_id) !== Number(item.product_id)) {
+        return NextResponse.json(
+          { error: `預購批次不屬於此商品，請重新整理頁面後再下單` },
+          { status: 400 },
+        );
       }
     }
 
