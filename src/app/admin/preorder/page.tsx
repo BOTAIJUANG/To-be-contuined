@@ -377,8 +377,7 @@ function BatchList({ batches, orderStats, productId, getBatchStatus, onEdit, onT
     <div className={p.batchListGrid}>
       {batches.map(batch => {
         const status   = getBatchStatus(batch);
-        const statKey  = `${batch.product_id}_${batch.variant_id ?? 'null'}`;
-        const reserved = orderStats[statKey] ?? 0;
+        const reserved = batch.reserved ?? 0;
         const pct      = batch.limit_qty > 0 ? Math.round(reserved / batch.limit_qty * 100) : 0;
         const isActive = batch.status === 'active';
         const isDraft  = batch.status === 'draft';
