@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { requireAdmin } from '@/lib/auth';
 import { generateCheckMacValue } from '@/lib/ecpay';
-import { releaseBatchReserved } from '@/lib/batch-stock';
+import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
   ?? 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction';
@@ -296,6 +296,9 @@ export async function POST(req: NextRequest) {
 
   // 4d. 釋放預購批次預留量
   await releaseBatchReserved(order.id);
+
+  // 4e. 釋放日期模式預留量
+  await releaseShipDateReserved(order.id);
 
   // ── 5. 最後才更新訂單最終狀態 ─────────────────
   const finalRefundStatus = isATM

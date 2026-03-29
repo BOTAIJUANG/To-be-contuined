@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { releaseBatchReserved } from '@/lib/batch-stock';
+import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
 export async function POST(
   req: NextRequest,
@@ -179,6 +179,9 @@ export async function POST(
 
   // ── 釋放預購批次預留量 ──
   await releaseBatchReserved(orderId);
+
+  // ── 釋放日期模式預留量 ──
+  await releaseShipDateReserved(orderId);
 
   // ── 釋放折價券使用次數 ──
   if (order.coupon_code) {

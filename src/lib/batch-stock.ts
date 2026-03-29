@@ -1,4 +1,4 @@
-// lib/batch-stock.ts  ──  預購批次預留量管理
+// lib/batch-stock.ts  ──  預購批次 & 日期模式預留量管理
 
 import { supabaseAdmin } from '@/lib/supabase-server';
 
@@ -69,6 +69,78 @@ export async function releaseBatchReserved(orderId: number) {
         if (!retryResult || retryResult.length === 0) {
           console.error(`[batch-stock] 批次 ${batchId} 預留釋放重試失敗，訂單 ${orderId}`);
         }
+      }
+    }
+  }
+}
+
+/**
+ * 釋放訂單佔用的日期模式預留量
+ * 在訂單取消、付款失敗、退款時呼叫
+ */
+export async function releaseShipDateReserved(orderId: number) {
+  // 查訂單的 ship_date 和商品
+  const { data: order } = await supabaseAdmin
+    .from('orders')
+    .select('ship_date')
+    .eq('id', orderId)
+    .single();
+  if (!order?.ship_date) return;
+
+  const { data: items } = await supabaseAdmin
+    .from('order_items')
+    .select('product_id, variant_id, qty')
+    .eq('order_id', orderId)
+    .eq('is_gift', false);
+  if (!items || items.length === 0) return;
+
+  // 查哪些商品是 date_mode
+  const productIds = [...new Set(items.map(i => i.product_id))];
+  const { data: products } = await supabaseAdmin
+    .from('products')
+    .select('id, stock_mode')
+    .in('id', productIds)
+    .eq('stock_mode', 'date_mode');
+  if (!products || products.length === 0) return;
+
+  const dateModeIds = new Set(products.map(p => p.id));
+
+  for (const item of items) {
+    if (!dateModeIds.has(item.product_id)) continue;
+
+    const { data: rec } = await supabaseAdmin
+      .from('product_ship_dates')
+      .select('id, reserved')
+      .eq('product_id', item.product_id)
+      .eq('ship_date', order.ship_date)
+      .is('variant_id', item.variant_id ?? null)
+      .single();
+    if (!rec) continue;
+
+    const currentReserved = rec.reserved ?? 0;
+    const newReserved = Math.max(0, currentReserved - item.qty);
+
+    const { data: updated } = await supabaseAdmin
+      .from('product_ship_dates')
+      .update({ reserved: newReserved })
+      .eq('id', rec.id)
+      .eq('reserved', currentReserved)
+      .select('id');
+
+    if (!updated || updated.length === 0) {
+      // 樂觀鎖失敗 → 重讀重試一次
+      const { data: retry } = await supabaseAdmin
+        .from('product_ship_dates')
+        .select('id, reserved')
+        .eq('id', rec.id)
+        .single();
+      if (retry) {
+        await supabaseAdmin
+          .from('product_ship_dates')
+          .update({ reserved: Math.max(0, (retry.reserved ?? 0) - item.qty) })
+          .eq('id', retry.id)
+          .eq('reserved', retry.reserved)
+          .select('id');
       }
     }
   }

@@ -471,6 +471,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 8.6 驗證出貨日 ──
+  const shipDateLockResults: { id: number; oldReserved: number; newReserved: number }[] = [];
   if (body.ship_date) {
     const shipDate = body.ship_date;
     const today = new Date();
@@ -537,13 +538,15 @@ export async function POST(req: NextRequest) {
       }
 
       // date_mode 商品：查 product_ship_dates 取可選日期做交集
+      let shipDatesData: any[] | null = null;
       if (dateModeProductIds.length > 0) {
-        const { data: shipDatesData } = await supabaseAdmin
+        const { data: _sdData } = await supabaseAdmin
           .from('product_ship_dates')
-          .select('product_id, variant_id, ship_date, capacity, reserved')
+          .select('id, product_id, variant_id, ship_date, capacity, reserved')
           .in('product_id', dateModeProductIds)
           .eq('is_open', true)
           .gt('capacity', 0);
+        shipDatesData = _sdData;
         for (const item of body.items) {
           const product = productMap.get(item.product_id);
           if (!product || product.stock_mode !== 'date_mode') continue;
@@ -579,6 +582,39 @@ export async function POST(req: NextRequest) {
       }
       if (!validDates.has(shipDate)) {
         return NextResponse.json({ error: '所選出貨日期不在可選範圍內，請重新選擇' }, { status: 400 });
+      }
+
+      // date_mode 商品：預留 product_ship_dates 額度（樂觀鎖）
+      if (shipDatesData && dateModeProductIds.length > 0) {
+        for (const item of body.items) {
+          const product = productMap.get(item.product_id);
+          if (!product || product.stock_mode !== 'date_mode') continue;
+          const rec = shipDatesData.find((d: any) =>
+            d.product_id === item.product_id &&
+            (d.variant_id ?? null) === (item.variant_id ?? null) &&
+            d.ship_date === shipDate
+          );
+          if (!rec) continue;
+          const oldReserved = rec.reserved ?? 0;
+          const newReserved = oldReserved + item.qty;
+          const { data: updated } = await supabaseAdmin
+            .from('product_ship_dates')
+            .update({ reserved: newReserved })
+            .eq('id', rec.id)
+            .eq('reserved', oldReserved)
+            .select('id');
+          if (!updated || updated.length === 0) {
+            // 樂觀鎖失敗 → 回滾已成功的日期預留
+            for (const prev of shipDateLockResults) {
+              await supabaseAdmin.from('product_ship_dates')
+                .update({ reserved: prev.oldReserved })
+                .eq('id', prev.id)
+                .eq('reserved', prev.newReserved);
+            }
+            return NextResponse.json({ error: '出貨日額度已被其他訂單搶先預留，請重新選擇日期' }, { status: 409 });
+          }
+          shipDateLockResults.push({ id: rec.id, oldReserved, newReserved });
+        }
       }
     }
   }
@@ -637,6 +673,13 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('preorder_batches')
         .update({ reserved: prev.oldReserved })
         .eq('id', prev.batchId)
+        .eq('reserved', prev.newReserved);
+    }
+    // 回滾日期模式預留
+    for (const prev of shipDateLockResults) {
+      await supabaseAdmin.from('product_ship_dates')
+        .update({ reserved: prev.oldReserved })
+        .eq('id', prev.id)
         .eq('reserved', prev.newReserved);
     }
     if (couponClaimedId) {
