@@ -29,6 +29,7 @@ import crypto from 'crypto';
 import { optionalAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { Promotion, CartItemForCalc, calculatePromotions } from '@/lib/promotions';
+import { generateStockModeDates, fmt } from '@/lib/ship-dates';
 
 // ── 訂單編號產生器 ──────────────────────────────
 function generateOrderNo(): string {
@@ -138,8 +139,8 @@ export async function POST(req: NextRequest) {
   const variantIds = body.items.filter(i => i.variant_id).map(i => i.variant_id!);
 
   const [productsRes, variantsRes, settingsRes, promosRes, couponRes] = await Promise.all([
-    // 商品真實價格
-    supabaseAdmin.from('products').select('id, name, slug, price, image_url').in('id', productIds),
+    // 商品真實價格 + 出貨日驗證用欄位
+    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates').in('id', productIds),
     // 規格真實價格
     variantIds.length > 0
       ? supabaseAdmin.from('product_variants').select('id, product_id, name, price, price_diff').in('id', variantIds)
@@ -410,6 +411,7 @@ export async function POST(req: NextRequest) {
   // ── 8.5 預購批次額度預檢 + 樂觀鎖預留 ──
   const preorderItems = body.items.filter(i => i.preorder_batch_id);
   const batchLockResults: { batchId: number; oldReserved: number; newReserved: number }[] = [];
+  let batchRows: any[] = [];
 
   if (preorderItems.length > 0) {
     // 按 batch_id 加總本次訂單的需求量
@@ -420,11 +422,12 @@ export async function POST(req: NextRequest) {
 
     const batchIds = Object.keys(batchQtyMap).map(Number);
 
-    // 查詢批次（含 reserved 欄位）
-    const { data: batchRows } = await supabaseAdmin
+    // 查詢批次（含 reserved + ship_date 欄位）
+    const { data: batchData } = await supabaseAdmin
       .from('preorder_batches')
-      .select('id, limit_qty, reserved')
+      .select('id, limit_qty, reserved, ship_date')
       .in('id', batchIds);
+    batchRows = batchData ?? [];
 
     for (const batch of (batchRows ?? [])) {
       const limitQty = batch.limit_qty ?? 0;
@@ -459,6 +462,122 @@ export async function POST(req: NextRequest) {
       }
 
       batchLockResults.push({ batchId: batch.id, oldReserved: currentReserved, newReserved });
+    }
+  }
+
+  // ── 8.6 驗證出貨日 ──
+  if (body.ship_date) {
+    const shipDate = body.ship_date;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = fmt(today);
+
+    // 不能是過去日期
+    if (shipDate < todayStr) {
+      return NextResponse.json({ error: '出貨日不可早於今天' }, { status: 400 });
+    }
+
+    // 判斷是否純預購
+    const allPreorder = body.items.every((i: any) => {
+      const p = productMap.get(i.product_id);
+      return p?.is_preorder;
+    });
+
+    if (allPreorder && batchRows.length > 0) {
+      // 純預購：ship_date 必須等於最晚批次日期
+      const latestBatchDate = batchRows
+        .map((b: any) => b.ship_date).filter(Boolean).sort().reverse()[0];
+      if (latestBatchDate && shipDate !== latestBatchDate) {
+        return NextResponse.json(
+          { error: `純預購訂單出貨日必須為 ${latestBatchDate}` },
+          { status: 400 },
+        );
+      }
+    } else if (allPreorder && batchRows.length === 0) {
+      // 純預購但無有效批次資料 → 無法驗證出貨日
+      return NextResponse.json(
+        { error: '預購商品缺少有效批次資料，無法驗證出貨日' },
+        { status: 400 },
+      );
+    } else {
+      // 一般 or 混購：計算合法日期集合
+      const shipMinDays = settings?.ship_min_days ?? 1;
+      const shipMaxDays = settings?.ship_max_days ?? 14;
+      const blockedWeekdays = JSON.parse(settings?.ship_blocked_weekdays ?? '["0","6"]');
+      const globalBlockedDates = JSON.parse(settings?.ship_blocked_dates ?? '[]');
+
+      let validDates: Set<string> | null = null;
+
+      // 收集 date_mode 商品 ID，後續單獨驗證
+      const dateModeProductIds: number[] = [];
+
+      for (const item of body.items) {
+        const product = productMap.get(item.product_id);
+        if (!product || product.is_preorder) continue;
+
+        // date_mode 商品用 product_ship_dates 表驗證，不走 generateStockModeDates
+        if (product.stock_mode === 'date_mode') {
+          dateModeProductIds.push(item.product_id);
+          continue;
+        }
+
+        const productBlocked = JSON.parse(product.ship_blocked_dates ?? '[]');
+        const dates = generateStockModeDates(
+          today, shipMinDays, shipMaxDays,
+          blockedWeekdays, globalBlockedDates,
+          product.ship_start_date, product.ship_end_date, productBlocked,
+        );
+        if (validDates === null) {
+          validDates = new Set(dates);
+        } else {
+          for (const d of validDates) { if (!dates.has(d)) validDates.delete(d); }
+        }
+      }
+
+      // date_mode 商品：查 product_ship_dates 取可選日期做交集
+      if (dateModeProductIds.length > 0) {
+        const { data: shipDatesData } = await supabaseAdmin
+          .from('product_ship_dates')
+          .select('product_id, variant_id, ship_date, capacity, reserved')
+          .in('product_id', dateModeProductIds)
+          .eq('is_open', true)
+          .gt('capacity', 0);
+        for (const item of body.items) {
+          const product = productMap.get(item.product_id);
+          if (!product || product.stock_mode !== 'date_mode') continue;
+          const available = (shipDatesData ?? [])
+            .filter((d: any) =>
+              d.product_id === item.product_id &&
+              (d.variant_id ?? null) === (item.variant_id ?? null) &&
+              (d.capacity - d.reserved) >= item.qty
+            )
+            .map((d: any) => d.ship_date as string);
+          const dateSet = new Set(available);
+          if (validDates === null) {
+            validDates = dateSet;
+          } else {
+            for (const d of validDates) { if (!dateSet.has(d)) validDates.delete(d); }
+          }
+        }
+      }
+
+      // 混購：過濾 >= 預購批次最晚日期
+      if (preorderItems.length > 0 && batchRows.length > 0 && validDates) {
+        const latestBatchDate = batchRows
+          .map((b: any) => b.ship_date).filter(Boolean).sort().reverse()[0];
+        if (latestBatchDate) {
+          for (const d of validDates) { if (d < latestBatchDate) validDates.delete(d); }
+        }
+      }
+
+      // 驗證
+      if (validDates === null) {
+        // 非純預購但一般商品日期集合為空（異常）
+        return NextResponse.json({ error: '無法驗證出貨日期，請稍後再試' }, { status: 400 });
+      }
+      if (!validDates.has(shipDate)) {
+        return NextResponse.json({ error: '所選出貨日期不在可選範圍內，請重新選擇' }, { status: 400 });
+      }
     }
   }
 

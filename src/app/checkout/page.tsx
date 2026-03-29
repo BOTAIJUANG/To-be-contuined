@@ -413,11 +413,25 @@ export default function CheckoutPage() {
     setNoIntersection(false);
     setDate('');
 
-    // 預購 / 混購時直接用統一出貨日
-    const fixedDate = unifiedShipDate || mixedShipDate;
-    if ((hasMixed || items.every(i => i.isPreorder)) && fixedDate) {
-      setAvailableDates([fixedDate]);
-      setDate(fixedDate);
+    // A. 純預購 → 固定日期，不呼叫 API
+    if (items.every(i => i.isPreorder) && mixedShipDate) {
+      setAvailableDates([mixedShipDate]);
+      setDate(mixedShipDate);
+      setDatesLoading(false);
+      return;
+    }
+
+    // B. 混購 → 只傳一般商品給 API
+    //    ⚠ 目前預購端只提供「最早日期限制」，不是完整日期集合
+    //    如果未來預購也有 blocked dates，需改成傳所有商品並修改 API 邏輯
+    const itemsForApi = hasMixed
+      ? items.filter(i => !i.isPreorder && !i.isRedeemItem && !i.isGift)
+      : items;
+
+    // 混購但過濾後無一般商品（只有預購+贈品/兌換品）→ 等同純預購
+    if (hasMixed && itemsForApi.length === 0 && mixedShipDate) {
+      setAvailableDates([mixedShipDate]);
+      setDate(mixedShipDate);
       setDatesLoading(false);
       return;
     }
@@ -426,7 +440,7 @@ export default function CheckoutPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: items.map(i => ({
+        items: itemsForApi.map(i => ({
           product_id: i.productRealId ?? parseInt(i.id),
           variant_id: (i as any).variantId ?? null,
           qty:        i.qty,
@@ -435,12 +449,30 @@ export default function CheckoutPage() {
     });
     const data = await res.json();
 
+    let dates: string[] = data.dates ?? [];
+
+    // 混購：過濾掉 < unifiedShipDate 的日期
+    if (hasMixed && unifiedShipDate) {
+      dates = dates.filter((d: string) => d >= unifiedShipDate);
+    }
+
+    // 判斷順序：先看 API 本身是否回報無交集，再看混購過濾後是否為空
     if (data.noIntersection) {
       setNoIntersection(true);
-      setIntersectionMsg(data.reason ?? '');
+      setIntersectionMsg(data.reason ?? '商品無共同可出貨日期');
+      setAvailableDates([]);
+    } else if (hasMixed && dates.length === 0) {
+      setNoIntersection(true);
+      setIntersectionMsg('混購商品無法安排共同出貨日，請分開下單或調整購物車。');
       setAvailableDates([]);
     } else {
-      setAvailableDates(data.dates ?? []);
+      setAvailableDates(dates);
+      // 預設選最早可用日期；如果原先選的日期已不在新集合中，也重設
+      if (dates.length > 0) {
+        if (!date || !dates.includes(date)) {
+          setDate(dates[0]);
+        }
+      }
     }
     setDatesLoading(false);
   };
@@ -490,9 +522,10 @@ export default function CheckoutPage() {
       }
 
       // 2. 計算出貨日
-      const fixedDate = unifiedShipDate || mixedShipDate;
-      const finalShipDate = (hasMixed || items.every(i => i.isPreorder)) && fixedDate
-        ? fixedDate
+      // 純預購 → 固定用預購批次日期
+      // 混購 & 一般 → 用使用者選的日期
+      const finalShipDate = items.every(i => i.isPreorder) && mixedShipDate
+        ? mixedShipDate
         : date || null;
 
       // 3. 呼叫後端 API 建立訂單
@@ -748,7 +781,7 @@ export default function CheckoutPage() {
               {/* 混購提示條 */}
               {hasMixed && unifiedShipDate && (
                 <div className={s.mixedWarning}>
-                  此購物車包含預購商品，若一起結帳，所有商品將於 <strong>{unifiedShipDate}</strong> 統一出貨。
+                  此購物車包含預購商品，若一起結帳，最早可統一出貨日為 <strong>{unifiedShipDate}</strong>，結帳時可選擇此日期或更晚日期。
                 </div>
               )}
               {!memberId && (
@@ -894,23 +927,26 @@ export default function CheckoutPage() {
               <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
               <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
             </div>
-          ) : (hasMixed || items.every(i => i.isPreorder)) && (unifiedShipDate || mixedShipDate) ? (
-            /* 預購 / 混購：固定顯示統一出貨日 */
+          ) : items.every(i => i.isPreorder) && mixedShipDate ? (
+            /* 純預購：固定顯示批次出貨日 */
             <div className={s.fixedDateWrap}>
               <div className={s.fixedDateBox}>
                 <div className={s.fixedDateLabel}>統一出貨日（固定）</div>
-                <div className={s.fixedDateValue}>{unifiedShipDate || mixedShipDate}</div>
-                <div className={s.fixedDateHint}>
-                  {hasMixed ? '因購物車含預購商品，所有商品統一於此日出貨' : '預購批次固定出貨日，無法更改'}
-                </div>
+                <div className={s.fixedDateValue}>{mixedShipDate}</div>
+                <div className={s.fixedDateHint}>預購批次固定出貨日，無法更改</div>
               </div>
             </div>
           ) : datesLoading ? (
             /* 載入中 */
             <div className={s.datesLoading}>計算可出貨日期中...</div>
           ) : availableDates.length > 0 ? (
-            /* 有可選日期：顯示日期按鈕 */
+            /* 有可選日期：顯示日期按鈕（混購時多一行提示） */
             <div className={s.datesWrap}>
+              {hasMixed && unifiedShipDate && (
+                <div className={s.mixedDateHint}>
+                  最早可統一出貨日為 <strong>{unifiedShipDate}</strong>（含預購商品統一出貨）
+                </div>
+              )}
               <div className={s.dateList}>
                 {availableDates.map(d => (
                   <button
@@ -1035,7 +1071,7 @@ export default function CheckoutPage() {
               此購物車包含一般商品與預購商品
             </h3>
             <p className={s.modalText}>
-              若一起結帳，所有商品將統一於最晚出貨日出貨。
+              若一起結帳，所有商品將統一出貨，最早可統一出貨日為 <strong>{unifiedShipDate}</strong>。
             </p>
             <div className={s.modalDateGrid}>
               <div className={s.modalDateRow}>
@@ -1047,7 +1083,7 @@ export default function CheckoutPage() {
                 <span className={s.modalDateValue}>{mixedShipDate}</span>
               </div>
               <div className={s.modalDateRowFinal}>
-                <span className={s.modalDateLabelFinal}>本筆訂單統一出貨日</span>
+                <span className={s.modalDateLabelFinal}>最早可統一出貨日</span>
                 <span className={s.modalDateValueFinal}>{unifiedShipDate}</span>
               </div>
             </div>
@@ -1062,7 +1098,7 @@ export default function CheckoutPage() {
                 onChange={e => setMixedConfirmed(e.target.checked)}
                 className={s.modalCheckbox}
               />
-              我已了解本訂單將於 <strong>{unifiedShipDate}</strong> 統一出貨
+              我已了解本訂單最早將於 <strong>{unifiedShipDate}</strong> 統一出貨
             </label>
             <div className={s.modalBtnRow}>
               <button

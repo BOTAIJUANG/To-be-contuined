@@ -173,6 +173,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
 
+          {product.is_preorder && preorderStatus !== 'no_batch' && (
+            <div className={s.preorderMixNotice}>
+              此商品為預購商品。若與一般商品一同結帳，將統一出貨；實際可選日期將於結帳時確認。
+            </div>
+          )}
+
           {product.is_preorder && preorderStatus === 'no_batch' && (
             <div className={s.noBatchBox}>
               <div className={s.noBatchText}>目前暫無開放預購批次</div>

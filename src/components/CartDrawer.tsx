@@ -139,7 +139,7 @@ export default function CartDrawer() {
         {/* 混購提示條 */}
         {hasMixed && unifiedShipDate && (
           <div className={s.mixedBanner}>
-            此購物車包含預購商品，若一起結帳，將於 <strong>{unifiedShipDate}</strong> 統一出貨。
+            此購物車包含預購商品，若一起結帳，最早可統一出貨日為 <strong>{unifiedShipDate}</strong>。
           </div>
         )}
 
@@ -204,7 +204,7 @@ export default function CartDrawer() {
 
           {/* 贈品列 */}
           {giftDisplays.map(g => (
-            <div key={`gift-${g.product_id}`} className={s.giftItem}>
+            <div key={`gift-${g.product_id}-${g.promotion_name}`} className={s.giftItem}>
               <div className={s.itemImg}>
                 {g.image_url && <img src={g.image_url} alt={g.name} />}
               </div>

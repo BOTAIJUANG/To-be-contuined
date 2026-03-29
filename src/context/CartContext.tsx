@@ -3,10 +3,10 @@
 // ════════════════════════════════════════════════
 // context/CartContext.tsx  ──  購物車全域狀態
 //
-// 支援預購商品混購規則：
-// - CartItem 加入 isPreorder 和 preorderShipDate
+// 支援預購商品混購：
+// - CartItem 加入 isPreorder / preorderShipDate / preorderBatchId
 // - 購物車記錄目前的類型（stock / preorder）
-// - addItem 時檢查是否與現有商品類型衝突
+// - 混購時計算 unifiedShipDate（UI 提示門檻，非最終日期）
 // ════════════════════════════════════════════════
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
@@ -47,8 +47,8 @@ interface CartContextType {
   totalCount:  number;
   totalPrice:  number;
   cartType:    'stock' | 'preorder' | null;  // 目前購物車類型
-  mixedShipDate: string | null;              // 預購商品最晚出貨日
-  unifiedShipDate: string | null;            // 混購統一出貨日（取所有日期最晚）
+  mixedShipDate: string | null;              // 預購商品最晚批次出貨日
+  unifiedShipDate: string | null;            // 混購最早可統一出貨日（UI 提示門檻，非最終日期）
   addItem:     (item: Omit<CartItem, 'qty'>, qty?: number, maxStock?: number | null) => AddItemResult;
   removeItem:  (id: string, variantId?: number, preorderBatchId?: number) => void;
   updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number) => boolean;
@@ -101,23 +101,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const cartType: 'stock' | 'preorder' | null =
     items.length === 0 ? null : (items.some(i => i.isPreorder) ? 'preorder' : 'stock');
 
-  // 預購商品最晚出貨日
+  // 預購商品最晚批次出貨日
   const mixedShipDate: string | null = (() => {
     const preorderDates = items.filter(i => i.isPreorder && i.preorderShipDate).map(i => i.preorderShipDate!);
     if (preorderDates.length === 0) return null;
     return preorderDates.sort().reverse()[0]; // 最晚日期
   })();
 
-  // 混購統一出貨日：取「預購最晚日」與「一般商品最快可出貨日(明天)」中的最晚
+  // 混購最早可統一出貨日（UI 提示用門檻，非最終日期）
+  // 粗略計算：max(預購最晚批次日, 明天)
+  // 真正可選日期由 checkout 呼叫 /api/available-dates 後決定
   const unifiedShipDate: string | null = (() => {
     if (!mixedShipDate) return null;
     const hasStock = items.some(i => !i.isPreorder && !i.isRedeemItem && !i.isGift);
     if (!hasStock) return mixedShipDate; // 純預購，直接用預購日
-    // 一般商品最快 = 明天
+    // 一般商品最快 = 明天（粗略門檻，實際以 API 為準）
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const stockDate = tomorrow.toISOString().split('T')[0];
-    // 取最晚
     return mixedShipDate > stockDate ? mixedShipDate : stockDate;
   })();
 

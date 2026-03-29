@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { generateStockModeDates, fmt } from '@/lib/ship-dates';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,52 +29,6 @@ interface CartItem {
   product_id: number;
   variant_id: number | null;
   qty:        number;
-}
-
-// ── 把日期字串轉成 Date ───────────────────────────
-const toDate = (s: string) => new Date(s + 'T00:00:00');
-
-// ── 格式化 Date 成 YYYY-MM-DD ────────────────────
-const fmt = (d: Date) => d.toISOString().split('T')[0];
-
-// ── 產生總量模式的可選日期集合 ────────────────────
-function generateStockModeDates(
-  today:           Date,
-  shipMinDays:     number,
-  shipMaxDays:     number,
-  blockedWeekdays: string[],  // ['0','6'] = 週日、週六
-  blockedDates:    string[],  // ['2026-04-04']
-  productStartDate?: string | null,
-  productEndDate?:   string | null,
-  productBlockedDates?: string[],
-): Set<string> {
-  const result = new Set<string>();
-
-  // 計算起訖日
-  const start = new Date(today);
-  start.setDate(start.getDate() + shipMinDays);
-
-  const end = new Date(today);
-  end.setDate(end.getDate() + shipMaxDays);
-
-  // 商品層級覆蓋
-  const effectiveStart = productStartDate ? toDate(productStartDate) : start;
-  const effectiveEnd   = productEndDate   ? toDate(productEndDate)   : end;
-
-  // 合併封鎖日期
-  const allBlocked = new Set([...blockedDates, ...(productBlockedDates ?? [])]);
-
-  // 逐日生成
-  const cur = new Date(Math.max(effectiveStart.getTime(), start.getTime()));
-  while (cur <= effectiveEnd && cur <= end) {
-    const dateStr   = fmt(cur);
-    const weekday   = String(cur.getDay()); // 0=週日, 6=週六
-    const isBlocked = blockedWeekdays.includes(weekday) || allBlocked.has(dateStr);
-    if (!isBlocked) result.add(dateStr);
-    cur.setDate(cur.getDate() + 1);
-  }
-
-  return result;
 }
 
 export async function POST(req: NextRequest) {

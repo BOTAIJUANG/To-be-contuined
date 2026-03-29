@@ -158,6 +158,20 @@
   color: #B86A5D;
 }
 
+/* 預購混購提示 */
+.preorderMixNotice {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #fff8e1;
+  border: 1px solid #f0c040;
+  font-size: 12px;
+  color: #7a5c00;
+  line-height: 1.8;
+}
+@media (min-width: 768px) {
+  .preorderMixNotice { padding: 12px 16px; font-size: 13px; }
+}
+
 /* 預購無批次提示 */
 .noBatchBox {
   margin-bottom: 20px;
