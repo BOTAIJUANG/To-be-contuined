@@ -67,17 +67,8 @@ export default function CheckoutPage() {
   const [noIntersection,  setNoIntersection]  = useState(false);
   const [intersectionMsg, setIntersectionMsg] = useState('');
 
-  // 混購確認彈窗
-  const [showMixedModal,    setShowMixedModal]    = useState(false);
-  const [mixedConfirmed,    setMixedConfirmed]    = useState(false);
-
   // 是否混購
   const hasMixed       = items.some(i => i.isPreorder) && items.some(i => !i.isPreorder);
-  const stockShipDate  = (() => {
-    const today = new Date();
-    today.setDate(today.getDate() + 1);
-    return today.toISOString().split('T')[0];
-  })();
 
   // 登入狀態
   const [memberId, setMemberId] = useState<string | null>(null);
@@ -791,7 +782,7 @@ export default function CheckoutPage() {
               )}
               <div className={s.actionRow}>
                 <Link href="/shop" className={s.btnLink}>&larr; 繼續選購</Link>
-                <button onClick={() => { if (hasMixed && !mixedConfirmed) { setShowMixedModal(true); } else { setStep(2); } }} className={s.btn}>下一步</button>
+                <button onClick={() => setStep(2)} className={s.btn}>下一步</button>
               </div>
             </>
           )}
@@ -1061,62 +1052,6 @@ export default function CheckoutPage() {
           <p className={s.doneOrderNo}>{orderNo}</p>
           <Link href="/" onClick={() => { sessionStorage.removeItem('checkout_step'); sessionStorage.removeItem('checkout_orderNo'); }} className={s.doneHomeLink}>返回首頁</Link>
         </div>
-      )}
-      {/* 混購確認彈窗 */}
-      {showMixedModal && hasMixed && mixedShipDate && (
-        <>
-          <div className={s.modalOverlay} />
-          <div className={s.modalBox}>
-            <h3 className={s.modalTitle}>
-              此購物車包含一般商品與預購商品
-            </h3>
-            <p className={s.modalText}>
-              若一起結帳，所有商品將統一出貨，最早可統一出貨日為 <strong>{unifiedShipDate}</strong>。
-            </p>
-            <div className={s.modalDateGrid}>
-              <div className={s.modalDateRow}>
-                <span className={s.modalDateLabel}>一般商品最快可出貨日</span>
-                <span className={s.modalDateValue}>{stockShipDate}</span>
-              </div>
-              <div className={s.modalDateRow}>
-                <span className={s.modalDateLabel}>預購商品預計出貨日</span>
-                <span className={s.modalDateValue}>{mixedShipDate}</span>
-              </div>
-              <div className={s.modalDateRowFinal}>
-                <span className={s.modalDateLabelFinal}>最早可統一出貨日</span>
-                <span className={s.modalDateValueFinal}>{unifiedShipDate}</span>
-              </div>
-            </div>
-            <p className={s.modalHint}>
-              若希望先收到一般商品，請返回購物車分成兩筆訂單下單。
-            </p>
-            {/* 勾選確認 */}
-            <label className={s.modalCheckLabel}>
-              <input
-                type="checkbox"
-                checked={mixedConfirmed}
-                onChange={e => setMixedConfirmed(e.target.checked)}
-                className={s.modalCheckbox}
-              />
-              我已了解本訂單最早將於 <strong>{unifiedShipDate}</strong> 統一出貨
-            </label>
-            <div className={s.modalBtnRow}>
-              <button
-                onClick={() => { if (!mixedConfirmed) { alert('請先勾選確認後再繼續'); return; } setShowMixedModal(false); setStep(2); }}
-                disabled={!mixedConfirmed}
-                className={`${s.modalBtnConfirm} ${!mixedConfirmed ? s.modalBtnConfirmDisabled : ''}`}
-              >
-                確認一起結帳
-              </button>
-              <button
-                onClick={() => { setShowMixedModal(false); setMixedConfirmed(false); }}
-                className={s.modalBtnCancel}
-              >
-                返回購物車調整
-              </button>
-            </div>
-          </div>
-        </>
       )}
     </div>
   );
