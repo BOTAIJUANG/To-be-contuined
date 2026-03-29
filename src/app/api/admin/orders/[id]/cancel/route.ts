@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { releaseBatchReserved } from '@/lib/batch-stock';
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +22,7 @@ export async function POST(
 
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, status, pay_status, member_id, total, redemption_id')
+    .select('id, status, pay_status, member_id, total, redemption_id, coupon_code')
     .eq('id', orderId)
     .single();
 
@@ -113,19 +114,23 @@ export async function POST(
           const stampsBefore = member.stamps ?? 0;
           const stampsAfter = Math.max(0, stampsBefore - stampsToDeduct);
 
-          await supabaseAdmin.from('members').update({
+          const { data: stampsUpdated } = await supabaseAdmin.from('members').update({
             stamps: stampsAfter,
             stamp_last_updated: new Date().toISOString(),
-          }).eq('id', order.member_id);
+          }).eq('id', order.member_id).eq('stamps', stampsBefore).select('id');
 
-          await supabaseAdmin.from('stamp_logs').insert({
-            member_id:     order.member_id,
-            order_id:      orderId,
-            change:        -stampsToDeduct,
-            stamps_before: stampsBefore,
-            stamps_after:  stampsAfter,
-            reason:        '訂單取消扣章',
-          });
+          if (stampsUpdated && stampsUpdated.length > 0) {
+            await supabaseAdmin.from('stamp_logs').insert({
+              member_id:     order.member_id,
+              order_id:      orderId,
+              change:        -stampsToDeduct,
+              stamps_before: stampsBefore,
+              stamps_after:  stampsAfter,
+              reason:        '訂單取消扣章',
+            });
+          } else {
+            console.error(`[cancel] 扣章衝突 member_id=${order.member_id}`);
+          }
         }
       }
     } catch (err) {
@@ -133,15 +138,60 @@ export async function POST(
     }
   }
 
-  // ── 取消兌換 ──
+  // ── 取消兌換 + 解凍集章 ──
   if (order.redemption_id) {
     try {
-      await supabaseAdmin.from('redemptions').update({
-        status: 'released',
-        updated_at: new Date().toISOString(),
-      }).eq('id', order.redemption_id);
+      const { data: redemption } = await supabaseAdmin
+        .from('redemptions')
+        .select('id, member_id, stamps_cost, status')
+        .eq('id', order.redemption_id)
+        .single();
+
+      if (redemption) {
+        await supabaseAdmin.from('redemptions').update({
+          status: 'released',
+          updated_at: new Date().toISOString(),
+        }).eq('id', order.redemption_id);
+
+        // 解凍被凍結的章數（若兌換尚未正式扣章，章還在 stamps_frozen 裡）
+        if (redemption.stamps_cost > 0 && redemption.status !== 'used') {
+          const { data: member } = await supabaseAdmin
+            .from('members')
+            .select('stamps_frozen')
+            .eq('id', redemption.member_id)
+            .single();
+
+          if (member) {
+            const frozenBefore = member.stamps_frozen ?? 0;
+            const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
+              stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
+            }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
+            if (!frozenUpdated || frozenUpdated.length === 0) {
+              console.error(`[cancel] 凍結章數解凍衝突 member_id=${redemption.member_id}`);
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error('取消兌換失敗:', err);
+    }
+  }
+
+  // ── 釋放預購批次預留量 ──
+  await releaseBatchReserved(orderId);
+
+  // ── 釋放折價券使用次數 ──
+  if (order.coupon_code) {
+    try {
+      const { data: coupon } = await supabaseAdmin
+        .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
+      if (coupon && (coupon.used_count ?? 0) > 0) {
+        await supabaseAdmin.from('coupons')
+          .update({ used_count: coupon.used_count - 1 })
+          .eq('id', coupon.id).eq('used_count', coupon.used_count);
+      }
+    } catch (err) {
+      console.error('折價券釋放失敗:', err);
     }
   }
 

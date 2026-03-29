@@ -62,10 +62,17 @@ export async function awardStampsForOrder(orderId: number, memberId: string, ord
     stampsToAdd = Math.min(stampsToAdd, maxStamps - stampsBefore);
     const stampsAfter = stampsBefore + stampsToAdd;
 
-    await supabaseAdmin
+    const { data: updated } = await supabaseAdmin
       .from('members')
       .update({ stamps: stampsAfter, stamp_last_updated: new Date().toISOString() })
-      .eq('id', memberId);
+      .eq('id', memberId)
+      .eq('stamps', stampsBefore)
+      .select('id');
+
+    if (!updated || updated.length === 0) {
+      console.error(`訂單 ${orderId} 集章衝突，跳過`);
+      return;
+    }
 
     // ── 寫入集章記錄 ──────────────────────────────
     await supabaseAdmin.from('stamp_logs').insert({

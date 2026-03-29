@@ -33,7 +33,8 @@ export interface CartItem {
 // 加入購物車的結果
 export type AddItemResult =
   | { ok: true }
-  | { ok: false; overStock: true; maxStock: number };
+  | { ok: false; overStock: true; maxStock: number }
+  | { ok: false; redeemLimit: true };
 
 interface CartContextType {
   items:       CartItem[];
@@ -42,8 +43,8 @@ interface CartContextType {
   cartType:    'stock' | 'preorder' | null;  // 目前購物車類型
   mixedShipDate: string | null;              // 混購時的統一出貨日
   addItem:     (item: Omit<CartItem, 'qty'>, qty?: number, maxStock?: number | null) => AddItemResult;
-  removeItem:  (id: string, variantId?: number) => void;
-  updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null) => boolean;
+  removeItem:  (id: string, variantId?: number, preorderBatchId?: number) => void;
+  updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number) => boolean;
   clearCart:   () => void;
   isOpen:      boolean;
   openCart:    () => void;
@@ -82,12 +83,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return preorderDates.sort().reverse()[0]; // 最晚日期
   })();
 
+  // 產生購物車 item 的唯一 key（含批次 ID，避免不同批次合併）
+  const itemKey = (i: { id: string; variantId?: number; preorderBatchId?: number }) => {
+    let k = i.variantId ? `${i.id}_${i.variantId}` : i.id;
+    if (i.preorderBatchId) k += `_b${i.preorderBatchId}`;
+    return k;
+  };
+
   const addItem = (newItem: Omit<CartItem, 'qty'>, qty = 1, maxStock?: number | null): AddItemResult => {
-    const key = newItem.variantId ? `${newItem.id}_${newItem.variantId}` : newItem.id;
-    const existing = items.find(i => {
-      const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
-      return iKey === key;
-    });
+    // 每筆訂單只允許一個兌換品
+    if (newItem.isRedeemItem && items.some(i => i.isRedeemItem)) {
+      return { ok: false, redeemLimit: true };
+    }
+
+    const key = itemKey(newItem);
+    const existing = items.find(i => itemKey(i) === key);
     const existingQty = existing?.qty ?? 0;
     const nextQty = existingQty + qty;
 
@@ -97,15 +107,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     setItems(prev => {
-      const ex = prev.find(i => {
-        const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
-        return iKey === key;
-      });
+      const ex = prev.find(i => itemKey(i) === key);
       if (ex) {
-        return prev.map(i => {
-          const iKey = i.variantId ? `${i.id}_${i.variantId}` : i.id;
-          return iKey === key ? { ...i, qty: i.qty + qty } : i;
-        });
+        return prev.map(i => itemKey(i) === key ? { ...i, qty: i.qty + qty } : i);
       }
       return [...prev, { ...newItem, qty }];
     });
@@ -113,20 +117,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
-  const removeItem = (id: string, variantId?: number) => {
+  const removeItem = (id: string, variantId?: number, preorderBatchId?: number) => {
     setItems(prev => prev.filter(i => {
-      if (variantId) return !(i.id === id && i.variantId === variantId);
-      return i.id !== id;
+      const target = itemKey({ id, variantId, preorderBatchId });
+      return itemKey(i) !== target;
     }));
   };
 
-  const updateQty = (id: string, qty: number, variantId?: number, maxStock?: number | null): boolean => {
-    if (qty <= 0) { removeItem(id, variantId); return true; }
+  const updateQty = (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number): boolean => {
+    if (qty <= 0) { removeItem(id, variantId, preorderBatchId); return true; }
     if (maxStock != null && qty > maxStock) return false;
-    setItems(prev => prev.map(i => {
-      if (variantId) return (i.id === id && i.variantId === variantId) ? { ...i, qty } : i;
-      return i.id === id ? { ...i, qty } : i;
-    }));
+    const targetKey = itemKey({ id, variantId, preorderBatchId });
+    setItems(prev => prev.map(i => itemKey(i) === targetKey ? { ...i, qty } : i));
     return true;
   };
 

@@ -3,7 +3,6 @@
 // app/order-search/page.tsx  ──  訂單查詢（含追蹤號碼）
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import Footer from '@/components/Footer';
 import { useSettings } from '@/lib/useSettings';
 import s from './order-search.module.css';
@@ -28,26 +27,17 @@ export default function OrderSearchPage() {
     setLoading(true);
     setResult(null);
 
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        order_no, status, created_at, total,
-        buyer_name, buyer_email, buyer_phone,
-        customer_name, customer_email, customer_phone,
-        ship_method, address, ship_date,
-        tracking_no, carrier, shipped_at,
-        cvs_store_id, cvs_store_name, cvs_store_address, cvs_store_brand,
-        atm_bank_code, atm_vaccount, atm_expire_date,
-        pay_status, pay_method,
-        order_items ( name, price, qty )
-      `)
-      .eq('order_no', orderNum.trim().toUpperCase())
-      .or(`buyer_email.eq.${contact.trim()},buyer_phone.eq.${contact.trim()},customer_email.eq.${contact.trim()},customer_phone.eq.${contact.trim()}`)
-      .single();
-
-    setLoading(false);
-    if (error || !data) setResult('not_found');
-    else setResult(data);
+    try {
+      const res = await fetch(`/api/orders/search?no=${encodeURIComponent(orderNum.trim())}&contact=${encodeURIComponent(contact.trim())}`);
+      if (!res.ok) { setLoading(false); setResult('not_found'); return; }
+      const json = await res.json();
+      setLoading(false);
+      if (!json.data) setResult('not_found');
+      else setResult(json.data);
+    } catch {
+      setLoading(false);
+      setResult('not_found');
+    }
   };
 
   return (

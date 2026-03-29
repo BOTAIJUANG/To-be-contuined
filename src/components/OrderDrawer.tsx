@@ -17,6 +17,14 @@ const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }
   cancelled:  { bg: '#f5f0ea', border: '#e7ddd0', color: '#8b7d70' },
 };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款' };
+const REFUND_LABEL: Record<string, { label: string; color: string }> = {
+  processing:        { label: '退款處理中',       color: '#b87a2a' },
+  done:              { label: '退款完成',         color: '#2ab85a' },
+  done_with_warning: { label: '退款完成（同步異常）', color: '#b87a2a' },
+  manual_pending:    { label: '待確認退款',       color: '#2a7ab8' },
+  manual_done:       { label: '人工退款完成',     color: '#2ab85a' },
+  failed:            { label: '退款失敗',         color: '#c0392b' },
+};
 const PAY_STYLE: Record<string, { bg: string; border: string; color: string }> = {
   pending:  { bg: '#f8f1e2', border: '#ead8aa', color: '#8b6722' },
   paid:     { bg: '#ebf5ef', border: '#cfe4d4', color: '#4a7a56' },
@@ -205,6 +213,21 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                         付款時間：{new Date(order.paid_at).toLocaleString('zh-TW')}
                       </div>
                     )}
+                    {order.refund_status && (() => {
+                      const rs = REFUND_LABEL[order.refund_status];
+                      return (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{ fontSize: '0.8rem', color: rs?.color ?? '#888', fontWeight: 600 }}>
+                            {rs?.label ?? order.refund_status}
+                          </span>
+                          {order.refund_amount > 0 && (
+                            <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: 8 }}>
+                              NT$ {order.refund_amount.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

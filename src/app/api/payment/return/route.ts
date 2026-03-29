@@ -21,8 +21,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { verifyEcpayCallback } from '@/lib/ecpay';
+import { verifyEcpayCallback, ATM_INFO_CODES } from '@/lib/ecpay';
 import { awardStampsForOrder } from '@/lib/stamps';
+import { releaseBatchReserved } from '@/lib/batch-stock';
 
 // 綠界「返回商店」有時用 GET 導回，直接轉到訂單查詢頁
 export async function GET() {
@@ -30,8 +31,7 @@ export async function GET() {
   return NextResponse.redirect(`${baseUrl}/order-search`, 303);
 }
 
-// ATM 取號成功的 RtnCode（不是失敗，不能取消訂單）
-const ATM_INFO_CODES = ['2', '800', '10100058', '10100073'];
+// ATM_INFO_CODES 從 @/lib/ecpay 匯入
 
 export async function POST(req: NextRequest) {
   // ── 1. 解析綠界送來的資料 ────────────────────────
@@ -57,12 +57,17 @@ export async function POST(req: NextRequest) {
   if (verifyEcpayCallback(params)) {
     const { data: order } = await supabaseAdmin
       .from('orders')
-      .select('id, order_no, total, pay_status, status, member_id')
+      .select('id, order_no, total, pay_status, status, member_id, coupon_code')
       .eq('order_no', orderNo)
       .single();
 
     if (order) {
-      if (rtnCode === '1' && order.pay_status !== 'paid') {
+      // 驗證金額一致（防止竄改；TradeAmt 缺失時也視為不符）
+      const tradeAmt = params.TradeAmt;
+      const amountMismatch = !tradeAmt || String(order.total) !== tradeAmt;
+      if (amountMismatch) {
+        console.error(`[return] 金額不符或缺失: 訂單=${order.total}, 綠界=${tradeAmt ?? '(missing)'}`);
+      } else if (rtnCode === '1' && order.pay_status !== 'paid') {
         // 付款成功
         await supabaseAdmin
           .from('orders')
@@ -123,15 +128,27 @@ export async function POST(req: NextRequest) {
             if (inv.inventory_mode === 'stock') {
               qtyBefore = inv.reserved;
               qtyAfter = Math.max(0, inv.reserved - item.qty);
-              await supabaseAdmin.from('inventory')
+              const { data: updated } = await supabaseAdmin.from('inventory')
                 .update({ reserved: qtyAfter, updated_at: new Date().toISOString() })
-                .eq('id', inv.id);
+                .eq('id', inv.id)
+                .eq('reserved', inv.reserved)
+                .select('id');
+              if (!updated || updated.length === 0) {
+                console.error(`[return] 庫存釋放衝突 inv.id=${inv.id}`);
+                continue;
+              }
             } else if (inv.inventory_mode === 'preorder') {
               qtyBefore = inv.reserved_preorder;
               qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
-              await supabaseAdmin.from('inventory')
+              const { data: updated } = await supabaseAdmin.from('inventory')
                 .update({ reserved_preorder: qtyAfter, updated_at: new Date().toISOString() })
-                .eq('id', inv.id);
+                .eq('id', inv.id)
+                .eq('reserved_preorder', inv.reserved_preorder)
+                .select('id');
+              if (!updated || updated.length === 0) {
+                console.error(`[return] 庫存釋放衝突 inv.id=${inv.id}`);
+                continue;
+              }
             } else {
               continue;
             }
@@ -152,6 +169,20 @@ export async function POST(req: NextRequest) {
 
           if (inventoryLogs.length > 0) {
             await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
+          }
+        }
+
+        // 釋放預購批次預留量
+        await releaseBatchReserved(order.id);
+
+        // 釋放折價券使用次數
+        if (order.coupon_code) {
+          const { data: coupon } = await supabaseAdmin
+            .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
+          if (coupon && (coupon.used_count ?? 0) > 0) {
+            await supabaseAdmin.from('coupons')
+              .update({ used_count: coupon.used_count - 1 })
+              .eq('id', coupon.id).eq('used_count', coupon.used_count);
           }
         }
 

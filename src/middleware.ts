@@ -67,15 +67,19 @@ export async function middleware(req: NextRequest) {
     '/api/payment/notify',
     '/api/payment/return',
     '/api/register',
-    '/api/orders',
     '/api/payment/ecpay',
     '/api/ecpay/cvs-map',
     '/api/ecpay/cvs-callback',
     '/api/pickup-session',
     '/api/stock',
     '/api/batch-stock',
+    '/api/orders/search',
   ];
-  const isPublicApi = publicApiPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
+  // /api/orders 只允許精確匹配（POST 建單），不開放子路徑
+  const exactPublicPaths = ['/api/orders'];
+  const isPublicApi =
+    exactPublicPaths.includes(pathname) ||
+    publicApiPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   if (pathname.startsWith('/api/') && !isPublicApi) {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');

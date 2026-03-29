@@ -346,7 +346,8 @@ export async function POST(req: NextRequest) {
             await supabaseAdmin
               .from('coupons')
               .update({ used_count: cur.used_count - 1 })
-              .eq('id', couponClaimedId);
+              .eq('id', couponClaimedId)
+              .eq('used_count', cur.used_count);
           }
         }
         discount = 0;
@@ -402,8 +403,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 8.5 預購批次額度預檢 ──
+  // ── 8.5 預購批次額度預檢 + 樂觀鎖預留 ──
   const preorderItems = body.items.filter(i => i.preorder_batch_id);
+  const batchLockResults: { batchId: number; oldReserved: number; newReserved: number }[] = [];
+
   if (preorderItems.length > 0) {
     // 按 batch_id 加總本次訂單的需求量
     const batchQtyMap: Record<number, number> = {};
@@ -413,47 +416,45 @@ export async function POST(req: NextRequest) {
 
     const batchIds = Object.keys(batchQtyMap).map(Number);
 
-    // 查詢批次上限
+    // 查詢批次（含 reserved 欄位）
     const { data: batchRows } = await supabaseAdmin
       .from('preorder_batches')
-      .select('id, limit_qty')
+      .select('id, limit_qty, reserved')
       .in('id', batchIds);
-
-    // 查詢已訂數量（排除已取消的訂單）
-    const { data: batchOrderItems } = await supabaseAdmin
-      .from('order_items')
-      .select('preorder_batch_id, qty, order_id')
-      .in('preorder_batch_id', batchIds);
-
-    const batchOrderIds = [...new Set((batchOrderItems ?? []).map(i => i.order_id))];
-    let cancelledOrderIds = new Set<number>();
-    if (batchOrderIds.length > 0) {
-      const { data: cancelled } = await supabaseAdmin
-        .from('orders')
-        .select('id')
-        .in('id', batchOrderIds)
-        .eq('status', 'cancelled');
-      cancelledOrderIds = new Set((cancelled ?? []).map(o => o.id));
-    }
-
-    const orderedByBatch: Record<number, number> = {};
-    (batchOrderItems ?? []).forEach(i => {
-      if (!i.preorder_batch_id || cancelledOrderIds.has(i.order_id)) return;
-      orderedByBatch[i.preorder_batch_id] = (orderedByBatch[i.preorder_batch_id] ?? 0) + i.qty;
-    });
 
     for (const batch of (batchRows ?? [])) {
       const limitQty = batch.limit_qty ?? 0;
-      if (limitQty <= 0) continue; // 沒設上限就不擋
-      const ordered = orderedByBatch[batch.id] ?? 0;
-      const remaining = limitQty - ordered;
+      const currentReserved = batch.reserved ?? 0;
       const needed = batchQtyMap[batch.id] ?? 0;
-      if (needed > remaining) {
+
+      if (limitQty > 0 && currentReserved + needed > limitQty) {
         return NextResponse.json(
-          { error: `預購批次額度不足（剩餘 ${remaining} 件，需要 ${needed} 件）` },
+          { error: `預購批次額度不足（剩餘 ${limitQty - currentReserved} 件，需要 ${needed} 件）` },
           { status: 400 },
         );
       }
+
+      // 樂觀鎖：只有 reserved 沒被別人改過才能成功
+      const newReserved = currentReserved + needed;
+      const { data: updated, error: batchErr } = await supabaseAdmin
+        .from('preorder_batches')
+        .update({ reserved: newReserved })
+        .eq('id', batch.id)
+        .eq('reserved', currentReserved)
+        .select('id');
+
+      if (batchErr || !updated || updated.length === 0) {
+        // 樂觀鎖失敗 → 回滾已成功的批次
+        for (const prev of batchLockResults) {
+          await supabaseAdmin.from('preorder_batches')
+            .update({ reserved: prev.oldReserved })
+            .eq('id', prev.batchId)
+            .eq('reserved', prev.newReserved);
+        }
+        return NextResponse.json({ error: '預購批次額度已被其他訂單搶先預留，請重新下單' }, { status: 409 });
+      }
+
+      batchLockResults.push({ batchId: batch.id, oldReserved: currentReserved, newReserved });
     }
   }
 
@@ -506,12 +507,19 @@ export async function POST(req: NextRequest) {
 
   if (orderError || !order) {
     console.error('訂單建立失敗:', orderError);
+    // 回滾預購批次預留
+    for (const prev of batchLockResults) {
+      await supabaseAdmin.from('preorder_batches')
+        .update({ reserved: prev.oldReserved })
+        .eq('id', prev.batchId)
+        .eq('reserved', prev.newReserved);
+    }
     if (couponClaimedId) {
       try {
         await supabaseAdmin.rpc('release_coupon_usage', { p_coupon_id: couponClaimedId });
       } catch {
         const { data: c } = await supabaseAdmin.from('coupons').select('used_count').eq('id', couponClaimedId).single();
-        if (c) await supabaseAdmin.from('coupons').update({ used_count: Math.max((c.used_count ?? 1) - 1, 0) }).eq('id', couponClaimedId);
+        if (c) await supabaseAdmin.from('coupons').update({ used_count: Math.max((c.used_count ?? 1) - 1, 0) }).eq('id', couponClaimedId).eq('used_count', c.used_count);
       }
     }
     return NextResponse.json({ error: `訂單建立失敗：${orderError?.message ?? '未知錯誤'}` }, { status: 500 });
@@ -538,6 +546,20 @@ export async function POST(req: NextRequest) {
   if (itemsError) {
     console.error('訂單明細寫入失敗:', itemsError);
     await supabaseAdmin.from('orders').delete().eq('id', order.id);
+    for (const prev of batchLockResults) {
+      await supabaseAdmin.from('preorder_batches')
+        .update({ reserved: prev.oldReserved })
+        .eq('id', prev.batchId)
+        .eq('reserved', prev.newReserved);
+    }
+    if (couponClaimedId) {
+      try {
+        await supabaseAdmin.rpc('release_coupon_usage', { p_coupon_id: couponClaimedId });
+      } catch {
+        const { data: c } = await supabaseAdmin.from('coupons').select('used_count').eq('id', couponClaimedId).single();
+        if (c) await supabaseAdmin.from('coupons').update({ used_count: Math.max((c.used_count ?? 1) - 1, 0) }).eq('id', couponClaimedId).eq('used_count', c.used_count);
+      }
+    }
     return NextResponse.json({ error: `訂單明細寫入失敗：${itemsError.message}` }, { status: 500 });
   }
 
@@ -610,10 +632,24 @@ export async function POST(req: NextRequest) {
     }
   }));
 
-  // 樂觀鎖失敗 → 回滾訂單
+  // 樂觀鎖失敗 → 回滾訂單 + 批次預留 + 折價券
   if (lockFailures.length > 0) {
     await supabaseAdmin.from('order_items').delete().eq('order_id', order.id);
     await supabaseAdmin.from('orders').delete().eq('id', order.id);
+    for (const prev of batchLockResults) {
+      await supabaseAdmin.from('preorder_batches')
+        .update({ reserved: prev.oldReserved })
+        .eq('id', prev.batchId)
+        .eq('reserved', prev.newReserved);
+    }
+    if (couponClaimedId) {
+      try {
+        await supabaseAdmin.rpc('release_coupon_usage', { p_coupon_id: couponClaimedId });
+      } catch {
+        const { data: c } = await supabaseAdmin.from('coupons').select('used_count').eq('id', couponClaimedId).single();
+        if (c) await supabaseAdmin.from('coupons').update({ used_count: Math.max((c.used_count ?? 1) - 1, 0) }).eq('id', couponClaimedId).eq('used_count', c.used_count);
+      }
+    }
     return NextResponse.json({ error: '庫存已被其他訂單搶先預留，請重新下單' }, { status: 409 });
   }
 

@@ -76,6 +76,7 @@ export async function PATCH(
           .update({ stock: newStock, reserved: newReserved, updated_at: new Date().toISOString() })
           .eq('id', inv.id)
           .eq('stock', inv.stock)
+          .eq('reserved', inv.reserved)
           .select('id');
 
         if (updErr || !updated || updated.length === 0) {

@@ -100,10 +100,11 @@ export default function CartDrawer() {
 
   const getMaxQty = (item: any) => {
     if (item.isPreorder && item.preorderBatchId) {
-      return batchStockMap[item.preorderBatchId] ?? Infinity;
+      // 批次 stock 尚未載入時，暫用目前數量（不允許加更多）
+      return batchStockMap[item.preorderBatchId] ?? item.qty;
     }
     const key = item.variantId ? `${item.productRealId ?? parseInt(item.id)}_${item.variantId}` : `${item.productRealId ?? parseInt(item.id)}`;
-    return stockMap[key] ?? Infinity;
+    return stockMap[key] ?? item.qty;
   };
 
   const handleCancelRedeem = async (item: any) => {
@@ -114,7 +115,7 @@ export default function CartDrawer() {
         body: JSON.stringify({ redemption_id: item.redemptionId }),
       });
     }
-    removeItem(item.id, item.variantId);
+    removeItem(item.id, item.variantId, item.preorderBatchId);
   };
 
   return (
@@ -154,7 +155,8 @@ export default function CartDrawer() {
               <p className={s.emptyText}>購物車是空的</p>
             </div>
           ) : items.map(item => {
-            const key = item.variantId ? `${item.id}_${item.variantId}` : item.id;
+            let key = item.variantId ? `${item.id}_${item.variantId}` : item.id;
+            if (item.preorderBatchId) key += `_b${item.preorderBatchId}`;
             return (
               <div key={key} className={s.item}>
                 <div className={s.itemImg}>
@@ -174,13 +176,13 @@ export default function CartDrawer() {
                       <span className={s.redeemQty}>× 1（兌換品）</span>
                     ) : (
                       <div className={s.qtyControl}>
-                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId)}>−</button>
+                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId, undefined, item.preorderBatchId)}>−</button>
                         <span className={s.qtyValue}>{item.qty}</span>
                         <button
                           className={s.qtyBtn}
                           onClick={() => {
                             const max = getMaxQty(item);
-                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId, max);
+                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId, max, item.preorderBatchId);
                           }}
                           disabled={item.qty >= getMaxQty(item)}
                         >+</button>
@@ -194,7 +196,7 @@ export default function CartDrawer() {
                 {item.isRedeemItem ? (
                   <button className={s.cancelRedeemBtn} onClick={() => handleCancelRedeem(item)}>取消</button>
                 ) : (
-                  <button className={s.removeBtn} onClick={() => removeItem(item.id, item.variantId)}>×</button>
+                  <button className={s.removeBtn} onClick={() => removeItem(item.id, item.variantId, item.preorderBatchId)}>×</button>
                 )}
               </div>
             );

@@ -63,8 +63,26 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       availableByProduct[inv.product_id] = (availableByProduct[inv.product_id] ?? 0) + Math.max(0, avail);
     });
 
-    // 預購商品不走庫存判斷（由詳情頁的批次邏輯決定能不能買）
+    // 預購商品：若所有批次都已額滿（reserved >= limit_qty）也標為售完
     const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
+
+    if (preorderIds.size > 0) {
+      const { data: batches } = await supabaseAdmin
+        .from('preorder_batches')
+        .select('product_id, limit_qty, reserved')
+        .in('product_id', [...preorderIds])
+        .eq('is_active', true);
+
+      const preorderHasAvail = new Set<number>();
+      (batches ?? []).forEach((b: any) => {
+        if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
+      });
+
+      for (const pid of preorderIds) {
+        if (!preorderHasAvail.has(pid)) soldOutSet.add(pid);
+      }
+    }
+
     for (const pid of productIds) {
       if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }

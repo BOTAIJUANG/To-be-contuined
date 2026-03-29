@@ -69,7 +69,12 @@ function isActiveNow(p: Promotion): boolean {
   if (!p.is_active) return false;
   const now = new Date();
   if (p.start_at && new Date(p.start_at) > now) return false;
-  if (p.end_at && new Date(p.end_at) < now) return false;
+  if (p.end_at) {
+    // 結束日設為當天 23:59:59，確保整天有效
+    const endDate = new Date(p.end_at);
+    endDate.setHours(23, 59, 59, 999);
+    if (endDate < now) return false;
+  }
   return true;
 }
 
@@ -101,21 +106,20 @@ export function calculatePromotions(
     if (bestTier) {
       // 原價（用各商品的原單價計算）
       const originalTotal = matchingItems.reduce((s, i) => s + i.price * i.qty, 0);
-      // 階梯價（依最佳階梯計算）
-      // 如果買超過最大階梯的倍數，可能需要分段計算
-      // 簡化版：階梯價 = (totalQty / bestTier.min_qty) 組 * bestTier.price + 剩餘 * 單件原價
-      const groups = Math.floor(totalQty / bestTier.min_qty);
-      const remainder = totalQty % bestTier.min_qty;
-      // 剩餘件數用次低階梯或原價
-      const remainderTier = sortedTiers.find(t => remainder >= t.min_qty);
-      const avgUnitPrice = matchingItems.length > 0
-        ? matchingItems.reduce((s, i) => s + i.price * i.qty, 0) / totalQty
-        : 0;
-      const remainderPrice = remainderTier
-        ? remainderTier.price
-        : remainder * avgUnitPrice;
+      const avgUnitPrice = totalQty > 0 ? originalTotal / totalQty : 0;
 
-      const promoTotal = groups * bestTier.price + remainderPrice;
+      // 階梯價：由大到小逐層分配，確保每個階梯只為 min_qty 件定價
+      let promoTotal = 0;
+      let remaining = totalQty;
+      for (const tier of sortedTiers) {
+        if (remaining >= tier.min_qty) {
+          const groups = Math.floor(remaining / tier.min_qty);
+          promoTotal += groups * tier.price;
+          remaining = remaining % tier.min_qty;
+        }
+      }
+      // 不足任何階梯的零散件以平均原價計算
+      promoTotal += remaining * avgUnitPrice;
       const saved = Math.round(originalTotal - promoTotal);
 
       if (saved > 0) {

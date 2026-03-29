@@ -21,8 +21,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { verifyEcpayCallback } from '@/lib/ecpay';
+import { verifyEcpayCallback, ATM_INFO_CODES } from '@/lib/ecpay';
 import { awardStampsForOrder } from '@/lib/stamps';
+import { releaseBatchReserved } from '@/lib/batch-stock';
 
 export async function POST(req: NextRequest) {
   console.log('=== ECPay Notify 收到請求 ===');
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, total, status, pay_status, member_id')
+    .select('id, order_no, total, status, pay_status, member_id, coupon_code')
     .eq('order_no', orderNo)
     .single();
 
@@ -86,8 +87,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 5. 更新訂單付款狀態 ──────────────────────────
-  // ATM 取號成功的 RtnCode（2, 10100058 等）不是失敗，不能取消訂單
-  const ATM_INFO_CODES = ['2', '800', '10100058', '10100073'];
   const isAtmInfo = ATM_INFO_CODES.includes(rtnCode);
 
   if (rtnCode === '1') {
@@ -165,15 +164,27 @@ export async function POST(req: NextRequest) {
         if (inv.inventory_mode === 'stock') {
           qtyBefore = inv.reserved;
           qtyAfter = Math.max(0, inv.reserved - item.qty);
-          await supabaseAdmin.from('inventory')
+          const { data: updated } = await supabaseAdmin.from('inventory')
             .update({ reserved: qtyAfter, updated_at: new Date().toISOString() })
-            .eq('id', inv.id);
+            .eq('id', inv.id)
+            .eq('reserved', inv.reserved)
+            .select('id');
+          if (!updated || updated.length === 0) {
+            console.error(`[notify] 庫存釋放衝突 inv.id=${inv.id}`);
+            continue;
+          }
         } else if (inv.inventory_mode === 'preorder') {
           qtyBefore = inv.reserved_preorder;
           qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
-          await supabaseAdmin.from('inventory')
+          const { data: updated } = await supabaseAdmin.from('inventory')
             .update({ reserved_preorder: qtyAfter, updated_at: new Date().toISOString() })
-            .eq('id', inv.id);
+            .eq('id', inv.id)
+            .eq('reserved_preorder', inv.reserved_preorder)
+            .select('id');
+          if (!updated || updated.length === 0) {
+            console.error(`[notify] 庫存釋放衝突 inv.id=${inv.id}`);
+            continue;
+          }
         } else {
           continue;
         }
@@ -194,6 +205,20 @@ export async function POST(req: NextRequest) {
 
       if (inventoryLogs.length > 0) {
         await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
+      }
+    }
+
+    // 釋放預購批次預留量
+    await releaseBatchReserved(order.id);
+
+    // 釋放折價券使用次數
+    if (order.coupon_code) {
+      const { data: coupon } = await supabaseAdmin
+        .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
+      if (coupon && (coupon.used_count ?? 0) > 0) {
+        await supabaseAdmin.from('coupons')
+          .update({ used_count: coupon.used_count - 1 })
+          .eq('id', coupon.id).eq('used_count', coupon.used_count);
       }
     }
 

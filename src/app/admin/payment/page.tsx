@@ -22,6 +22,8 @@ const REFUND_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   done:              { label: '退款完成',         color: '#2ab85a' },
   done_with_warning: { label: '退款完成（同步異常）', color: '#b87a2a' },
   manual:            { label: '需人工退款',       color: '#2a7ab8' },
+  manual_pending:    { label: '待確認退款',       color: '#2a7ab8' },
+  manual_done:       { label: '人工退款完成',     color: '#2ab85a' },
   failed:            { label: '退款失敗',         color: '#c0392b' },
 };
 const PAY_METHOD: Record<string, string> = { credit: '信用卡', atm: 'ATM 轉帳' };
@@ -56,7 +58,7 @@ export default function AdminPaymentPage() {
       refunded:  list.filter(o => o.pay_status === 'refunded').length,
       totalPaid: list.filter(o => o.pay_status === 'paid').reduce((sum, o) => sum + o.total, 0),
       todayPaid,
-      refunding: list.filter(o => o.refund_status === 'processing' || o.refund_status === 'manual').length,
+      refunding: list.filter(o => o.refund_status === 'processing' || o.refund_status === 'manual_pending').length,
     });
     setOrders(list);
     setLoading(false);
@@ -103,6 +105,21 @@ export default function AdminPaymentPage() {
     }
 
     setSavingRefund(false);
+  };
+
+  // ── ATM 退款確認 ──────────────────────────────────
+  const confirmManualRefund = async (orderId: number) => {
+    if (!confirm('確認已完成銀行轉帳退款？')) return;
+    try {
+      const res = await fetchApi('/api/payment/refund/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error ?? '操作失敗'); return; }
+      alert(data.message ?? '已確認退款');
+      load();
+    } catch { alert('操作失敗，請稍後再試'); }
   };
 
   // ── 篩選 ──────────────────────────────────────────
@@ -212,6 +229,9 @@ export default function AdminPaymentPage() {
                       <div>
                         <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
                         {order.refund_amount > 0 && <div className={p.refundAmount}>NT$ {order.refund_amount.toLocaleString()}</div>}
+                        {order.refund_status === 'manual_pending' && (
+                          <button onClick={() => confirmManualRefund(order.id)} className={p.refundBtn} style={{ marginTop: 4 }}>確認已退款</button>
+                        )}
                       </div>
                     );
                   })() : (
@@ -263,6 +283,9 @@ export default function AdminPaymentPage() {
                     <span>
                       <span className={p.refundBadge} style={{ color: rs?.color ?? '#888' }}>{rs?.label ?? order.refund_status}</span>
                       {order.refund_amount > 0 && <span className={p.refundAmountInline}> NT$ {order.refund_amount.toLocaleString()}</span>}
+                      {order.refund_status === 'manual_pending' && (
+                        <button onClick={() => confirmManualRefund(order.id)} className={p.refundBtn} style={{ marginLeft: 8 }}>確認已退款</button>
+                      )}
                     </span>
                   );
                 })() : order.pay_status === 'paid' ? (

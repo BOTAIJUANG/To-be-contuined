@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { releaseBatchReserved } from '@/lib/batch-stock';
 
 export async function GET(req: NextRequest) {
   // 驗證 Vercel Cron 密鑰（防止外部隨意呼叫）
@@ -121,6 +122,9 @@ export async function GET(req: NextRequest) {
         await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
       }
     }
+
+    // 釋放預購批次預留量
+    await releaseBatchReserved(order.id);
 
     cancelledCount++;
     console.log(`自動取消逾時訂單: ${order.order_no}`);

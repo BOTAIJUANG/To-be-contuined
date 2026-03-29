@@ -22,7 +22,7 @@ const OUTER_ISLAND_CITIES = ['澎湖縣', '金門縣', '連江縣'];
 // 配送方式設定（settingKey 對應 store_settings 的開關欄位）
 const SHIP_OPTIONS = [
   { value: 'home',    title: '一般宅配',  sub: '黑貓 / 新竹物流配送',   settingKey: 'ship_home' },
-  { value: 'cvs_711', title: '7-11 取貨', sub: '超商取貨付款',           settingKey: 'ship_cvs_711' },
+  { value: 'cvs_711', title: '7-11 取貨', sub: '7-11 門市取貨',           settingKey: 'ship_cvs_711' },
   { value: 'store',   title: '門市自取',  sub: '宜蘭市神農路二段 96 號', settingKey: 'ship_store' },
 ];
 const PAY_OPTIONS = [

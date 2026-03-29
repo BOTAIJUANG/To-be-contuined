@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { requireAdmin } from '@/lib/auth';
 import { generateCheckMacValue } from '@/lib/ecpay';
+import { releaseBatchReserved } from '@/lib/batch-stock';
 
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
   ?? 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction';
@@ -147,35 +148,38 @@ export async function POST(req: NextRequest) {
 
         if (wasShipped) {
           if (isStock) {
+            // 已出貨 stock 模式：stock += qty（加回可售庫存）
             qtyBefore = inv.stock;
             qtyAfter = inv.stock + item.qty;
-            await supabaseAdmin.from('inventory').update({
+            const { data: updated } = await supabaseAdmin.from('inventory').update({
               stock: qtyAfter,
               updated_at: new Date().toISOString(),
-            }).eq('id', inv.id);
+            }).eq('id', inv.id).eq('stock', inv.stock).select('id');
+            if (!updated || updated.length === 0) { warnings.push('庫存回補衝突'); continue; }
           } else {
-            qtyBefore = inv.reserved_preorder;
-            qtyAfter = inv.reserved_preorder + item.qty;
-            await supabaseAdmin.from('inventory').update({
-              reserved_preorder: qtyAfter,
-              updated_at: new Date().toISOString(),
-            }).eq('id', inv.id);
+            // 已出貨 preorder 模式：名額在出貨時已釋放，不需要動庫存
+            // 退回的實體商品由管理員手動處理
+            continue;
           }
         } else {
           if (isStock) {
+            // 未出貨 stock 模式：reserved -= qty（釋放預留）
             qtyBefore = inv.reserved;
             qtyAfter = Math.max(0, inv.reserved - item.qty);
-            await supabaseAdmin.from('inventory').update({
+            const { data: updated } = await supabaseAdmin.from('inventory').update({
               reserved: qtyAfter,
               updated_at: new Date().toISOString(),
-            }).eq('id', inv.id);
+            }).eq('id', inv.id).eq('reserved', inv.reserved).select('id');
+            if (!updated || updated.length === 0) { warnings.push('庫存回補衝突'); continue; }
           } else {
+            // 未出貨 preorder 模式：reserved_preorder -= qty
             qtyBefore = inv.reserved_preorder;
             qtyAfter = Math.max(0, inv.reserved_preorder - item.qty);
-            await supabaseAdmin.from('inventory').update({
+            const { data: updated } = await supabaseAdmin.from('inventory').update({
               reserved_preorder: qtyAfter,
               updated_at: new Date().toISOString(),
-            }).eq('id', inv.id);
+            }).eq('id', inv.id).eq('reserved_preorder', inv.reserved_preorder).select('id');
+            if (!updated || updated.length === 0) { warnings.push('庫存回補衝突'); continue; }
           }
         }
 
@@ -224,19 +228,24 @@ export async function POST(req: NextRequest) {
           const stampsBefore = member.stamps ?? 0;
           const stampsAfter = Math.max(0, stampsBefore - stampsToDeduct);
 
-          await supabaseAdmin.from('members').update({
+          const { data: stampsUpdated } = await supabaseAdmin.from('members').update({
             stamps: stampsAfter,
             stamp_last_updated: new Date().toISOString(),
-          }).eq('id', order.member_id);
+          }).eq('id', order.member_id).eq('stamps', stampsBefore).select('id');
 
-          await supabaseAdmin.from('stamp_logs').insert({
-            member_id:     order.member_id,
-            order_id:      order.id,
-            change:        -stampsToDeduct,
-            stamps_before: stampsBefore,
-            stamps_after:  stampsAfter,
-            reason:        '退款扣章',
-          });
+          if (stampsUpdated && stampsUpdated.length > 0) {
+            await supabaseAdmin.from('stamp_logs').insert({
+              member_id:     order.member_id,
+              order_id:      order.id,
+              change:        -stampsToDeduct,
+              stamps_before: stampsBefore,
+              stamps_after:  stampsAfter,
+              reason:        '退款扣章',
+            });
+          } else {
+            console.error('[refund] 扣章衝突 member_id=', order.member_id);
+            warnings.push('會員章數扣除衝突');
+          }
         }
       }
     } catch (err) {
@@ -269,9 +278,13 @@ export async function POST(req: NextRequest) {
             .single();
 
           if (member) {
-            await supabaseAdmin.from('members').update({
-              stamps_frozen: Math.max(0, (member.stamps_frozen ?? 0) - redemption.stamps_cost),
-            }).eq('id', redemption.member_id);
+            const frozenBefore = member.stamps_frozen ?? 0;
+            const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
+              stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
+            }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
+            if (!frozenUpdated || frozenUpdated.length === 0) {
+              warnings.push('凍結章數解凍衝突');
+            }
           }
         }
       }
@@ -281,13 +294,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 4d. 釋放預購批次預留量
+  await releaseBatchReserved(order.id);
+
   // ── 5. 最後才更新訂單最終狀態 ─────────────────
   const finalRefundStatus = isATM
-    ? 'manual'
+    ? 'manual_pending'
     : (warnings.length > 0 ? 'done_with_warning' : 'done');
 
   await supabaseAdmin.from('orders').update({
-    pay_status:       'refunded',
+    // ATM 退款需要手動銀行轉帳，在確認前 pay_status 保持 paid
+    pay_status:       isATM ? 'paid' : 'refunded',
     status:           'cancelled',
     refund_status:    finalRefundStatus,
     refund_amount:    amount,
@@ -297,7 +314,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     message: isATM
-      ? 'ATM 訂單已標記退款，請手動以銀行轉帳方式辦理。'
+      ? 'ATM 訂單已標記待退款，請手動以銀行轉帳方式辦理後，回此頁點擊「確認已退款」。'
       : (warnings.length > 0
         ? `信用卡退款成功，但有部分同步異常：${warnings.join('、')}`
         : '信用卡退款成功'),

@@ -140,6 +140,9 @@ export function buildEcpayParams(options: {
   };
 }
 
+// ── ATM 取號成功的 RtnCode（不是失敗，不能取消訂單）──
+export const ATM_INFO_CODES = ['2', '800', '10100058', '10100073'];
+
 // ── 驗證綠界回傳的 CheckMacValue ────────────────────
 // 當綠界通知我們付款結果時，我們要驗證這個通知是真的來自綠界
 // （而不是有人偽造的假通知）

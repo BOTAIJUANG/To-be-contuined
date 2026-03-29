@@ -42,8 +42,28 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     });
 
     // 沒有庫存記錄 或 可售數量 <= 0 → 售完
-    // 預購商品不走庫存判斷（由詳情頁的批次邏輯決定能不能買）
+    // 預購商品：若所有批次都已額滿（reserved >= limit_qty）也標為售完
     const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
+
+    // 查詢預購批次，判斷是否全部額滿
+    if (preorderIds.size > 0) {
+      const { data: batches } = await supabaseAdmin
+        .from('preorder_batches')
+        .select('product_id, limit_qty, reserved')
+        .in('product_id', [...preorderIds])
+        .eq('is_active', true);
+
+      // 按商品分組：有任一批次有餘量就不算售完
+      const preorderHasAvail = new Set<number>();
+      (batches ?? []).forEach((b: any) => {
+        if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
+      });
+
+      for (const pid of preorderIds) {
+        if (!preorderHasAvail.has(pid)) soldOutSet.add(pid);
+      }
+    }
+
     for (const pid of productIds) {
       if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }
