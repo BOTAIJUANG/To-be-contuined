@@ -661,6 +661,132 @@
   font-size: 12px;
 }
 
+/* ── Batch Delete Calendar ── */
+.calendarNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.calendarNavBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-mid);
+  transition: all 0.15s ease;
+}
+.calendarNavBtn:hover { background: #f5f0eb; border-color: #c0b5a8; }
+.calendarMonth {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  letter-spacing: 0.04em;
+}
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.calendarWeekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-light);
+  padding: 4px 0;
+}
+.calendarCell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: default;
+  position: relative;
+  color: #ccc;
+}
+.calendarCellHasDate {
+  color: var(--text-dark);
+  background: #f8f5f1;
+  border: 1px solid #e6ddd3;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.calendarCellHasDate:hover {
+  border-color: #c0392b;
+  background: #fef5f5;
+}
+.calendarCellSelected {
+  background: #c0392b !important;
+  color: #fff !important;
+  border-color: #a83226 !important;
+  font-weight: 600;
+}
+.calendarCellReserved {
+  color: var(--text-mid) !important;
+  background: #f0f0f0 !important;
+  border-color: #ddd !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+.calendarCellReservedDot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #e67e22;
+}
+.calendarCellToday {
+  box-shadow: inset 0 0 0 2px #bfa893;
+}
+.calendarLegend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-light);
+}
+.calendarLegendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.calendarSelectAll {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.calendarSelectCount {
+  font-size: 13px;
+  color: var(--text-mid);
+  font-weight: 500;
+}
+.calendarSelectAllBtn {
+  font-size: 12px;
+  color: #6b4a3a;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.calendarSelectAllBtn:hover { background: #f5f0eb; }
+
 /* responsive adjustments */
 @media (max-width: 767px) {
   .variantGridHeader,

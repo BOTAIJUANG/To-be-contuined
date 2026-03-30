@@ -93,19 +93,11 @@ export async function releaseShipDateReserved(orderId: number) {
     .eq('is_gift', false);
   if (!items || items.length === 0) return;
 
-  // 查哪些商品是 date_mode
-  const productIds = [...new Set(items.map(i => i.product_id))];
-  const { data: products } = await supabaseAdmin
-    .from('products')
-    .select('id, stock_mode')
-    .in('id', productIds)
-    .eq('stock_mode', 'date_mode');
-  if (!products || products.length === 0) return;
+  // 只處理有 ship_date_id 的項目（不靠 products.stock_mode，因為商品可能已切回總量模式）
+  const dateModeItems = items.filter(i => (i as any).ship_date_id);
+  if (dateModeItems.length === 0) return;
 
-  const dateModeIds = new Set(products.map(p => p.id));
-
-  for (const item of items) {
-    if (!dateModeIds.has(item.product_id)) continue;
+  for (const item of dateModeItems) {
 
     let rec: any = null;
 
@@ -121,13 +113,14 @@ export async function releaseShipDateReserved(orderId: number) {
 
     // fallback: 用 order.ship_date + product_id + variant_id 匹配
     if (!rec && order?.ship_date) {
-      const { data: fallbackRec } = await supabaseAdmin
+      let fbQuery = supabaseAdmin
         .from('product_ship_dates')
         .select('id, reserved')
         .eq('product_id', item.product_id)
-        .eq('ship_date', order.ship_date)
-        .is('variant_id', item.variant_id ?? null)
-        .single();
+        .eq('ship_date', order.ship_date);
+      if (item.variant_id) fbQuery = fbQuery.eq('variant_id', item.variant_id);
+      else fbQuery = fbQuery.is('variant_id', null);
+      const { data: fallbackRec } = await fbQuery.single();
       rec = fallbackRec;
     }
 

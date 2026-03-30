@@ -64,10 +64,13 @@ export default function AdminProductsPage() {
   const [batchExclude,   setBatchExclude]   = useState('');
   const [batchSkipDays,  setBatchSkipDays]  = useState<number[]>([]);
   const [batchCutoff,    setBatchCutoff]    = useState('17:00');
-  // 批量關閉
-  const [showBatchClose, setShowBatchClose] = useState(false);
-  const [closeStart,     setCloseStart]     = useState('');
-  const [closeEnd,       setCloseEnd]       = useState('');
+  // 批量刪除
+  const [showBatchDelete, setShowBatchDelete] = useState(false);
+  const [deleteSelected,  setDeleteSelected]  = useState<Set<string>>(new Set());
+  const [deleteCalMonth,  setDeleteCalMonth]  = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   // 展開/收合
   const [shipDatesExpanded, setShipDatesExpanded] = useState(false);
 
@@ -413,13 +416,21 @@ export default function AdminProductsPage() {
     setShowDateModal(false);
   };
 
-  // 批量關閉
-  const doBatchClose = () => {
-    if (!closeStart || !closeEnd) { alert('請選擇起訖日期'); return; }
-    setShipDates(prev => prev.map(d =>
-      d.ship_date >= closeStart && d.ship_date <= closeEnd ? { ...d, is_open: false } : d
-    ));
-    setShowBatchClose(false);
+  // 批量刪除
+  const doBatchDelete = async () => {
+    if (deleteSelected.size === 0) { alert('請先在日曆上選擇要刪除的日期'); return; }
+    const toDelete = shipDates.filter(d => deleteSelected.has(d.ship_date));
+    const hasReserved = toDelete.filter(d => d.reserved > 0);
+    if (hasReserved.length > 0) { alert(`有 ${hasReserved.length} 個日期已有預約，無法刪除`); return; }
+    if (!confirm(`確定要刪除 ${toDelete.length} 個日期？此操作無法復原。`)) return;
+    // DB 刪除已存在的
+    const idsToDelete = toDelete.filter(d => d.id).map(d => d.id!);
+    if (idsToDelete.length > 0) {
+      await supabase.from('product_ship_dates').delete().in('id', idsToDelete);
+    }
+    setShipDates(prev => prev.filter(d => !deleteSelected.has(d.ship_date)));
+    setDeleteSelected(new Set());
+    setShowBatchDelete(false);
   };
 
   const deleteDate = async (idx: number) => {
@@ -668,7 +679,7 @@ export default function AdminProductsPage() {
                     <label className={`${s.label} ${p.specLabelNoMargin}`}>每日接單設定</label>
                     <div className={`${s.flex} ${p.gap8}`}>
                       {shipDates.length > 0 && (
-                        <button onClick={() => { setCloseStart(''); setCloseEnd(''); setShowBatchClose(true); }} className={s.btnSmall} style={{ color: '#c0392b' }}>批量關閉</button>
+                        <button onClick={() => { setDeleteSelected(new Set()); setShowBatchDelete(true); }} className={s.btnSmall} style={{ color: '#c0392b' }}>批量刪除</button>
                       )}
                       <button onClick={openBatchAdd} className={s.btnSmall}>批量新增</button>
                       <button onClick={openAddDate} className={`${s.btnPrimary} ${p.btnSmallCompact}`}>+ 新增日期</button>
@@ -1155,35 +1166,113 @@ export default function AdminProductsPage() {
         </>
       )}
 
-      {/* ════ 批量關閉 Modal ════ */}
-      {showBatchClose && (
+      {/* ════ 批量刪除 Modal（日曆選取） ════ */}
+      {showBatchDelete && (() => {
+        const [calY, calM] = deleteCalMonth.split('-').map(Number);
+        const firstDay = new Date(calY, calM - 1, 1).getDay();
+        const daysInMonth = new Date(calY, calM, 0).getDate();
+        const todayStr = new Date().toISOString().split('T')[0];
+        const shipDateSet = new Map(shipDates.map(d => [d.ship_date, d]));
+        const prevMonth = () => {
+          const d = new Date(calY, calM - 2, 1);
+          setDeleteCalMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        };
+        const nextMonth = () => {
+          const d = new Date(calY, calM, 1);
+          setDeleteCalMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        };
+        const toggleDate = (dateStr: string) => {
+          const sd = shipDateSet.get(dateStr);
+          if (!sd || sd.reserved > 0) return;
+          setDeleteSelected(prev => {
+            const next = new Set(prev);
+            if (next.has(dateStr)) next.delete(dateStr); else next.add(dateStr);
+            return next;
+          });
+        };
+        const selectAllInMonth = () => {
+          const eligible = shipDates.filter(d => {
+            if (d.reserved > 0) return false;
+            return d.ship_date.startsWith(deleteCalMonth);
+          });
+          setDeleteSelected(prev => {
+            const next = new Set(prev);
+            const allSelected = eligible.every(d => next.has(d.ship_date));
+            if (allSelected) {
+              eligible.forEach(d => next.delete(d.ship_date));
+            } else {
+              eligible.forEach(d => next.add(d.ship_date));
+            }
+            return next;
+          });
+        };
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        const cells: { day: number; dateStr: string }[] = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${calY}-${String(calM).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          cells.push({ day: d, dateStr });
+        }
+        return (
         <>
-          <div onClick={() => setShowBatchClose(false)} className={s.modalOverlay} />
+          <div onClick={() => setShowBatchDelete(false)} className={s.modalOverlay} />
           <div className={`${s.modal} ${p.modal480}`}>
             <div className={s.modalHeader}>
-              <span className={s.modalTitle}>批量關閉接單日期</span>
-              <button onClick={() => setShowBatchClose(false)} className={s.modalClose}>×</button>
+              <span className={s.modalTitle}>批量刪除接單日期</span>
+              <button onClick={() => setShowBatchDelete(false)} className={s.modalClose}>×</button>
             </div>
             <div className={`${s.modalBody} ${p.modalBodyGrid}`}>
-              <div className={s.grid2}>
-                <div>
-                  <label className={s.label}>開始日期 *</label>
-                  <AdminDatePicker value={closeStart} onChange={val => setCloseStart(val)} className={`${s.input} ${p.inputFull}`} />
-                </div>
-                <div>
-                  <label className={s.label}>結束日期 *</label>
-                  <AdminDatePicker value={closeEnd} onChange={val => setCloseEnd(val)} className={`${s.input} ${p.inputFull}`} />
-                </div>
+              <div className={p.hintText}>點選日曆上的日期來選取要刪除的項目，已有預約的日期無法刪除</div>
+              {/* 月份導航 */}
+              <div className={p.calendarNav}>
+                <button onClick={prevMonth} className={p.calendarNavBtn}>‹</button>
+                <span className={p.calendarMonth}>{calY} 年 {calM} 月</span>
+                <button onClick={nextMonth} className={p.calendarNavBtn}>›</button>
               </div>
-              <div className={p.hintText}>此範圍內的所有日期將設為「已關閉」，不再接受新訂單</div>
+              {/* 星期標題 */}
+              <div className={p.calendarGrid}>
+                {weekdays.map(w => <div key={w} className={p.calendarWeekday}>{w}</div>)}
+                {/* 空白填充 */}
+                {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} className={p.calendarCell} />)}
+                {/* 日期格 */}
+                {cells.map(({ day, dateStr }) => {
+                  const sd = shipDateSet.get(dateStr);
+                  const isSelected = deleteSelected.has(dateStr);
+                  const isToday = dateStr === todayStr;
+                  const hasReserved = sd && sd.reserved > 0;
+                  let cls = p.calendarCell;
+                  if (sd) cls += ` ${p.calendarCellHasDate}`;
+                  if (sd && hasReserved) cls += ` ${p.calendarCellReserved}`;
+                  if (isSelected) cls += ` ${p.calendarCellSelected}`;
+                  if (isToday) cls += ` ${p.calendarCellToday}`;
+                  return (
+                    <div key={dateStr} className={cls} onClick={() => sd && toggleDate(dateStr)} title={hasReserved ? `已有 ${sd.reserved} 筆預約` : sd ? '點選以選取' : ''}>
+                      {day}
+                      {hasReserved && <span className={p.calendarCellReservedDot} />}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* 圖例 + 全選 */}
+              <div className={p.calendarLegend}>
+                <span><span className={p.calendarLegendDot} style={{ background: '#f8f5f1', border: '1px solid #e6ddd3' }} /> 可刪除</span>
+                <span><span className={p.calendarLegendDot} style={{ background: '#c0392b' }} /> 已選取</span>
+                <span><span className={p.calendarLegendDot} style={{ background: '#f0f0f0', border: '1px solid #ddd' }} /> 有預約</span>
+              </div>
+              <div className={p.calendarSelectAll}>
+                <span className={p.calendarSelectCount}>已選 {deleteSelected.size} 個日期</span>
+                <button onClick={selectAllInMonth} className={p.calendarSelectAllBtn}>
+                  {shipDates.filter(d => d.reserved === 0 && d.ship_date.startsWith(deleteCalMonth)).every(d => deleteSelected.has(d.ship_date)) && shipDates.some(d => d.ship_date.startsWith(deleteCalMonth) && d.reserved === 0) ? '取消本月全選' : '全選本月'}
+                </button>
+              </div>
               <div className={s.btnActions}>
-                <button onClick={doBatchClose} className={s.btnSave} style={{ background: '#c0392b' }}>確認關閉</button>
-                <button onClick={() => setShowBatchClose(false)} className={s.btnCancel}>取消</button>
+                <button onClick={doBatchDelete} className={s.btnSave} style={{ background: deleteSelected.size > 0 ? '#c0392b' : '#ccc' }} disabled={deleteSelected.size === 0}>確認刪除 ({deleteSelected.size})</button>
+                <button onClick={() => setShowBatchDelete(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }

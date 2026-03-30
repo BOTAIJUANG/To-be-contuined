@@ -141,22 +141,15 @@ export async function POST(req: NextRequest) {
     // 釋放預留庫存
     const { data: orderItems } = await supabaseAdmin
       .from('order_items')
-      .select('product_id, variant_id, qty')
+      .select('product_id, variant_id, qty, ship_date_id')
       .eq('order_id', order.id);
-
-    // 查商品 stock_mode，date_mode 不走 inventory 表
-    const notifyProductIds = [...new Set((orderItems ?? []).map(i => i.product_id))];
-    const { data: notifyProducts } = notifyProductIds.length > 0
-      ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', notifyProductIds)
-      : { data: [] };
-    const notifyProductMap = new Map((notifyProducts ?? []).map((p: any) => [p.id, p]));
 
     if (orderItems) {
       const inventoryLogs: any[] = [];
 
       for (const item of orderItems) {
-        // date_mode 庫存由 product_ship_dates 管理，跳過 inventory
-        if (notifyProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+        // 有 ship_date_id 的項目由 product_ship_dates 管理，跳過 inventory 釋放
+        if ((item as any).ship_date_id) continue;
 
         let query = supabaseAdmin
           .from('inventory')

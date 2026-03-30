@@ -952,7 +952,7 @@ export default function CheckoutPage() {
                     return `${dt.getMonth() + 1}/${dt.getDate()}（${dayNames[dt.getDay()]}）`;
                   }).join('、')}
                 </div>
-                <div className={s.fixedDateHint}>出貨日期已於商品頁選定，如需更改請回購物車調整</div>
+                <div className={s.fixedDateHint}>出貨日期已於商品頁選定，如需更改請回商品頁選取其它日期。</div>
               </div>
             </div>
           ) : items.every(i => i.isPreorder) && mixedShipDate ? (

@@ -37,20 +37,14 @@ export async function POST(
   // ── 庫存釋放 ──
   const { data: items } = await supabaseAdmin
     .from('order_items')
-    .select('product_id, variant_id, qty')
+    .select('product_id, variant_id, qty, ship_date_id')
     .eq('order_id', orderId);
-
-  // 查商品 stock_mode，date_mode 商品不走 inventory 表
-  const cancelProductIds = [...new Set((items ?? []).map(i => i.product_id))];
-  const { data: cancelProducts } = cancelProductIds.length > 0
-    ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', cancelProductIds)
-    : { data: [] };
-  const cancelProductMap = new Map((cancelProducts ?? []).map((p: any) => [p.id, p]));
 
   if (items && items.length > 0) {
     for (const item of items) {
-      // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 釋放
-      if (cancelProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+      // 有 ship_date_id 的項目由 product_ship_dates 管理，跳過 inventory 釋放
+      // （不靠 stock_mode 判斷，因為商品可能已從 date_mode 切回總量模式）
+      if ((item as any).ship_date_id) continue;
 
       let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
       if (item.variant_id) query = query.eq('variant_id', item.variant_id);

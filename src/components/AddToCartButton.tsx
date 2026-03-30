@@ -304,7 +304,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
 
         return (
           <div className={s.batchWrap}>
-            <div className={s.sectionLabel}>選擇取貨日期</div>
+            <div className={s.sectionLabel}>選擇出貨日期</div>
 
             {!showAllDates ? (
               <>

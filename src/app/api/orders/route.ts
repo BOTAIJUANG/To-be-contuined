@@ -365,8 +365,8 @@ export async function POST(req: NextRequest) {
 
   // ── 8. 批次庫存預檢（一次查出所有庫存，取代迴圈）──
   const allItemsForInventory = [
-    ...body.items.map(i => ({ product_id: i.product_id, variant_id: i.variant_id ?? null, qty: i.qty, is_redeem: i.is_redeem })),
-    ...giftItems.map(g => ({ product_id: g.product_id, variant_id: g.variant_id ?? null, qty: g.qty, is_redeem: false })),
+    ...body.items.map(i => ({ product_id: i.product_id, variant_id: i.variant_id ?? null, qty: i.qty, is_redeem: i.is_redeem, ship_date_id: i.ship_date_id ?? null })),
+    ...giftItems.map(g => ({ product_id: g.product_id, variant_id: g.variant_id ?? null, qty: g.qty, is_redeem: false, ship_date_id: null })),
   ];
 
   const allProductIdsForInv = [...new Set(allItemsForInventory.map(i => i.product_id))];
@@ -385,9 +385,9 @@ export async function POST(req: NextRequest) {
   // 預檢所有商品 + 贈品庫存
   for (const item of allItemsForInventory) {
     if (item.is_redeem) continue;
-    // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 預檢
-    const product = productMap.get(item.product_id);
-    if (product?.stock_mode === 'date_mode') continue;
+    // 有 ship_date_id 的項目由 product_ship_dates 管理，跳過 inventory 預檢
+    // （不靠 stock_mode，因為商品可能已從 date_mode 切回總量模式）
+    if (item.ship_date_id) continue;
     const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
     const inv = inventoryMap.get(key);
     if (!inv) continue;
@@ -516,16 +516,19 @@ export async function POST(req: NextRequest) {
 
       let validDates: Set<string> | null = null;
 
-      // 收集 date_mode 商品 ID，後續單獨驗證
+      // 收集有 ship_date_id 的商品 ID，後續走 product_ship_dates 驗證
+      // （靠 ship_date_id 而非 stock_mode，因為商品可能已切回總量模式）
       const dateModeProductIds: number[] = [];
 
       for (const item of body.items) {
         const product = productMap.get(item.product_id);
         if (!product || product.is_preorder) continue;
 
-        // date_mode 商品用 product_ship_dates 表驗證，不走 generateStockModeDates
-        if (product.stock_mode === 'date_mode') {
-          dateModeProductIds.push(item.product_id);
+        // 有 ship_date_id 的項目用 product_ship_dates 表驗證，不走 generateStockModeDates
+        if (item.ship_date_id) {
+          if (!dateModeProductIds.includes(item.product_id)) {
+            dateModeProductIds.push(item.product_id);
+          }
           continue;
         }
 
@@ -553,10 +556,11 @@ export async function POST(req: NextRequest) {
           .gt('capacity', 0);
         shipDatesData = _sdData;
 
-        // 逐項驗證每個 date_mode 商品的 ship_date_id 是否合法
+        // 逐項驗證每個有 ship_date_id 的商品
         for (const item of body.items) {
+          if (!item.ship_date_id) continue;
           const product = productMap.get(item.product_id);
-          if (!product || product.stock_mode !== 'date_mode') continue;
+          if (!product) continue;
           if (!item.ship_date_id) {
             return NextResponse.json(
               { error: `「${product.name}」缺少出貨日期，請重新選擇` },
@@ -578,10 +582,10 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 如果訂單只有 date_mode 商品且 validDates 仍為 null，用 date_mode 商品的日期填充
+        // 如果訂單只有 ship_date_id 商品且 validDates 仍為 null，用其日期填充
         if (validDates === null) {
           const dateModeShipDates = body.items
-            .filter(i => productMap.get(i.product_id)?.stock_mode === 'date_mode' && i.ship_date_id)
+            .filter(i => i.ship_date_id)
             .map(i => {
               const r = (shipDatesData ?? []).find((d: any) => d.id === i.ship_date_id);
               return r?.ship_date as string;
@@ -609,11 +613,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '所選出貨日期不在可選範圍內，請重新選擇' }, { status: 400 });
       }
 
-      // date_mode 商品：預留 product_ship_dates 額度（樂觀鎖）
+      // 有 ship_date_id 的商品：預留 product_ship_dates 額度（樂觀鎖）
       if (shipDatesData && dateModeProductIds.length > 0) {
         for (const item of body.items) {
+          if (!item.ship_date_id) continue;
           const product = productMap.get(item.product_id);
-          if (!product || product.stock_mode !== 'date_mode') continue;
+          if (!product) continue;
           // 必須有 ship_date_id（前面驗證段已確認）
           const rec = shipDatesData.find((d: any) => d.id === item.ship_date_id);
           if (!rec) {
@@ -787,9 +792,8 @@ export async function POST(req: NextRequest) {
   const lockFailures: number[] = [];
 
   await Promise.all(allItemsForInventory.map(async (item) => {
-    // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 更新
-    const product = productMap.get(item.product_id);
-    if (product?.stock_mode === 'date_mode') return;
+    // 有 ship_date_id 的項目由 product_ship_dates 管理，跳過 inventory 更新
+    if (item.ship_date_id) return;
 
     const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
     const inv = inventoryMap.get(key);
