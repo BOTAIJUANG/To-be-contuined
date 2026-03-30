@@ -542,7 +542,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // date_mode 商品：查 product_ship_dates 取可選日期做交集
+      // date_mode 商品：查 product_ship_dates，逐項驗證 ship_date_id
       let shipDatesData: any[] | null = null;
       if (dateModeProductIds.length > 0) {
         const { data: _sdData } = await supabaseAdmin
@@ -552,22 +552,42 @@ export async function POST(req: NextRequest) {
           .eq('is_open', true)
           .gt('capacity', 0);
         shipDatesData = _sdData;
+
+        // 逐項驗證每個 date_mode 商品的 ship_date_id 是否合法
         for (const item of body.items) {
           const product = productMap.get(item.product_id);
           if (!product || product.stock_mode !== 'date_mode') continue;
-          const available = (shipDatesData ?? [])
-            .filter((d: any) =>
-              d.product_id === item.product_id &&
-              (d.variant_id ?? null) === (item.variant_id ?? null) &&
-              (d.capacity - d.reserved) >= item.qty
-            )
-            .map((d: any) => d.ship_date as string);
-          const dateSet = new Set(available);
-          if (validDates === null) {
-            validDates = dateSet;
-          } else {
-            for (const d of validDates) { if (!dateSet.has(d)) validDates.delete(d); }
+          if (!item.ship_date_id) {
+            return NextResponse.json(
+              { error: `「${product.name}」缺少出貨日期，請重新選擇` },
+              { status: 400 },
+            );
           }
+          const rec = (shipDatesData ?? []).find((d: any) => d.id === item.ship_date_id);
+          if (!rec) {
+            return NextResponse.json(
+              { error: `「${product.name}」的出貨日期已關閉或不存在，請重新選擇` },
+              { status: 400 },
+            );
+          }
+          if ((rec.capacity - rec.reserved) < item.qty) {
+            return NextResponse.json(
+              { error: `「${product.name}」該日期剩餘名額不足，請減少數量或選擇其他日期` },
+              { status: 400 },
+            );
+          }
+        }
+
+        // 如果訂單只有 date_mode 商品且 validDates 仍為 null，用 date_mode 商品的日期填充
+        if (validDates === null) {
+          const dateModeShipDates = body.items
+            .filter(i => productMap.get(i.product_id)?.stock_mode === 'date_mode' && i.ship_date_id)
+            .map(i => {
+              const r = (shipDatesData ?? []).find((d: any) => d.id === i.ship_date_id);
+              return r?.ship_date as string;
+            })
+            .filter(Boolean);
+          validDates = new Set(dateModeShipDates);
         }
       }
 
@@ -594,20 +614,26 @@ export async function POST(req: NextRequest) {
         for (const item of body.items) {
           const product = productMap.get(item.product_id);
           if (!product || product.stock_mode !== 'date_mode') continue;
-          // 優先用 per-item ship_date_id 精確匹配，否則 fallback 到 order-level shipDate
-          const rec = item.ship_date_id
-            ? shipDatesData.find((d: any) => d.id === item.ship_date_id)
-            : shipDatesData.find((d: any) =>
-                d.product_id === item.product_id &&
-                (d.variant_id ?? null) === (item.variant_id ?? null) &&
-                d.ship_date === shipDate
-              );
+          // 必須有 ship_date_id（前面驗證段已確認）
+          const rec = shipDatesData.find((d: any) => d.id === item.ship_date_id);
           if (!rec) {
             const pName = product.name ?? `ID ${item.product_id}`;
             return NextResponse.json({ error: `「${pName}」無該日期的接單資料，請重新整理後再試` }, { status: 400 });
           }
           const oldReserved = rec.reserved ?? 0;
           const newReserved = oldReserved + item.qty;
+          // 容量檢查：防止超賣
+          if (newReserved > rec.capacity) {
+            const pName = product.name ?? `ID ${item.product_id}`;
+            // 回滾已成功的日期預留
+            for (const prev of shipDateLockResults) {
+              await supabaseAdmin.from('product_ship_dates')
+                .update({ reserved: prev.oldReserved })
+                .eq('id', prev.id)
+                .eq('reserved', prev.newReserved);
+            }
+            return NextResponse.json({ error: `「${pName}」該日期剩餘名額不足（剩 ${rec.capacity - oldReserved}），請減少數量或選擇其他日期` }, { status: 400 });
+          }
           const { data: updated } = await supabaseAdmin
             .from('product_ship_dates')
             .update({ reserved: newReserved })
@@ -625,10 +651,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: '出貨日額度已被其他訂單搶先預留，請重新選擇日期' }, { status: 409 });
           }
           shipDateLockResults.push({ id: rec.id, oldReserved, newReserved });
-          // 將確定的 ship_date_id 回寫到 orderItems，確保存入 order_items 表
+          // 回寫 ship_date_id 到 orderItems：用 ship_date_id 精確匹配避免同商品不同日期碰撞
           const oi = orderItems.find(o =>
             o.product_id === item.product_id &&
             (o.variant_id ?? null) === (item.variant_id ?? null) &&
+            o.ship_date_id === rec.id &&
             !o.is_gift
           );
           if (oi) (oi as any).ship_date_id = rec.id;

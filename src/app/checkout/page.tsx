@@ -429,16 +429,17 @@ export default function CheckoutPage() {
     }
 
     // B. 混購 → 只傳一般商品給 API
-    //    ⚠ 目前預購端只提供「最早日期限制」，不是完整日期集合
-    //    如果未來預購也有 blocked dates，需改成傳所有商品並修改 API 邏輯
-    const itemsForApi = hasMixed
-      ? items.filter(i => !i.isPreorder && !i.isRedeemItem && !i.isGift)
-      : items;
+    //    排除預購（有 mixedShipDate 處理）和日期模式（已在商品頁選好日期）
+    const itemsForApi = items.filter(i =>
+      !i.isPreorder && !i.isRedeemItem && !i.isGift && !(i as any).shipDateId
+    );
 
-    // 混購但過濾後無一般商品（只有預購+贈品/兌換品）→ 等同純預購
-    if (hasMixed && itemsForApi.length === 0 && mixedShipDate) {
-      setAvailableDates([mixedShipDate]);
-      setDate(mixedShipDate);
+    // 過濾後無需查詢的商品（全是預購/日期模式/贈品/兌換品）
+    if (itemsForApi.length === 0) {
+      if (mixedShipDate) {
+        setAvailableDates([mixedShipDate]);
+        setDate(mixedShipDate);
+      }
       setDatesLoading(false);
       return;
     }
@@ -721,6 +722,7 @@ export default function CheckoutPage() {
               {items.map(item => {
                 let cartKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
                 if (item.preorderBatchId) cartKey += `_b${item.preorderBatchId}`;
+                if ((item as any).shipDateId) cartKey += `_sd${(item as any).shipDateId}`;
                 return (
                 <div key={cartKey} className={s.cartRow}>
                   <div className={s.cartItemLeft}>
@@ -1026,6 +1028,7 @@ export default function CheckoutPage() {
             {items.map(item => {
               let summaryKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
               if (item.preorderBatchId) summaryKey += `_b${item.preorderBatchId}`;
+              if ((item as any).shipDateId) summaryKey += `_sd${(item as any).shipDateId}`;
               return (
               <div key={summaryKey} className={s.orderSummaryItem}>
                 <span>{item.name} &times; {item.qty}</span>
