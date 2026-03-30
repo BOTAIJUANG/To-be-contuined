@@ -7,12 +7,14 @@ import { useCart } from '@/context/CartContext';
 import s from './AddToCartButton.module.css';
 
 interface Batch { id: number; name: string; ship_date: string; ends_at?: string; limit_qty: number; remaining?: number; }
+interface ShipDate { id: number; ship_date: string; capacity: number; remaining: number; }
 interface Variant { id: number; name: string; price: number; stock?: number | null; }
 
 interface AddToCartButtonProps {
   product: {
     id: string; name: string; price: number; imageUrl?: string; slug: string;
     isSoldOut?: boolean; isPreorder?: boolean;
+    isDateMode?: boolean; shipDates?: ShipDate[];
     preorderBatches?: Batch[]; preorderShipDate?: string; preorderStatus?: string;
     variantLabel?: string; variants?: Variant[];
     stock?: number | null;  // 無規格商品的可售庫存
@@ -29,6 +31,10 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
     product.variants?.find(v => v.stock === null || v.stock === undefined || v.stock > 0) ?? product.variants?.[0] ?? null
   );
+
+  const isDateMode   = product.isDateMode ?? false;
+  const dateList     = product.shipDates ?? [];
+  const [selectedDate, setSelectedDate] = useState<ShipDate | null>(dateList[0] ?? null);
 
   const hasVariants  = (product.variants?.length ?? 0) > 0;
   const displayPrice = hasVariants ? (selectedVariant?.price ?? product.price) : product.price;
@@ -49,6 +55,17 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       .reduce((sum, i) => sum + i.qty, 0);
   }, [items, selectedBatch, isPreorder, product.id]);
 
+  // 日期模式：計算購物車中同商品同日期的已有數量
+  const cartQtyForDate = useMemo(() => {
+    if (!isDateMode || !selectedDate) return 0;
+    return items
+      .filter(i => {
+        const pid = i.productRealId ?? parseInt(i.id);
+        return pid === parseInt(product.id) && (i as any).shipDateId === selectedDate.id;
+      })
+      .reduce((sum, i) => sum + i.qty, 0);
+  }, [items, selectedDate, isDateMode, product.id]);
+
   const currentKey = hasVariants
     ? `${product.id}_${selectedVariant?.id ?? ''}`
     : product.id;
@@ -62,24 +79,29 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       .reduce((sum, i) => sum + i.qty, 0);
   }, [items, currentKey]);
 
-  // 實際庫存或批次剩餘
+  // 實際庫存或批次/日期剩餘
   const realStock = isPreorder
     ? (selectedBatch?.remaining ?? null)
-    : hasVariants
-      ? (selectedVariant?.stock ?? null)
-      : (product.stock ?? null);
+    : isDateMode
+      ? (selectedDate?.remaining ?? null)
+      : hasVariants
+        ? (selectedVariant?.stock ?? null)
+        : (product.stock ?? null);
 
-  // 預購：扣掉購物車裡同批次已有的數量；一般：扣掉購物車已有的數量
-  const cartQtyForLimit = isPreorder ? cartQtyForBatch : cartQty;
+  // 預購：扣掉購物車裡同批次已有的數量；日期模式：扣同日期；一般：扣購物車已有
+  const cartQtyForLimit = isPreorder ? cartQtyForBatch : isDateMode ? cartQtyForDate : cartQty;
   const remainingStock = realStock == null ? null : Math.max(0, realStock - cartQtyForLimit);
   const maxSelectableQty = remainingStock == null ? Infinity : remainingStock;
 
   // 批次額滿
   const batchFull = isPreorder && selectedBatch?.remaining != null && selectedBatch.remaining <= 0;
+  // 日期額滿
+  const dateFull = isDateMode && selectedDate?.remaining != null && selectedDate.remaining <= 0;
 
   const handleAdd = () => {
     if (product.isSoldOut) return;
     if (isPreorder && !selectedBatch) return;
+    if (isDateMode && !selectedDate) return;
     if (hasVariants && !selectedVariant) return;
     if (maxSelectableQty <= 0) return;
 
@@ -88,6 +110,8 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       price: displayPrice, imageUrl: product.imageUrl,
       isPreorder, preorderShipDate: selectedBatch?.ship_date ?? product.preorderShipDate,
       preorderBatchId: selectedBatch?.id,
+      shipDateId: isDateMode ? selectedDate?.id : undefined,
+      shipDate: isDateMode ? selectedDate?.ship_date : undefined,
       variantId: hasVariants ? selectedVariant?.id : variantId,
       variantName: hasVariants ? selectedVariant?.name : variantName,
     }, qty, realStock != null ? realStock : undefined);
@@ -96,7 +120,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       if ('redeemLimit' in result) {
         alert('購物車已有兌換品，每筆訂單僅限兌換一項。');
       } else {
-        alert(`此批次目前最多只能購買 ${result.maxStock} 件（購物車已有 ${cartQtyForLimit} 件）`);
+        alert(`目前最多只能購買 ${result.maxStock} 件（購物車已有 ${cartQtyForLimit} 件）`);
       }
       return;
     }
@@ -116,6 +140,15 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
     return (
       <div>
         <div className={s.noBatch}>目前暫無開放預購批次</div>
+        <button disabled className={s.disabledBtn}>暫停接單</button>
+      </div>
+    );
+  }
+
+  if (isDateMode && dateList.length === 0) {
+    return (
+      <div>
+        <div className={s.noBatch}>目前暫無開放出貨日期</div>
         <button disabled className={s.disabledBtn}>暫停接單</button>
       </div>
     );
@@ -192,6 +225,42 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         </div>
       )}
 
+      {/* 日期模式選擇 */}
+      {isDateMode && dateList.length > 0 && (
+        <div className={s.batchWrap}>
+          <div className={s.sectionLabel}>選擇出貨日期</div>
+          <div className={s.batchList}>
+            {dateList.map(d => {
+              const sel = selectedDate?.id === d.id;
+              const isFull = d.remaining <= 0;
+              return (
+                <div
+                  key={d.id}
+                  className={`${s.batchItem} ${sel ? s.selected : ''} ${isFull ? s.variantSoldOut : ''}`}
+                  onClick={() => { if (!isFull) { setSelectedDate(d); setQty(1); } }}
+                  style={isFull ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className={`${s.batchRadio} ${sel ? s.selected : ''}`}>
+                      {sel && <div className={s.batchDot} />}
+                    </div>
+                    <div>
+                      <div className={s.batchDate}>
+                        {d.ship_date}
+                        {isFull && <span style={{ color: '#c0392b', marginLeft: 8, fontSize: '0.85em' }}>已額滿</span>}
+                      </div>
+                      <div className={s.batchMeta}>
+                        剩餘 {d.remaining} / {d.capacity} 份
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 數量選擇器 */}
       <div className={s.qtyWrap}>
         <button className={s.qtyBtn} onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
@@ -215,9 +284,20 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         <button
           className={`${s.addBtn} ${added ? s.added : ''}`}
           onClick={handleAdd}
-          disabled={(isPreorder && !selectedBatch) || (hasVariants && !selectedVariant) || variantSoldOut || batchFull || maxSelectableQty <= 0}
+          disabled={
+            (isPreorder && !selectedBatch) ||
+            (isDateMode && !selectedDate) ||
+            (hasVariants && !selectedVariant) ||
+            variantSoldOut || batchFull || dateFull ||
+            maxSelectableQty <= 0
+          }
         >
-          {batchFull ? '此批次已額滿' : maxSelectableQty <= 0 ? '已達可購上限' : added ? '已加入購物車' : isPreorder ? '預購下單' : '加入購物車'}
+          {batchFull ? '此批次已額滿'
+            : dateFull ? '此日期已額滿'
+            : maxSelectableQty <= 0 ? '已達可購上限'
+            : added ? '已加入購物車'
+            : isPreorder ? '預購下單'
+            : '加入購物車'}
         </button>
       </div>
     </div>

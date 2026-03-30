@@ -22,7 +22,7 @@ async function getProduct(slug: string) {
   const shipCols = `
     id, name, name_en, slug, price, description, image_url,
     is_available, is_sold_out, is_preorder, preorder_note, variant_label,
-    allow_home_delivery, allow_cvs_711, allow_store_pickup,
+    allow_home_delivery, allow_cvs_711, allow_store_pickup, stock_mode,
     categories(name),
     product_specs(label, value),
     product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
@@ -119,6 +119,27 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     }
   }
   const variants = rawVariants;
+
+  // 日期模式：載入 product_ship_dates
+  const isDateMode = (product as any).stock_mode === 'date_mode';
+  let shipDates: { id: number; ship_date: string; capacity: number; remaining: number }[] = [];
+  if (isDateMode) {
+    const today = new Date().toISOString().split('T')[0];
+    const { data: sdData } = await supabaseAdmin
+      .from('product_ship_dates')
+      .select('id, ship_date, capacity, reserved')
+      .eq('product_id', product.id)
+      .is('variant_id', null)
+      .eq('is_open', true)
+      .gte('ship_date', today)
+      .order('ship_date');
+    shipDates = (sdData ?? []).map((d: any) => ({
+      id: d.id,
+      ship_date: d.ship_date,
+      capacity: d.capacity ?? 0,
+      remaining: Math.max(0, (d.capacity ?? 0) - (d.reserved ?? 0)),
+    })).filter(d => d.remaining > 0);
+  }
 
   return (
     <>
@@ -238,6 +259,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               slug:             product.slug,
               isSoldOut:        product.is_sold_out,
               isPreorder:       product.is_preorder,
+              isDateMode:       isDateMode,
+              shipDates:        shipDates,
               preorderBatches:  activeBatches.map((b: any) => ({
                 ...b,
                 remaining: batchRemainingMap[b.id] ?? 0,

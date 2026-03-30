@@ -27,6 +27,8 @@ export interface CartItem {
   isPreorder?:      boolean;
   preorderShipDate?: string;
   preorderBatchId?: number;    // 預購批次 ID（對應 preorder_batches.id）
+  shipDateId?:      number;    // 日期模式出貨日 ID（對應 product_ship_dates.id）
+  shipDate?:        string;    // 日期模式出貨日
   variantId?:       number;
   variantName?:     string;
   isRedeemItem?:    boolean;
@@ -122,10 +124,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return mixedShipDate > stockDate ? mixedShipDate : stockDate;
   })();
 
-  // 產生購物車 item 的唯一 key（含批次 ID，避免不同批次合併）
-  const itemKey = (i: { id: string; variantId?: number; preorderBatchId?: number }) => {
+  // 產生購物車 item 的唯一 key（含批次/日期 ID，避免不同批次合併）
+  const itemKey = (i: { id: string; variantId?: number; preorderBatchId?: number; shipDateId?: number }) => {
     let k = i.variantId ? `${i.id}_${i.variantId}` : i.id;
     if (i.preorderBatchId) k += `_b${i.preorderBatchId}`;
+    if (i.shipDateId) k += `_sd${i.shipDateId}`;
     return k;
   };
 
