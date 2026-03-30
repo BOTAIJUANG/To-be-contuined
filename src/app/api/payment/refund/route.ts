@@ -15,18 +15,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { requireAdmin } from '@/lib/auth';
-import { generateCheckMacValue } from '@/lib/ecpay';
+import { generateCheckMacValue, assertEcpayConfig } from '@/lib/ecpay';
 import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
-const isProd = process.env.NODE_ENV === 'production';
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
-  ?? (isProd ? '' : 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction');
-
-if (isProd && !ECPAY_DOACTION_URL) {
-  throw new Error('ECPay 環境變數未設定（ECPAY_DOACTION_URL）');
-}
+  ?? 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction';
 
 export async function POST(req: NextRequest) {
+  assertEcpayConfig();
+  if (process.env.NODE_ENV === 'production' && ECPAY_DOACTION_URL.includes('payment-stage')) {
+    return NextResponse.json({ error: 'ECPAY_DOACTION_URL 未設定正式環境網址' }, { status: 500 });
+  }
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
 

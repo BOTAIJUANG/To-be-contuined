@@ -21,9 +21,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { optionalAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { buildEcpayParams } from '@/lib/ecpay';
+import { buildEcpayParams, assertEcpayConfig } from '@/lib/ecpay';
 
 export async function POST(req: NextRequest) {
+  assertEcpayConfig();
   // ── 1. 驗證身份（會員或訪客）──────────────────────
   const { userId } = await optionalAuth(req);
 
