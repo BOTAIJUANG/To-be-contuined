@@ -68,6 +68,8 @@ export default function AdminProductsPage() {
   const [showBatchClose, setShowBatchClose] = useState(false);
   const [closeStart,     setCloseStart]     = useState('');
   const [closeEnd,       setCloseEnd]       = useState('');
+  // 展開/收合
+  const [shipDatesExpanded, setShipDatesExpanded] = useState(false);
 
   // 分類表單
   const [showCatForm,  setShowCatForm]  = useState(false);
@@ -630,7 +632,37 @@ export default function AdminProductsPage() {
               )}
 
               {/* 可出貨日設定（日期模式 + 非預購才顯示）*/}
-              {form.stock_mode === 'date_mode' && !form.is_preorder && (
+              {form.stock_mode === 'date_mode' && !form.is_preorder && (() => {
+                // 摘要計算
+                const sdSummary = (() => {
+                  if (shipDates.length === 0) return null;
+                  const sorted = [...shipDates].sort((a, b) => a.ship_date.localeCompare(b.ship_date));
+                  const fmt = (d: string) => { const [, m, day] = d.split('-'); return `${parseInt(m)}/${parseInt(day)}`; };
+                  const range = `${fmt(sorted[0].ship_date)} ~ ${fmt(sorted[sorted.length - 1].ship_date)}`;
+                  // 最常見容量
+                  const capCounts: Record<number, number> = {};
+                  shipDates.forEach(d => { capCounts[d.capacity] = (capCounts[d.capacity] ?? 0) + 1; });
+                  const topCap = Object.entries(capCounts).sort((a, b) => b[1] - a[1])[0][0];
+                  // 休息日（只在跨度 >= 7 天時偵測）
+                  const daySpan = (new Date(sorted[sorted.length - 1].ship_date).getTime() - new Date(sorted[0].ship_date).getTime()) / 86400000;
+                  let closedStr = '';
+                  if (daySpan >= 7) {
+                    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                    const presentDays = new Set(shipDates.map(d => new Date(d.ship_date + 'T12:00:00').getDay()));
+                    const closed = [0,1,2,3,4,5,6].filter(d => !presentDays.has(d));
+                    if (closed.length > 0 && closed.length < 7) closedStr = `週${closed.map(d => dayNames[d]).join('、')}不開放`;
+                  }
+                  // 截單時間
+                  const ctCounts: Record<string, number> = {};
+                  shipDates.forEach(d => { const c = d.cutoff_time ?? '17:00'; ctCounts[c] = (ctCounts[c] ?? 0) + 1; });
+                  const topCt = Object.entries(ctCounts).sort((a, b) => b[1] - a[1])[0][0];
+                  // 開放 / 關閉數量
+                  const openCount = shipDates.filter(d => d.is_open).length;
+                  const closedCount = shipDates.length - openCount;
+                  return { range, topCap, closedStr, topCt, total: shipDates.length, openCount, closedCount };
+                })();
+
+                return (
                 <div className={p.sectionDivider24}>
                   <div className={`${s.flex} ${p.sectionHeader}`}>
                     <label className={`${s.label} ${p.specLabelNoMargin}`}>每日接單設定</label>
@@ -639,7 +671,7 @@ export default function AdminProductsPage() {
                         <button onClick={() => { setCloseStart(''); setCloseEnd(''); setShowBatchClose(true); }} className={s.btnSmall} style={{ color: '#c0392b' }}>批量關閉</button>
                       )}
                       <button onClick={openBatchAdd} className={s.btnSmall}>批量新增</button>
-                      <button onClick={openAddDate} className={`${s.btnPrimary} ${p.btnSmallCompact}`}>＋ 新增日期</button>
+                      <button onClick={openAddDate} className={`${s.btnPrimary} ${p.btnSmallCompact}`}>+ 新增日期</button>
                     </div>
                   </div>
 
@@ -648,54 +680,84 @@ export default function AdminProductsPage() {
                       <div className={s.emptyDesc}>尚未設定可出貨日期，點「新增日期」或「批量新增」開始</div>
                     </div>
                   ) : (
-                    <div className={s.tableWrap}>
-                      <table className={s.table}>
-                        <thead>
-                          <tr>
-                            {['出貨日', '可接單', '已預約', '剩餘', '截單', '備註', '狀態', '操作'].map(h => (
-                              <th key={h} className={s.th}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {shipDates.map((d, i) => {
-                            const remaining = d.capacity - d.reserved;
-                            const isFull    = remaining <= 0;
-                            const isPast    = d.ship_date < new Date().toISOString().split('T')[0];
-                            return (
-                              <tr key={d.ship_date} className={s.tr} style={{ opacity: isPast ? 0.5 : 1 }}>
-                                <td className={`${s.td} ${p.monoFont}`}>
-                                  {d.ship_date}
-                                  {isPast && <span className={p.pastHint}>已過</span>}
-                                </td>
-                                <td className={`${s.td} ${p.textRight}`}>{d.capacity}</td>
-                                <td className={`${s.td} ${p.textRight}`} style={{ color: d.reserved > 0 ? '#b87a2a' : 'var(--text-light)' }}>{d.reserved}</td>
-                                <td className={`${s.td} ${p.fw600} ${p.textRight}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
-                                <td className={`${s.td} ${p.monoFont}`} style={{ fontSize: '0.85em', color: 'var(--text-light)' }}>{d.cutoff_time ?? '17:00'}</td>
-                                <td className={s.td} style={{ fontSize: '0.85em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.note || '—'}</td>
-                                <td className={s.td}>
-                                  <span className={s.badge} style={{ color: !d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
-                                    {!d.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
-                                  </span>
-                                </td>
-                                <td className={s.td}>
-                                  <div className={`${s.flex} ${p.gap6}`}>
-                                    <button onClick={() => openEditDate(i)} className={s.btnSmall}>編輯</button>
-                                    <button onClick={() => toggleDateOpen(i)} className={s.btnSmall} style={{ color: d.is_open ? 'var(--text-light)' : '#2ab85a' }}>
-                                      {d.is_open ? '關閉' : '開放'}
-                                    </button>
-                                    <button onClick={() => deleteDate(i)} className={s.btnDanger}>刪除</button>
-                                  </div>
-                                </td>
+                    <>
+                      {/* 摘要列（可點擊展開） */}
+                      <div
+                        onClick={() => setShipDatesExpanded(!shipDatesExpanded)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#faf8f5', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ transform: shipDatesExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: 14, color: 'var(--text-light)' }}>&#9654;</span>
+                        <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '4px 12px', fontSize: '0.9em', color: 'var(--text-dark)' }}>
+                          <span>目前接單設定</span>
+                          <span style={{ fontWeight: 600 }}>{sdSummary!.range}</span>
+                          <span style={{ color: 'var(--text-light)' }}>/</span>
+                          <span>每日 {sdSummary!.topCap} 份</span>
+                          {sdSummary!.closedStr && <>
+                            <span style={{ color: 'var(--text-light)' }}>/</span>
+                            <span style={{ color: '#c0392b' }}>{sdSummary!.closedStr}</span>
+                          </>}
+                          <span style={{ color: 'var(--text-light)' }}>/</span>
+                          <span>截單時間：{sdSummary!.topCt}</span>
+                        </div>
+                        <span style={{ fontSize: '0.8em', color: 'var(--text-light)', whiteSpace: 'nowrap' }}>
+                          共 {sdSummary!.total} 天
+                          {sdSummary!.closedCount > 0 && <span style={{ color: '#c0392b' }}>（{sdSummary!.closedCount} 天已關閉）</span>}
+                        </span>
+                      </div>
+
+                      {/* 展開後的表格 */}
+                      {shipDatesExpanded && (
+                        <div className={s.tableWrap} style={{ marginTop: 8 }}>
+                          <table className={s.table}>
+                            <thead>
+                              <tr>
+                                {['出貨日', '可接單', '已預約', '剩餘', '截單', '備註', '狀態', '操作'].map(h => (
+                                  <th key={h} className={s.th}>{h}</th>
+                                ))}
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                            </thead>
+                            <tbody>
+                              {shipDates.map((d, i) => {
+                                const remaining = d.capacity - d.reserved;
+                                const isFull    = remaining <= 0;
+                                const isPast    = d.ship_date < new Date().toISOString().split('T')[0];
+                                return (
+                                  <tr key={d.ship_date} className={s.tr} style={{ opacity: isPast ? 0.5 : 1 }}>
+                                    <td className={`${s.td} ${p.monoFont}`}>
+                                      {d.ship_date}
+                                      {isPast && <span className={p.pastHint}>已過</span>}
+                                    </td>
+                                    <td className={`${s.td} ${p.textRight}`}>{d.capacity}</td>
+                                    <td className={`${s.td} ${p.textRight}`} style={{ color: d.reserved > 0 ? '#b87a2a' : 'var(--text-light)' }}>{d.reserved}</td>
+                                    <td className={`${s.td} ${p.fw600} ${p.textRight}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
+                                    <td className={`${s.td} ${p.monoFont}`} style={{ fontSize: '0.85em', color: 'var(--text-light)' }}>{d.cutoff_time ?? '17:00'}</td>
+                                    <td className={s.td} style={{ fontSize: '0.85em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.note || '—'}</td>
+                                    <td className={s.td}>
+                                      <span className={s.badge} style={{ color: !d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
+                                        {!d.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
+                                      </span>
+                                    </td>
+                                    <td className={s.td}>
+                                      <div className={`${s.flex} ${p.gap6}`}>
+                                        <button onClick={() => openEditDate(i)} className={s.btnSmall}>編輯</button>
+                                        <button onClick={() => toggleDateOpen(i)} className={s.btnSmall} style={{ color: d.is_open ? 'var(--text-light)' : '#2ab85a' }}>
+                                          {d.is_open ? '關閉' : '開放'}
+                                        </button>
+                                        <button onClick={() => deleteDate(i)} className={s.btnDanger}>刪除</button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* 規格選項 */}
               <div className={p.sectionDivider24}>

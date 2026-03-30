@@ -6,7 +6,7 @@
 // 分頁：商品庫存 / 原料庫存 / 產能管理 / 異動記錄
 // ════════════════════════════════════════════════
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import s from '../_shared/admin-shared.module.css';
@@ -60,6 +60,7 @@ export default function AdminInventoryPage() {
   const [invLoading, setInvLoading] = useState(true);
   // 每日接單（date_mode）
   const [shipDateRows, setShipDateRows] = useState<any[]>([]);
+  const [expandedShipProducts, setExpandedShipProducts] = useState<Set<number>>(new Set());
 
   // 庫存調整 Modal
   const [showAdjModal,  setShowAdjModal]  = useState(false);
@@ -473,7 +474,7 @@ export default function AdminInventoryPage() {
               { label: '商品種類',   value: inventory.length + (new Set(shipDateRows.map(d => d.product_id))).size },
               { label: '低庫存',     value: inventory.filter(i => i.inventory_mode === 'stock' && (i.stock - i.reserved) <= i.safety_stock && i.safety_stock > 0).length, color: '#b87a2a' },
               { label: '完售中',     value: inventory.filter(i => i.products?.is_sold_out).length, color: '#c0392b' },
-              { label: '每日接單',   value: shipDateRows.length },
+              { label: '每日接單',   value: new Set(shipDateRows.map(d => d.product_id)).size },
             ].map(({ label, value, color }) => (
               <div key={label} className={s.statCard}>
                 <div className={s.statLabel}>{label}</div>
@@ -549,38 +550,108 @@ export default function AdminInventoryPage() {
                       </tr>
                     );
                   })}
-                  {/* 每日接單（date_mode）行 */}
-                  {shipDateRows.map(sd => {
-                    const remaining = (sd.capacity ?? 0) - (sd.reserved ?? 0);
-                    const isFull = remaining <= 0;
-                    const isPast = sd.ship_date < new Date().toISOString().split('T')[0];
-                    return (
-                      <tr key={`sd_${sd.id}`} className={s.tr} style={{ opacity: isPast ? 0.5 : 1 }}>
-                        <td className={s.td}>{sd.products?.name ?? '—'}</td>
-                        <td className={`${s.td} ${p.variantCol}`}>—</td>
-                        <td className={s.td}>
-                          <span className={p.modeBadgeStock} style={{ background: '#f0e6d3', color: '#8a6d3b' }}>每日</span>
-                        </td>
-                        <td className={s.td} style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>{sd.ship_date}</td>
-                        <td className={`${s.td} ${p.tdRightBold}`}>{sd.capacity ?? 0}</td>
-                        <td className={`${s.td} ${p.tdRightLight}`} style={{ color: sd.reserved > 0 ? '#b87a2a' : undefined }}>{sd.reserved ?? 0}</td>
-                        <td className={`${s.td} ${p.tdRightBold}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
-                        <td className={`${s.td} ${p.tdRightLight}`}>—</td>
-                        <td className={s.td}>
-                          <span className={s.badge} style={{ color: !sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
-                            {!sd.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
-                          </span>
-                        </td>
-                        <td className={s.td}>
-                          <div className={p.actionRow}>
-                            <button onClick={() => updateShipDateField(sd.id, 'is_open', !sd.is_open)} className={s.btnSmall} style={{ color: sd.is_open ? 'var(--text-light)' : '#2ab85a' }}>
-                              {sd.is_open ? '關閉' : '開放'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {/* 每日接單（date_mode）— 按商品分組，摘要列可展開 */}
+                  {(() => {
+                    // 按 product_id 分組
+                    const grouped = new Map<number, any[]>();
+                    shipDateRows.forEach(sd => {
+                      const pid = sd.product_id;
+                      if (!grouped.has(pid)) grouped.set(pid, []);
+                      grouped.get(pid)!.push(sd);
+                    });
+                    const today = new Date().toISOString().split('T')[0];
+                    return Array.from(grouped.entries()).map(([pid, dates]) => {
+                      const sorted = [...dates].sort((a: any, b: any) => a.ship_date.localeCompare(b.ship_date));
+                      const prodName = sorted[0]?.products?.name ?? '—';
+                      const fmt = (d: string) => { const [, m, day] = d.split('-'); return `${parseInt(m)}/${parseInt(day)}`; };
+                      const range = `${fmt(sorted[0].ship_date)} ~ ${fmt(sorted[sorted.length - 1].ship_date)}`;
+                      // 最常見容量
+                      const capC: Record<number, number> = {};
+                      dates.forEach((d: any) => { capC[d.capacity] = (capC[d.capacity] ?? 0) + 1; });
+                      const topCap = Object.entries(capC).sort((a, b) => b[1] - a[1])[0][0];
+                      // 休息日
+                      const daySpan = (new Date(sorted[sorted.length - 1].ship_date).getTime() - new Date(sorted[0].ship_date).getTime()) / 86400000;
+                      let closedDaysStr = '';
+                      if (daySpan >= 7) {
+                        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                        const present = new Set(dates.map((d: any) => new Date(d.ship_date + 'T12:00:00').getDay()));
+                        const closed = [0,1,2,3,4,5,6].filter(d => !present.has(d));
+                        if (closed.length > 0 && closed.length < 7) closedDaysStr = `週${closed.map(d => dayNames[d]).join('、')}休`;
+                      }
+                      // 截單時間
+                      const ctC: Record<string, number> = {};
+                      dates.forEach((d: any) => { const c = d.cutoff_time ?? '17:00'; ctC[c] = (ctC[c] ?? 0) + 1; });
+                      const topCt = Object.entries(ctC).sort((a, b) => b[1] - a[1])[0][0];
+                      const totalReserved = dates.reduce((s: number, d: any) => s + (d.reserved ?? 0), 0);
+                      const isExpanded = expandedShipProducts.has(pid);
+
+                      return (
+                        <React.Fragment key={`sdg_${pid}`}>
+                          {/* 摘要列 */}
+                          <tr
+                            className={s.tr}
+                            style={{ cursor: 'pointer', background: '#faf8f5' }}
+                            onClick={() => setExpandedShipProducts(prev => {
+                              const next = new Set(prev);
+                              if (next.has(pid)) next.delete(pid); else next.add(pid);
+                              return next;
+                            })}
+                          >
+                            <td className={s.td}>
+                              <span style={{ marginRight: 6, display: 'inline-block', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: 11, color: 'var(--text-light)' }}>&#9654;</span>
+                              {prodName}
+                            </td>
+                            <td className={`${s.td} ${p.variantCol}`}>—</td>
+                            <td className={s.td}>
+                              <span className={p.modeBadgeStock} style={{ background: '#f0e6d3', color: '#8a6d3b' }}>每日</span>
+                            </td>
+                            <td className={s.td} colSpan={5} style={{ fontSize: '0.88em', color: 'var(--text-dark)' }}>
+                              <span style={{ fontWeight: 600 }}>{range}</span>
+                              <span style={{ margin: '0 6px', color: 'var(--text-light)' }}>/</span>
+                              每日 {topCap} 份
+                              {closedDaysStr && <><span style={{ margin: '0 6px', color: 'var(--text-light)' }}>/</span><span style={{ color: '#c0392b' }}>{closedDaysStr}</span></>}
+                              <span style={{ margin: '0 6px', color: 'var(--text-light)' }}>/</span>
+                              截單 {topCt}
+                              {totalReserved > 0 && <span style={{ marginLeft: 8, color: '#b87a2a' }}>（已預約 {totalReserved}）</span>}
+                            </td>
+                            <td className={s.td}>
+                              <span style={{ fontSize: '0.8em', color: 'var(--text-light)' }}>{dates.length} 天</span>
+                            </td>
+                          </tr>
+                          {/* 展開後的個別日期行 */}
+                          {isExpanded && sorted.map((sd: any) => {
+                            const remaining = (sd.capacity ?? 0) - (sd.reserved ?? 0);
+                            const isFull = remaining <= 0;
+                            const isPast = sd.ship_date < today;
+                            return (
+                              <tr key={`sd_${sd.id}`} className={s.tr} style={{ opacity: isPast ? 0.5 : 1, background: '#fefdfb' }}>
+                                <td className={s.td} style={{ paddingLeft: 32 }}>{sd.products?.name ?? '—'}</td>
+                                <td className={`${s.td} ${p.variantCol}`}>—</td>
+                                <td className={s.td}></td>
+                                <td className={s.td} style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>{sd.ship_date}</td>
+                                <td className={`${s.td} ${p.tdRightBold}`}>{sd.capacity ?? 0}</td>
+                                <td className={`${s.td} ${p.tdRightLight}`} style={{ color: sd.reserved > 0 ? '#b87a2a' : undefined }}>{sd.reserved ?? 0}</td>
+                                <td className={`${s.td} ${p.tdRightBold}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
+                                <td className={`${s.td} ${p.tdRightLight}`}>—</td>
+                                <td className={s.td}>
+                                  <span className={s.badge} style={{ color: !sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
+                                    {!sd.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
+                                  </span>
+                                </td>
+                                <td className={s.td}>
+                                  <div className={p.actionRow}>
+                                    <button onClick={(e) => { e.stopPropagation(); updateShipDateField(sd.id, 'is_open', !sd.is_open); }} className={s.btnSmall} style={{ color: sd.is_open ? 'var(--text-light)' : '#2ab85a' }}>
+                                      {sd.is_open ? '關閉' : '開放'}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
 
@@ -628,46 +699,99 @@ export default function AdminInventoryPage() {
                     </div>
                   );
                 })}
-                {/* 每日接單 mobile cards */}
-                {shipDateRows.map(sd => {
-                  const remaining = (sd.capacity ?? 0) - (sd.reserved ?? 0);
-                  const isFull = remaining <= 0;
-                  return (
-                    <div key={`sd_${sd.id}`} className={s.card}>
-                      <div className={s.cardRow}>
-                        <span className={s.cardLabel}>商品</span>
-                        <span className={s.cardValue}>{sd.products?.name ?? '—'}</span>
-                      </div>
-                      <div className={s.cardRow}>
-                        <span className={s.cardLabel}>模式</span>
-                        <span className={p.modeBadgeStock} style={{ background: '#f0e6d3', color: '#8a6d3b' }}>每日</span>
-                      </div>
-                      <div className={s.cardRow}>
-                        <span className={s.cardLabel}>出貨日</span>
-                        <span className={s.cardValue} style={{ fontFamily: 'monospace' }}>{sd.ship_date}</span>
-                      </div>
-                      <div className={s.cardRow}>
-                        <span className={s.cardLabel}>可接單 / 已預約</span>
-                        <span className={`${s.cardValue} ${p.cardValueBold}`}>{sd.capacity ?? 0} / {sd.reserved ?? 0}</span>
-                      </div>
-                      <div className={s.cardRow}>
-                        <span className={s.cardLabel}>剩餘</span>
-                        <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</span>
-                      </div>
-                      <div className={s.cardRow}>
-                        <span className={s.cardLabel}>狀態</span>
-                        <span className={s.badge} style={{ color: !sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
-                          {!sd.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
-                        </span>
-                      </div>
-                      <div className={s.cardActions}>
-                        <button onClick={() => updateShipDateField(sd.id, 'is_open', !sd.is_open)} className={s.btnSmall}>
-                          {sd.is_open ? '關閉' : '開放'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {/* 每日接單 mobile cards — 按商品分組 */}
+                {(() => {
+                  const grouped = new Map<number, any[]>();
+                  shipDateRows.forEach(sd => {
+                    const pid = sd.product_id;
+                    if (!grouped.has(pid)) grouped.set(pid, []);
+                    grouped.get(pid)!.push(sd);
+                  });
+                  return Array.from(grouped.entries()).map(([pid, dates]) => {
+                    const sorted = [...dates].sort((a: any, b: any) => a.ship_date.localeCompare(b.ship_date));
+                    const prodName = sorted[0]?.products?.name ?? '—';
+                    const fmt = (d: string) => { const [, m, day] = d.split('-'); return `${parseInt(m)}/${parseInt(day)}`; };
+                    const range = `${fmt(sorted[0].ship_date)} ~ ${fmt(sorted[sorted.length - 1].ship_date)}`;
+                    const capC: Record<number, number> = {};
+                    dates.forEach((d: any) => { capC[d.capacity] = (capC[d.capacity] ?? 0) + 1; });
+                    const topCap = Object.entries(capC).sort((a, b) => b[1] - a[1])[0][0];
+                    const totalReserved = dates.reduce((s: number, d: any) => s + (d.reserved ?? 0), 0);
+                    const isExpanded = expandedShipProducts.has(pid);
+
+                    return (
+                      <React.Fragment key={`sdg_m_${pid}`}>
+                        {/* 摘要卡片 */}
+                        <div
+                          className={s.card}
+                          style={{ cursor: 'pointer', background: '#faf8f5' }}
+                          onClick={() => setExpandedShipProducts(prev => {
+                            const next = new Set(prev);
+                            if (next.has(pid)) next.delete(pid); else next.add(pid);
+                            return next;
+                          })}
+                        >
+                          <div className={s.cardRow}>
+                            <span className={s.cardLabel}>
+                              <span style={{ marginRight: 6, display: 'inline-block', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: 10 }}>&#9654;</span>
+                              商品
+                            </span>
+                            <span className={s.cardValue}>{prodName}</span>
+                          </div>
+                          <div className={s.cardRow}>
+                            <span className={s.cardLabel}>模式</span>
+                            <span className={p.modeBadgeStock} style={{ background: '#f0e6d3', color: '#8a6d3b' }}>每日</span>
+                          </div>
+                          <div className={s.cardRow}>
+                            <span className={s.cardLabel}>接單範圍</span>
+                            <span className={s.cardValue}>{range}（{dates.length} 天）</span>
+                          </div>
+                          <div className={s.cardRow}>
+                            <span className={s.cardLabel}>每日份數</span>
+                            <span className={`${s.cardValue} ${p.cardValueBold}`}>{topCap} 份</span>
+                          </div>
+                          {totalReserved > 0 && (
+                            <div className={s.cardRow}>
+                              <span className={s.cardLabel}>總預約</span>
+                              <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: '#b87a2a' }}>{totalReserved}</span>
+                            </div>
+                          )}
+                        </div>
+                        {/* 展開後的個別日期卡片 */}
+                        {isExpanded && sorted.map((sd: any) => {
+                          const remaining = (sd.capacity ?? 0) - (sd.reserved ?? 0);
+                          const isFull = remaining <= 0;
+                          return (
+                            <div key={`sd_m_${sd.id}`} className={s.card} style={{ marginLeft: 16, borderLeft: '3px solid #f0e6d3' }}>
+                              <div className={s.cardRow}>
+                                <span className={s.cardLabel}>出貨日</span>
+                                <span className={s.cardValue} style={{ fontFamily: 'monospace' }}>{sd.ship_date}</span>
+                              </div>
+                              <div className={s.cardRow}>
+                                <span className={s.cardLabel}>可接單 / 已預約</span>
+                                <span className={`${s.cardValue} ${p.cardValueBold}`}>{sd.capacity ?? 0} / {sd.reserved ?? 0}</span>
+                              </div>
+                              <div className={s.cardRow}>
+                                <span className={s.cardLabel}>剩餘</span>
+                                <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</span>
+                              </div>
+                              <div className={s.cardRow}>
+                                <span className={s.cardLabel}>狀態</span>
+                                <span className={s.badge} style={{ color: !sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
+                                  {!sd.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
+                                </span>
+                              </div>
+                              <div className={s.cardActions}>
+                                <button onClick={(e) => { e.stopPropagation(); updateShipDateField(sd.id, 'is_open', !sd.is_open); }} className={s.btnSmall}>
+                                  {sd.is_open ? '關閉' : '開放'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </React.Fragment>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
