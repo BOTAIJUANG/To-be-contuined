@@ -40,8 +40,18 @@ export async function POST(
     .select('product_id, variant_id, qty')
     .eq('order_id', orderId);
 
+  // 查商品 stock_mode，date_mode 商品不走 inventory 表
+  const cancelProductIds = [...new Set((items ?? []).map(i => i.product_id))];
+  const { data: cancelProducts } = cancelProductIds.length > 0
+    ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', cancelProductIds)
+    : { data: [] };
+  const cancelProductMap = new Map((cancelProducts ?? []).map((p: any) => [p.id, p]));
+
   if (items && items.length > 0) {
     for (const item of items) {
+      // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 釋放
+      if (cancelProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+
       let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
       if (item.variant_id) query = query.eq('variant_id', item.variant_id);
       else query = query.is('variant_id', null);

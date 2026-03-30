@@ -88,12 +88,28 @@ export async function POST(req: NextRequest) {
   if (dateModeProductIds.length > 0) {
     const { data } = await supabase
       .from('product_ship_dates')
-      .select('product_id, variant_id, ship_date, capacity, reserved')
+      .select('product_id, variant_id, ship_date, capacity, reserved, cutoff_time')
       .in('product_id', dateModeProductIds)
       .eq('is_open', true)
       .gt('capacity', 0);
-    // 只取剩餘數量 > 0 的
-    shipDates = (data ?? []).filter((d: any) => d.capacity - d.reserved > 0);
+    // 只取剩餘數量 > 0 且未過截單時間的
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const tomorrowDt = new Date(now); tomorrowDt.setDate(tomorrowDt.getDate() + 1);
+    const tomorrowStr = tomorrowDt.toISOString().split('T')[0];
+    shipDates = (data ?? []).filter((d: any) => {
+      if (d.capacity - d.reserved <= 0) return false;
+      // 截單時間過濾
+      const rawCutoff = d.cutoff_time;
+      const cutoff = (typeof rawCutoff === 'string' && rawCutoff.includes(':')) ? rawCutoff : '17:00';
+      const [ch, cm] = cutoff.split(':').map(Number);
+      if (isNaN(ch) || isNaN(cm)) return true;
+      if (d.ship_date === todayStr || d.ship_date === tomorrowStr) {
+        const cutoffTime = new Date(now); cutoffTime.setHours(ch, cm, 0, 0);
+        if (now >= cutoffTime) return false;
+      }
+      return true;
+    });
   }
 
   // ── 5. 各商品算出日期集合 ────────────────────────

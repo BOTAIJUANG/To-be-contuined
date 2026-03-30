@@ -115,7 +115,7 @@ export default function CartDrawer() {
         body: JSON.stringify({ redemption_id: item.redemptionId }),
       });
     }
-    removeItem(item.id, item.variantId, item.preorderBatchId);
+    removeItem(item.id, item.variantId, item.preorderBatchId, item.shipDateId);
   };
 
   return (
@@ -176,13 +176,13 @@ export default function CartDrawer() {
                       <span className={s.redeemQty}>× 1（兌換品）</span>
                     ) : (
                       <div className={s.qtyControl}>
-                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId, undefined, item.preorderBatchId)}>−</button>
+                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId, undefined, item.preorderBatchId, item.shipDateId)}>−</button>
                         <span className={s.qtyValue}>{item.qty}</span>
                         <button
                           className={s.qtyBtn}
                           onClick={() => {
                             const max = getMaxQty(item);
-                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId, max, item.preorderBatchId);
+                            if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId, max, item.preorderBatchId, item.shipDateId);
                           }}
                           disabled={item.qty >= getMaxQty(item)}
                         >+</button>
@@ -196,7 +196,7 @@ export default function CartDrawer() {
                 {item.isRedeemItem ? (
                   <button className={s.cancelRedeemBtn} onClick={() => handleCancelRedeem(item)}>取消</button>
                 ) : (
-                  <button className={s.removeBtn} onClick={() => removeItem(item.id, item.variantId, item.preorderBatchId)}>×</button>
+                  <button className={s.removeBtn} onClick={() => removeItem(item.id, item.variantId, item.preorderBatchId, item.shipDateId)}>×</button>
                 )}
               </div>
             );

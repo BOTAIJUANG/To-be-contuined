@@ -530,6 +530,7 @@ export default function CheckoutPage() {
         qty:        item.qty,
         is_redeem:  item.isRedeemItem ?? false,
         preorder_batch_id: item.preorderBatchId ?? null,
+        ship_date_id: item.shipDateId ?? null,
       }));
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };

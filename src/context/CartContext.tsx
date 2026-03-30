@@ -52,8 +52,8 @@ interface CartContextType {
   mixedShipDate: string | null;              // 預購商品最晚批次出貨日
   unifiedShipDate: string | null;            // 混購最早可統一出貨日（UI 提示門檻，非最終日期）
   addItem:     (item: Omit<CartItem, 'qty'>, qty?: number, maxStock?: number | null) => AddItemResult;
-  removeItem:  (id: string, variantId?: number, preorderBatchId?: number) => void;
-  updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number) => boolean;
+  removeItem:  (id: string, variantId?: number, preorderBatchId?: number, shipDateId?: number) => void;
+  updateQty:   (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number, shipDateId?: number) => boolean;
   clearCart:   () => void;
   isOpen:      boolean;
   openCart:    () => void;
@@ -159,17 +159,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
 
-  const removeItem = (id: string, variantId?: number, preorderBatchId?: number) => {
+  const removeItem = (id: string, variantId?: number, preorderBatchId?: number, shipDateId?: number) => {
     setItems(prev => prev.filter(i => {
-      const target = itemKey({ id, variantId, preorderBatchId });
+      const target = itemKey({ id, variantId, preorderBatchId, shipDateId });
       return itemKey(i) !== target;
     }));
   };
 
-  const updateQty = (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number): boolean => {
-    if (qty <= 0) { removeItem(id, variantId, preorderBatchId); return true; }
+  const updateQty = (id: string, qty: number, variantId?: number, maxStock?: number | null, preorderBatchId?: number, shipDateId?: number): boolean => {
+    if (qty <= 0) { removeItem(id, variantId, preorderBatchId, shipDateId); return true; }
     if (maxStock != null && qty > maxStock) return false;
-    const targetKey = itemKey({ id, variantId, preorderBatchId });
+    const targetKey = itemKey({ id, variantId, preorderBatchId, shipDateId });
     setItems(prev => prev.map(i => itemKey(i) === targetKey ? { ...i, qty } : i));
     return true;
   };

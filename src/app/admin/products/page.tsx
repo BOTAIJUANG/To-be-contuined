@@ -21,11 +21,11 @@ type ProductTab = 'list' | 'category' | 'quickupdate' | 'notify';
 interface Product { id: number; name: string; name_en: string; slug: string; price: number; description: string; image_url: string; is_available: boolean; is_sold_out: boolean; is_preorder: boolean; is_featured: boolean; sort_order: number; category_id: number; stock_mode: string; categories?: { name: string }; }
 interface Category { id: number; name: string; slug: string; sort_order: number; }
 interface Spec { id?: number; label: string; value: string; sort_order: number; }
-interface ShipDate { id?: number; ship_date: string; capacity: number; reserved: number; is_open: boolean; }
+interface ShipDate { id?: number; ship_date: string; capacity: number; reserved: number; is_open: boolean; cutoff_time?: string; note?: string; }
 
 const EMPTY_FORM = { name: '', name_en: '', slug: '', price: 0, description: '', image_url: '', is_available: true, is_sold_out: false, is_preorder: false, is_featured: false, sort_order: 0, category_id: 0, stock_mode: 'stock_mode', ship_start_date: '', ship_end_date: '', ship_blocked_dates: '[]', allow_home_delivery: true, allow_cvs_711: true, allow_store_pickup: true };
 const EMPTY_CAT  = { name: '', slug: '', sort_order: 0 };
-const EMPTY_SHIP_DATE: ShipDate = { ship_date: '', capacity: 0, reserved: 0, is_open: true };
+const EMPTY_SHIP_DATE: ShipDate = { ship_date: '', capacity: 0, reserved: 0, is_open: true, cutoff_time: '17:00', note: '' };
 
 export default function AdminProductsPage() {
   const [tab,          setTab]         = useState<ProductTab>('list');
@@ -62,6 +62,12 @@ export default function AdminProductsPage() {
   const [batchEnd,       setBatchEnd]       = useState('');
   const [batchCapacity,  setBatchCapacity]  = useState(0);
   const [batchExclude,   setBatchExclude]   = useState('');
+  const [batchSkipDays,  setBatchSkipDays]  = useState<number[]>([]);
+  const [batchCutoff,    setBatchCutoff]    = useState('17:00');
+  // 批量關閉
+  const [showBatchClose, setShowBatchClose] = useState(false);
+  const [closeStart,     setCloseStart]     = useState('');
+  const [closeEnd,       setCloseEnd]       = useState('');
 
   // 分類表單
   const [showCatForm,  setShowCatForm]  = useState(false);
@@ -101,11 +107,11 @@ export default function AdminProductsPage() {
     setForm({ name: prod.name, name_en: prod.name_en ?? '', slug: prod.slug, price: prod.price, description: prod.description ?? '', image_url: prod.image_url ?? '', is_available: prod.is_available, is_sold_out: prod.is_sold_out, is_preorder: prod.is_preorder, is_featured: prod.is_featured, sort_order: prod.sort_order, category_id: prod.category_id, stock_mode: prod.stock_mode ?? 'stock_mode', ship_start_date: (prod as any).ship_start_date ?? '', ship_end_date: (prod as any).ship_end_date ?? '', ship_blocked_dates: (prod as any).ship_blocked_dates ?? '[]', allow_home_delivery: (prod as any).allow_home_delivery ?? true, allow_cvs_711: (prod as any).allow_cvs_711 ?? true, allow_store_pickup: (prod as any).allow_store_pickup ?? true });
     const [{ data: specData }, { data: shipDateData }, { data: variantData }] = await Promise.all([
       supabase.from('product_specs').select('id, label, value, sort_order').eq('product_id', prod.id).order('sort_order'),
-      supabase.from('product_ship_dates').select('id, ship_date, capacity, reserved, is_open').eq('product_id', prod.id).is('variant_id', null).order('ship_date'),
+      supabase.from('product_ship_dates').select('id, ship_date, capacity, reserved, is_open, cutoff_time, note').eq('product_id', prod.id).is('variant_id', null).order('ship_date'),
       supabase.from('product_variants').select('*').eq('product_id', prod.id).order('sort_order'),
     ]);
     setSpecs(specData ?? []);
-    setShipDates((shipDateData ?? []).map((d: any) => ({ id: d.id, ship_date: d.ship_date, capacity: d.capacity, reserved: d.reserved, is_open: d.is_open })));
+    setShipDates((shipDateData ?? []).map((d: any) => ({ id: d.id, ship_date: d.ship_date, capacity: d.capacity, reserved: d.reserved, is_open: d.is_open, cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '' })));
     const vData = variantData ?? [];
     setHasVariants(vData.length > 0);
     setVariantLabel((prod as any).variant_label ?? '規格');
@@ -202,9 +208,9 @@ export default function AdminProductsPage() {
       if (form.stock_mode === 'date_mode' && !form.is_preorder) {
         for (const d of shipDates) {
           if (d.id) {
-            await supabase.from('product_ship_dates').update({ capacity: d.capacity, is_open: d.is_open }).eq('id', d.id);
+            await supabase.from('product_ship_dates').update({ capacity: d.capacity, is_open: d.is_open, cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '' }).eq('id', d.id);
           } else {
-            await supabase.from('product_ship_dates').insert({ product_id: productId, variant_id: null, ship_date: d.ship_date, capacity: d.capacity, reserved: 0, is_open: d.is_open });
+            await supabase.from('product_ship_dates').insert({ product_id: productId, variant_id: null, ship_date: d.ship_date, capacity: d.capacity, reserved: 0, is_open: d.is_open, cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '' });
           }
         }
       }
@@ -323,6 +329,8 @@ export default function AdminProductsPage() {
     setBatchEnd('');
     setBatchCapacity(0);
     setBatchExclude('');
+    setBatchSkipDays([]);
+    setBatchCutoff('17:00');
     setBatchMode(true);
     setShowDateModal(true);
   };
@@ -335,11 +343,9 @@ export default function AdminProductsPage() {
   };
 
   const saveDate = () => {
-    if (!dateForm.ship_date) { alert('請選擇日期'); return; }
-    if (dateForm.capacity <= 0) { alert('請填寫可接單數量（需大於 0）'); return; }
-
     if (batchMode) {
       if (!batchStart || !batchEnd) { alert('請選擇起訖日期'); return; }
+      if (batchCapacity <= 0) { alert('請填寫每日可接單數量（需大於 0）'); return; }
       const excludeSet = new Set(batchExclude.split(',').map(str => str.trim()).filter(Boolean));
       const result: ShipDate[] = [];
       const addDay = (d: string) => {
@@ -349,19 +355,40 @@ export default function AdminProductsPage() {
       };
       let cur = batchStart;
       while (cur <= batchEnd) {
-        if (!excludeSet.has(cur) && !shipDates.find(x => x.ship_date === cur)) {
-          result.push({ ship_date: cur, capacity: batchCapacity, reserved: 0, is_open: true });
+        const dayOfWeek = new Date(cur + 'T12:00:00').getDay();
+        if (!batchSkipDays.includes(dayOfWeek) && !excludeSet.has(cur) && !shipDates.find(x => x.ship_date === cur)) {
+          result.push({ ship_date: cur, capacity: batchCapacity, reserved: 0, is_open: true, cutoff_time: batchCutoff, note: '' });
         }
         cur = addDay(cur);
       }
+      if (result.length === 0) { alert('所選範圍內無可新增的日期'); return; }
       setShipDates(prev => [...prev, ...result].sort((a, b) => a.ship_date.localeCompare(b.ship_date)));
-    } else if (editingDateIdx !== null) {
-      setShipDates(prev => prev.map((d, i) => i === editingDateIdx ? { ...d, capacity: dateForm.capacity, is_open: dateForm.is_open } : d));
     } else {
-      if (shipDates.find(x => x.ship_date === dateForm.ship_date)) { alert('此日期已存在'); return; }
-      setShipDates(prev => [...prev, { ...dateForm, reserved: 0 }].sort((a, b) => a.ship_date.localeCompare(b.ship_date)));
+      if (!dateForm.ship_date) { alert('請選擇日期'); return; }
+      if (dateForm.capacity <= 0) { alert('請填寫可接單數量（需大於 0）'); return; }
+      // 容量不得低於已預約數
+      if (editingDateIdx !== null && dateForm.capacity < (dateForm.reserved ?? 0)) {
+        alert(`此日期已有 ${dateForm.reserved} 筆預約，名額不得低於此數`); return;
+      }
+      if (editingDateIdx !== null) {
+        setShipDates(prev => prev.map((d, i) => i === editingDateIdx
+          ? { ...d, capacity: dateForm.capacity, is_open: dateForm.is_open, cutoff_time: dateForm.cutoff_time, note: dateForm.note }
+          : d));
+      } else {
+        if (shipDates.find(x => x.ship_date === dateForm.ship_date)) { alert('此日期已存在'); return; }
+        setShipDates(prev => [...prev, { ...dateForm, reserved: 0 }].sort((a, b) => a.ship_date.localeCompare(b.ship_date)));
+      }
     }
     setShowDateModal(false);
+  };
+
+  // 批量關閉
+  const doBatchClose = () => {
+    if (!closeStart || !closeEnd) { alert('請選擇起訖日期'); return; }
+    setShipDates(prev => prev.map(d =>
+      d.ship_date >= closeStart && d.ship_date <= closeEnd ? { ...d, is_open: false } : d
+    ));
+    setShowBatchClose(false);
   };
 
   const deleteDate = async (idx: number) => {
@@ -523,7 +550,7 @@ export default function AdminProductsPage() {
                   <div className={`${s.flex} ${p.stockModeOptionsRow}`}>
                     {[
                       { val: 'stock_mode', title: '總量模式', desc: '統一管理總庫存量，顧客自由選出貨日期（依商店規則）' },
-                      { val: 'date_mode',  title: '日期模式', desc: '設定特定可出貨日期及各日名額，顧客只能從開放的日期選擇' },
+                      { val: 'date_mode',  title: '每日接單設定', desc: '設定每日可接單數量，可批量建立並個別管理' },
                     ].map(({ val, title, desc }) => (
                       <label key={val} className={form.stock_mode === val ? p.stockModeOptionActive : p.stockModeOption}>
                         <input type="radio" value={val} checked={form.stock_mode === val} onChange={() => {
@@ -577,8 +604,11 @@ export default function AdminProductsPage() {
               {form.stock_mode === 'date_mode' && !form.is_preorder && (
                 <div className={p.sectionDivider24}>
                   <div className={`${s.flex} ${p.sectionHeader}`}>
-                    <label className={`${s.label} ${p.specLabelNoMargin}`}>可出貨日期設定</label>
+                    <label className={`${s.label} ${p.specLabelNoMargin}`}>每日接單設定</label>
                     <div className={`${s.flex} ${p.gap8}`}>
+                      {shipDates.length > 0 && (
+                        <button onClick={() => { setCloseStart(''); setCloseEnd(''); setShowBatchClose(true); }} className={s.btnSmall} style={{ color: '#c0392b' }}>批量關閉</button>
+                      )}
                       <button onClick={openBatchAdd} className={s.btnSmall}>批量新增</button>
                       <button onClick={openAddDate} className={`${s.btnPrimary} ${p.btnSmallCompact}`}>＋ 新增日期</button>
                     </div>
@@ -593,7 +623,7 @@ export default function AdminProductsPage() {
                       <table className={s.table}>
                         <thead>
                           <tr>
-                            {['出貨日', '可接單', '已預約', '剩餘', '狀態', '操作'].map(h => (
+                            {['出貨日', '可接單', '已預約', '剩餘', '截單', '備註', '狀態', '操作'].map(h => (
                               <th key={h} className={s.th}>{h}</th>
                             ))}
                           </tr>
@@ -612,6 +642,8 @@ export default function AdminProductsPage() {
                                 <td className={`${s.td} ${p.textRight}`}>{d.capacity}</td>
                                 <td className={`${s.td} ${p.textRight}`} style={{ color: d.reserved > 0 ? '#b87a2a' : 'var(--text-light)' }}>{d.reserved}</td>
                                 <td className={`${s.td} ${p.fw600} ${p.textRight}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
+                                <td className={`${s.td} ${p.monoFont}`} style={{ fontSize: '0.85em', color: 'var(--text-light)' }}>{d.cutoff_time ?? '17:00'}</td>
+                                <td className={s.td} style={{ fontSize: '0.85em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.note || '—'}</td>
                                 <td className={s.td}>
                                   <span className={s.badge} style={{ color: !d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
                                     {!d.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
@@ -944,7 +976,7 @@ export default function AdminProductsPage() {
           <div className={`${s.modal} ${p.modal480}`}>
             <div className={s.modalHeader}>
               <span className={s.modalTitle}>
-                {batchMode ? '批量新增出貨日期' : editingDateIdx !== null ? '編輯出貨日期' : '新增出貨日期'}
+                {batchMode ? '批量新增接單日期' : editingDateIdx !== null ? '編輯接單日期' : '新增接單日期'}
               </span>
               <button onClick={() => setShowDateModal(false)} className={s.modalClose}>×</button>
             </div>
@@ -966,9 +998,26 @@ export default function AdminProductsPage() {
                     <input type="number" value={batchCapacity || ''} onChange={e => setBatchCapacity(e.target.value === '' ? 0 : Number(e.target.value))} placeholder="例：10" className={`${s.input} ${p.inputW100}`} />
                   </div>
                   <div>
+                    <label className={s.label}>跳過星期（選填）</label>
+                    <div className={`${s.flex} ${s.flexWrap} ${s.gap24}`}>
+                      {['日', '一', '二', '三', '四', '五', '六'].map((name, idx) => (
+                        <label key={idx} className={s.checkLabel}>
+                          <input type="checkbox" checked={batchSkipDays.includes(idx)} onChange={e => {
+                            setBatchSkipDays(prev => e.target.checked ? [...prev, idx] : prev.filter(d => d !== idx));
+                          }} className={s.checkbox} /> {name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className={s.label}>截單時間</label>
+                    <input type="time" value={batchCutoff} onChange={e => setBatchCutoff(e.target.value)} className={`${s.input} ${p.inputW180}`} />
+                    <div className={p.hintText}>超過此時間後，隔日將無法接單（預設 17:00）</div>
+                  </div>
+                  <div>
                     <label className={s.label}>排除日期（選填，逗號分隔）</label>
                     <input value={batchExclude} onChange={e => setBatchExclude(e.target.value)} placeholder="例：2026-03-28,2026-03-29" className={`${s.input} ${p.inputFull}`} />
-                    <div className={p.hintText}>輸入不出貨的日期，逗號分開，例如：2026-03-28,2026-03-29</div>
+                    <div className={p.hintText}>輸入不接單的日期，逗號分開</div>
                   </div>
                 </>
               ) : (
@@ -984,6 +1033,14 @@ export default function AdminProductsPage() {
                       <input type="number" value={dateForm.capacity || ''} onChange={e => setDateForm({...dateForm, capacity: e.target.value === '' ? 0 : Number(e.target.value)})} placeholder="例：10" className={`${s.input} ${p.inputW100}`} />
                       <span className={p.unitLabel}>份</span>
                     </div>
+                  </div>
+                  <div>
+                    <label className={s.label}>截單時間</label>
+                    <input type="time" value={dateForm.cutoff_time ?? '17:00'} onChange={e => setDateForm({...dateForm, cutoff_time: e.target.value})} className={`${s.input} ${p.inputW180}`} />
+                  </div>
+                  <div>
+                    <label className={s.label}>單日說明（選填）</label>
+                    <input value={dateForm.note ?? ''} onChange={e => setDateForm({...dateForm, note: e.target.value})} placeholder="例：母親節檔期" className={`${s.input} ${p.inputFull}`} />
                   </div>
                   {editingDateIdx !== null && (
                     <div className={s.infoBar}>
@@ -1001,6 +1058,36 @@ export default function AdminProductsPage() {
                   {batchMode ? '批量新增' : editingDateIdx !== null ? '儲存' : '新增'}
                 </button>
                 <button onClick={() => setShowDateModal(false)} className={s.btnCancel}>取消</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ════ 批量關閉 Modal ════ */}
+      {showBatchClose && (
+        <>
+          <div onClick={() => setShowBatchClose(false)} className={s.modalOverlay} />
+          <div className={`${s.modal} ${p.modal480}`}>
+            <div className={s.modalHeader}>
+              <span className={s.modalTitle}>批量關閉接單日期</span>
+              <button onClick={() => setShowBatchClose(false)} className={s.modalClose}>×</button>
+            </div>
+            <div className={`${s.modalBody} ${p.modalBodyGrid}`}>
+              <div className={s.grid2}>
+                <div>
+                  <label className={s.label}>開始日期 *</label>
+                  <AdminDatePicker value={closeStart} onChange={val => setCloseStart(val)} className={`${s.input} ${p.inputFull}`} />
+                </div>
+                <div>
+                  <label className={s.label}>結束日期 *</label>
+                  <AdminDatePicker value={closeEnd} onChange={val => setCloseEnd(val)} className={`${s.input} ${p.inputFull}`} />
+                </div>
+              </div>
+              <div className={p.hintText}>此範圍內的所有日期將設為「已關閉」，不再接受新訂單</div>
+              <div className={s.btnActions}>
+                <button onClick={doBatchClose} className={s.btnSave} style={{ background: '#c0392b' }}>確認關閉</button>
+                <button onClick={() => setShowBatchClose(false)} className={s.btnCancel}>取消</button>
               </div>
             </div>
           </div>

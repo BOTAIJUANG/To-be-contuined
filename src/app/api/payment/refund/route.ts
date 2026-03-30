@@ -127,10 +127,20 @@ export async function POST(req: NextRequest) {
       .select('product_id, variant_id, qty')
       .eq('order_id', order.id);
 
+    // 查商品 stock_mode，date_mode 商品不走 inventory 表
+    const refundProductIds = [...new Set((orderItems ?? []).map(i => i.product_id))];
+    const { data: refundProducts } = refundProductIds.length > 0
+      ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', refundProductIds)
+      : { data: [] };
+    const refundProductMap = new Map((refundProducts ?? []).map((p: any) => [p.id, p]));
+
     if (orderItems && orderItems.length > 0) {
       const inventoryLogs: any[] = [];
 
       for (const item of orderItems) {
+        // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 回補
+        if (refundProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+
         let invQuery = supabaseAdmin
           .from('inventory')
           .select('*')

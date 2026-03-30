@@ -57,6 +57,7 @@ interface CartItemInput {
   is_redeem?:         boolean;
   is_gift?:           boolean;
   preorder_batch_id?: number | null;
+  ship_date_id?:      number | null;
 }
 
 // ── 前端送來的完整訂單資料 ───────────────────────
@@ -199,6 +200,7 @@ export async function POST(req: NextRequest) {
       qty: item.qty,
       is_gift: false,
       preorder_batch_id: item.preorder_batch_id ?? null,
+      ship_date_id: item.ship_date_id ?? null,
     });
   }
 
@@ -383,6 +385,9 @@ export async function POST(req: NextRequest) {
   // 預檢所有商品 + 贈品庫存
   for (const item of allItemsForInventory) {
     if (item.is_redeem) continue;
+    // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 預檢
+    const product = productMap.get(item.product_id);
+    if (product?.stock_mode === 'date_mode') continue;
     const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
     const inv = inventoryMap.get(key);
     if (!inv) continue;
@@ -589,12 +594,18 @@ export async function POST(req: NextRequest) {
         for (const item of body.items) {
           const product = productMap.get(item.product_id);
           if (!product || product.stock_mode !== 'date_mode') continue;
-          const rec = shipDatesData.find((d: any) =>
-            d.product_id === item.product_id &&
-            (d.variant_id ?? null) === (item.variant_id ?? null) &&
-            d.ship_date === shipDate
-          );
-          if (!rec) continue;
+          // 優先用 per-item ship_date_id 精確匹配，否則 fallback 到 order-level shipDate
+          const rec = item.ship_date_id
+            ? shipDatesData.find((d: any) => d.id === item.ship_date_id)
+            : shipDatesData.find((d: any) =>
+                d.product_id === item.product_id &&
+                (d.variant_id ?? null) === (item.variant_id ?? null) &&
+                d.ship_date === shipDate
+              );
+          if (!rec) {
+            const pName = product.name ?? `ID ${item.product_id}`;
+            return NextResponse.json({ error: `「${pName}」無該日期的接單資料，請重新整理後再試` }, { status: 400 });
+          }
           const oldReserved = rec.reserved ?? 0;
           const newReserved = oldReserved + item.qty;
           const { data: updated } = await supabaseAdmin
@@ -614,6 +625,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: '出貨日額度已被其他訂單搶先預留，請重新選擇日期' }, { status: 409 });
           }
           shipDateLockResults.push({ id: rec.id, oldReserved, newReserved });
+          // 將確定的 ship_date_id 回寫到 orderItems，確保存入 order_items 表
+          const oi = orderItems.find(o =>
+            o.product_id === item.product_id &&
+            (o.variant_id ?? null) === (item.variant_id ?? null) &&
+            !o.is_gift
+          );
+          if (oi) (oi as any).ship_date_id = rec.id;
         }
       }
     }
@@ -720,6 +738,12 @@ export async function POST(req: NextRequest) {
         .eq('id', prev.batchId)
         .eq('reserved', prev.newReserved);
     }
+    for (const prev of shipDateLockResults) {
+      await supabaseAdmin.from('product_ship_dates')
+        .update({ reserved: prev.oldReserved })
+        .eq('id', prev.id)
+        .eq('reserved', prev.newReserved);
+    }
     if (couponClaimedId) {
       try {
         await supabaseAdmin.rpc('release_coupon_usage', { p_coupon_id: couponClaimedId });
@@ -736,6 +760,10 @@ export async function POST(req: NextRequest) {
   const lockFailures: number[] = [];
 
   await Promise.all(allItemsForInventory.map(async (item) => {
+    // date_mode 商品庫存由 product_ship_dates 管理，跳過 inventory 更新
+    const product = productMap.get(item.product_id);
+    if (product?.stock_mode === 'date_mode') return;
+
     const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
     const inv = inventoryMap.get(key);
     if (!inv) return;
@@ -800,7 +828,7 @@ export async function POST(req: NextRequest) {
     }
   }));
 
-  // 樂觀鎖失敗 → 回滾訂單 + 批次預留 + 折價券
+  // 樂觀鎖失敗 → 回滾訂單 + 批次預留 + 日期預留 + 折價券
   if (lockFailures.length > 0) {
     await supabaseAdmin.from('order_items').delete().eq('order_id', order.id);
     await supabaseAdmin.from('orders').delete().eq('id', order.id);
@@ -808,6 +836,12 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('preorder_batches')
         .update({ reserved: prev.oldReserved })
         .eq('id', prev.batchId)
+        .eq('reserved', prev.newReserved);
+    }
+    for (const prev of shipDateLockResults) {
+      await supabaseAdmin.from('product_ship_dates')
+        .update({ reserved: prev.oldReserved })
+        .eq('id', prev.id)
         .eq('reserved', prev.newReserved);
     }
     if (couponClaimedId) {

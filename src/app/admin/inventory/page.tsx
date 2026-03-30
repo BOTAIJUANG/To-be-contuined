@@ -58,6 +58,8 @@ export default function AdminInventoryPage() {
   const [inventory,  setInventory]  = useState<any[]>([]);
   const [products,   setProducts]   = useState<any[]>([]);
   const [invLoading, setInvLoading] = useState(true);
+  // 每日接單（date_mode）
+  const [shipDateRows, setShipDateRows] = useState<any[]>([]);
 
   // 庫存調整 Modal
   const [showAdjModal,  setShowAdjModal]  = useState(false);
@@ -130,6 +132,7 @@ export default function AdminInventoryPage() {
     init();
     loadInventory();
     loadProducts();
+    loadShipDates();
   }, []);
 
   useEffect(() => {
@@ -150,10 +153,24 @@ export default function AdminInventoryPage() {
     setInvLoading(true);
     const { data } = await supabase
       .from('inventory')
-      .select('*, products(name, is_sold_out), product_variants(name)')
+      .select('*, products(name, is_sold_out, stock_mode), product_variants(name)')
       .order('product_id');
-    setInventory(data ?? []);
+    // 過濾掉 date_mode 商品（由 shipDateRows 顯示）
+    setInventory((data ?? []).filter((i: any) => i.products?.stock_mode !== 'date_mode'));
     setInvLoading(false);
+  };
+
+  const loadShipDates = async () => {
+    const { data } = await supabase
+      .from('product_ship_dates')
+      .select('*, products(name, is_sold_out)')
+      .order('ship_date');
+    setShipDateRows(data ?? []);
+  };
+
+  const updateShipDateField = async (id: number, field: string, value: any) => {
+    await supabase.from('product_ship_dates').update({ [field]: value }).eq('id', id);
+    loadShipDates();
   };
 
   const loadProducts = async () => {
@@ -291,13 +308,15 @@ export default function AdminInventoryPage() {
     setSyncing(true);
     // 抓所有上架商品 + 規格
     const { data: allProducts } = await supabase
-      .from('products').select('id, is_preorder, product_variants(id, is_available)').eq('is_available', true);
+      .from('products').select('id, is_preorder, stock_mode, product_variants(id, is_available)').eq('is_available', true);
     // 抓所有現有庫存
     const { data: allInv } = await supabase.from('inventory').select('product_id, variant_id');
     const invSet = new Set((allInv ?? []).map(i => `${i.product_id}_${i.variant_id ?? 'null'}`));
 
     let created = 0;
     for (const prod of (allProducts ?? [])) {
+      // date_mode 商品使用 product_ship_dates 管理，不需建 inventory 記錄
+      if ((prod as any).stock_mode === 'date_mode') continue;
       const mode = prod.is_preorder ? 'preorder' : 'stock';
       const variants = ((prod.product_variants ?? []) as any[]).filter(v => v.is_available);
       if (variants.length > 0) {
@@ -450,10 +469,10 @@ export default function AdminInventoryPage() {
           {/* 統計卡片 */}
           <div className={s.statGrid}>
             {[
-              { label: '商品種類',   value: inventory.length },
+              { label: '商品種類',   value: inventory.length + (new Set(shipDateRows.map(d => d.product_id))).size },
               { label: '低庫存',     value: inventory.filter(i => i.inventory_mode === 'stock' && (i.stock - i.reserved) <= i.safety_stock && i.safety_stock > 0).length, color: '#b87a2a' },
               { label: '完售中',     value: inventory.filter(i => i.products?.is_sold_out).length, color: '#c0392b' },
-              { label: '預購商品',   value: inventory.filter(i => i.inventory_mode === 'preorder').length },
+              { label: '每日接單',   value: shipDateRows.length },
             ].map(({ label, value, color }) => (
               <div key={label} className={s.statCard}>
                 <div className={s.statLabel}>{label}</div>
@@ -479,6 +498,7 @@ export default function AdminInventoryPage() {
                     <th className={s.th}>商品名稱</th>
                     <th className={s.th}>規格</th>
                     <th className={s.th}>模式</th>
+                    <th className={s.th}>出貨日</th>
                     <th className={s.thRight}>實體庫存</th>
                     <th className={s.thRight}>預留</th>
                     <th className={s.thRight}>可售</th>
@@ -488,8 +508,8 @@ export default function AdminInventoryPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {inventory.length === 0 ? (
-                    <tr><td colSpan={9} className={s.emptyRow}>尚未設定庫存</td></tr>
+                  {inventory.length === 0 && shipDateRows.length === 0 ? (
+                    <tr><td colSpan={10} className={s.emptyRow}>尚未設定庫存</td></tr>
                   ) : inventory.map(item => {
                     const isStock    = item.inventory_mode === 'stock';
                     const available  = isStock ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
@@ -504,6 +524,7 @@ export default function AdminInventoryPage() {
                             {isStock ? 'STOCK' : 'PREORDER'}
                           </span>
                         </td>
+                        <td className={s.td} style={{ color: 'var(--text-light)' }}>—</td>
                         <td className={`${s.td} ${p.tdRightBold}`}>{isStock ? item.stock : '—'}</td>
                         <td className={`${s.td} ${p.tdRightLight}`}>{isStock ? item.reserved : '—'}</td>
                         <td className={`${s.td} ${p.tdRightBold}`} style={{ color: isStock ? (available <= 0 ? '#c0392b' : isLow ? '#b87a2a' : '#2ab85a') : undefined }}>
@@ -527,12 +548,44 @@ export default function AdminInventoryPage() {
                       </tr>
                     );
                   })}
+                  {/* 每日接單（date_mode）行 */}
+                  {shipDateRows.map(sd => {
+                    const remaining = (sd.capacity ?? 0) - (sd.reserved ?? 0);
+                    const isFull = remaining <= 0;
+                    const isPast = sd.ship_date < new Date().toISOString().split('T')[0];
+                    return (
+                      <tr key={`sd_${sd.id}`} className={s.tr} style={{ opacity: isPast ? 0.5 : 1 }}>
+                        <td className={s.td}>{sd.products?.name ?? '—'}</td>
+                        <td className={`${s.td} ${p.variantCol}`}>—</td>
+                        <td className={s.td}>
+                          <span className={p.modeBadgeStock} style={{ background: '#f0e6d3', color: '#8a6d3b' }}>每日</span>
+                        </td>
+                        <td className={s.td} style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>{sd.ship_date}</td>
+                        <td className={`${s.td} ${p.tdRightBold}`}>{sd.capacity ?? 0}</td>
+                        <td className={`${s.td} ${p.tdRightLight}`} style={{ color: sd.reserved > 0 ? '#b87a2a' : undefined }}>{sd.reserved ?? 0}</td>
+                        <td className={`${s.td} ${p.tdRightBold}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
+                        <td className={`${s.td} ${p.tdRightLight}`}>—</td>
+                        <td className={s.td}>
+                          <span className={s.badge} style={{ color: !sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
+                            {!sd.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
+                          </span>
+                        </td>
+                        <td className={s.td}>
+                          <div className={p.actionRow}>
+                            <button onClick={() => updateShipDateField(sd.id, 'is_open', !sd.is_open)} className={s.btnSmall} style={{ color: sd.is_open ? 'var(--text-light)' : '#2ab85a' }}>
+                              {sd.is_open ? '關閉' : '開放'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
               {/* Mobile card list */}
               <div className={s.cardList}>
-                {inventory.length === 0 ? (
+                {inventory.length === 0 && shipDateRows.length === 0 ? (
                   <div className={s.emptyRow}>尚未設定庫存</div>
                 ) : inventory.map(item => {
                   const isStock    = item.inventory_mode === 'stock';
@@ -570,6 +623,46 @@ export default function AdminInventoryPage() {
                         {isStock && <button onClick={() => openAdj(item, 'audit')} className={s.btnSmall}>盤點</button>}
                         <button onClick={() => openEditInv(item)} className={s.btnSmall}>編輯</button>
                         <button onClick={() => deleteInv(item.id)} className={s.btnDanger}>刪除</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* 每日接單 mobile cards */}
+                {shipDateRows.map(sd => {
+                  const remaining = (sd.capacity ?? 0) - (sd.reserved ?? 0);
+                  const isFull = remaining <= 0;
+                  return (
+                    <div key={`sd_${sd.id}`} className={s.card}>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>商品</span>
+                        <span className={s.cardValue}>{sd.products?.name ?? '—'}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>模式</span>
+                        <span className={p.modeBadgeStock} style={{ background: '#f0e6d3', color: '#8a6d3b' }}>每日</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>出貨日</span>
+                        <span className={s.cardValue} style={{ fontFamily: 'monospace' }}>{sd.ship_date}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>可接單 / 已預約</span>
+                        <span className={`${s.cardValue} ${p.cardValueBold}`}>{sd.capacity ?? 0} / {sd.reserved ?? 0}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>剩餘</span>
+                        <span className={`${s.cardValue} ${p.cardValueBold}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</span>
+                      </div>
+                      <div className={s.cardRow}>
+                        <span className={s.cardLabel}>狀態</span>
+                        <span className={s.badge} style={{ color: !sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!sd.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
+                          {!sd.is_open ? '已關閉' : isFull ? '已滿' : '開放'}
+                        </span>
+                      </div>
+                      <div className={s.cardActions}>
+                        <button onClick={() => updateShipDateField(sd.id, 'is_open', !sd.is_open)} className={s.btnSmall}>
+                          {sd.is_open ? '關閉' : '開放'}
+                        </button>
                       </div>
                     </div>
                   );

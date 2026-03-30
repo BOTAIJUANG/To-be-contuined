@@ -107,7 +107,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   // 載入無規格商品的庫存量
   let productStock: number | null = null;
-  if (rawVariants.length === 0 && !product.is_preorder) {
+  if (rawVariants.length === 0 && !product.is_preorder && (product as any).stock_mode !== 'date_mode') {
     const { data: invData } = await supabaseAdmin
       .from('inventory')
       .select('stock, reserved')
@@ -124,10 +124,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const isDateMode = (product as any).stock_mode === 'date_mode';
   let shipDates: { id: number; ship_date: string; capacity: number; remaining: number }[] = [];
   if (isDateMode) {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
     const { data: sdData } = await supabaseAdmin
       .from('product_ship_dates')
-      .select('id, ship_date, capacity, reserved')
+      .select('id, ship_date, capacity, reserved, cutoff_time')
       .eq('product_id', product.id)
       .is('variant_id', null)
       .eq('is_open', true)
@@ -138,7 +139,27 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       ship_date: d.ship_date,
       capacity: d.capacity ?? 0,
       remaining: Math.max(0, (d.capacity ?? 0) - (d.reserved ?? 0)),
-    })).filter(d => d.remaining > 0);
+    })).filter(d => {
+      if (d.remaining <= 0) return false;
+      // 截單時間過濾：如果出貨日是今天或明天，檢查是否已過截單時間
+      const rawCutoff = (sdData ?? []).find((sd: any) => sd.id === d.id)?.cutoff_time;
+      const cutoff = (typeof rawCutoff === 'string' && rawCutoff.includes(':')) ? rawCutoff : '17:00';
+      const [ch, cm] = cutoff.split(':').map(Number);
+      if (isNaN(ch) || isNaN(cm)) return true; // 無法解析截單時間，不過濾
+      const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      // 今天的日期：如果已過截單時間則排除
+      if (d.ship_date === today) {
+        const cutoffTime = new Date(now); cutoffTime.setHours(ch, cm, 0, 0);
+        if (now >= cutoffTime) return false;
+      }
+      // 明天的日期：如果已過今天的截單時間則排除
+      if (d.ship_date === tomorrowStr) {
+        const cutoffTime = new Date(now); cutoffTime.setHours(ch, cm, 0, 0);
+        if (now >= cutoffTime) return false;
+      }
+      return true;
+    });
   }
 
   return (
