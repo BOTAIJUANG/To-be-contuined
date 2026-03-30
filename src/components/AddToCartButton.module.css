@@ -40,7 +40,7 @@
 /* 區塊標題 */
 .sectionLabel {
   font-family: "Montserrat", sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.3em;
   color: var(--text-light);
   text-transform: uppercase;
@@ -67,7 +67,7 @@
   transition: all 0.2s ease;
 }
 @media (min-width: 768px) {
-  .variantBtn { padding: 8px 20px; }
+  .variantBtn { padding: 10px 20px; }
 }
 @media (hover: hover) {
   .variantBtn:hover:not(:disabled) {
@@ -181,12 +181,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border: 1px solid #E6D9CC;
   border-radius: 10px;
   background: #FDFBF8;
   cursor: pointer;
   transition: all 0.18s ease;
+  min-height: 44px;
 }
 @media (hover: hover) {
   .dateItem:hover {

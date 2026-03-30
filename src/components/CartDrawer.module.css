@@ -55,7 +55,7 @@
 }
 .headerLabel {
   font-family: "Montserrat", sans-serif;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.35em;
   color: var(--text-light);
   text-transform: uppercase;
@@ -171,7 +171,7 @@
   margin-bottom: 4px;
 }
 .preorderNote {
-  font-size: 10px;
+  font-size: 11px;
   color: #2a5a8c;
   margin-bottom: 4px;
   font-family: "Montserrat", sans-serif;
@@ -205,7 +205,7 @@
   justify-content: center;
 }
 @media (min-width: 640px) {
-  .qtyBtn { width: 34px; height: 34px; font-size: 14px; }
+  .qtyBtn { width: 36px; height: 36px; font-size: 15px; }
 }
 .qtyValue {
   width: 36px;
@@ -220,7 +220,7 @@
   justify-content: center;
 }
 @media (min-width: 640px) {
-  .qtyValue { width: 32px; height: 28px; }
+  .qtyValue { width: 32px; height: 36px; }
 }
 
 .itemPrice {
