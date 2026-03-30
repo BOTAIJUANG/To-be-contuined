@@ -70,6 +70,14 @@ export default function CheckoutPage() {
   // 是否混購
   const hasMixed       = items.some(i => i.isPreorder) && items.some(i => !i.isPreorder);
 
+  // 是否全部為日期模式（已在商品頁選好出貨日）
+  const effectiveItems = items.filter(i => !i.isRedeemItem && !i.isGift);
+  const allDateMode    = effectiveItems.length > 0 && effectiveItems.every(i => (i as any).shipDateId);
+  // 收集已選的出貨日期（去重）
+  const dateModeDates  = allDateMode
+    ? [...new Set(effectiveItems.map(i => (i as any).shipDate as string).filter(Boolean))].sort()
+    : [];
+
   // 登入狀態
   const [memberId, setMemberId] = useState<string | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
@@ -404,6 +412,14 @@ export default function CheckoutPage() {
     setNoIntersection(false);
     setDate('');
 
+    // A0. 全日期模式 → 已在商品頁選好出貨日，直接用
+    if (allDateMode && dateModeDates.length > 0) {
+      setAvailableDates(dateModeDates);
+      setDate(dateModeDates[0]);
+      setDatesLoading(false);
+      return;
+    }
+
     // A. 純預購 → 固定日期，不呼叫 API
     if (items.every(i => i.isPreorder) && mixedShipDate) {
       setAvailableDates([mixedShipDate]);
@@ -513,11 +529,14 @@ export default function CheckoutPage() {
       }
 
       // 2. 計算出貨日
+      // 全日期模式 → 用最早的已選日期
       // 純預購 → 固定用預購批次日期
       // 混購 & 一般 → 用使用者選的日期
-      const finalShipDate = items.every(i => i.isPreorder) && mixedShipDate
-        ? mixedShipDate
-        : date || null;
+      const finalShipDate = allDateMode && dateModeDates.length > 0
+        ? dateModeDates[0]
+        : items.every(i => i.isPreorder) && mixedShipDate
+          ? mixedShipDate
+          : date || null;
 
       // 3. 呼叫後端 API 建立訂單
       // 只傳「商品 ID + 數量」和「收件資訊」，
@@ -918,6 +937,21 @@ export default function CheckoutPage() {
             <div className={s.noIntersection}>
               <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
               <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
+            </div>
+          ) : allDateMode && dateModeDates.length > 0 ? (
+            /* 全日期模式：已在商品頁選好出貨日 */
+            <div className={s.fixedDateWrap}>
+              <div className={s.fixedDateBox}>
+                <div className={s.fixedDateLabel}>已選擇出貨日期</div>
+                <div className={s.fixedDateValue}>
+                  {dateModeDates.map(d => {
+                    const dt = new Date(d + 'T12:00:00');
+                    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                    return `${dt.getMonth() + 1}/${dt.getDate()}（${dayNames[dt.getDay()]}）`;
+                  }).join('、')}
+                </div>
+                <div className={s.fixedDateHint}>出貨日期已於商品頁選定，如需更改請回購物車調整</div>
+              </div>
             </div>
           ) : items.every(i => i.isPreorder) && mixedShipDate ? (
             /* 純預購：固定顯示批次出貨日 */
