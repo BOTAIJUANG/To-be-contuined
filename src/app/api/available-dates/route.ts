@@ -132,16 +132,16 @@ export async function POST(req: NextRequest) {
 
     // ── 預購商品 ──────────────────────────────────
     if (product.is_preorder) {
-      const batch = preorderBatches.find((b: any) =>
+      const matchedBatches = preorderBatches.filter((b: any) =>
         b.product_id === item.product_id &&
         (b.variant_id ?? null) === (item.variant_id ?? null)
       );
-      if (!batch) {
+      if (matchedBatches.length === 0) {
         // 此預購商品沒有進行中的批次 → 交集為空
         intersect(new Set<string>());
         continue;
       }
-      intersect(new Set([batch.ship_date]));
+      intersect(new Set(matchedBatches.map((b: any) => b.ship_date)));
       continue;
     }
 

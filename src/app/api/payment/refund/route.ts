@@ -18,8 +18,13 @@ import { requireAdmin } from '@/lib/auth';
 import { generateCheckMacValue } from '@/lib/ecpay';
 import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
+const isProd = process.env.NODE_ENV === 'production';
 const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
-  ?? 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction';
+  ?? (isProd ? '' : 'https://payment-stage.ecpay.com.tw/CreditDetail/DoAction');
+
+if (isProd && !ECPAY_DOACTION_URL) {
+  throw new Error('ECPay 環境變數未設定（ECPAY_DOACTION_URL）');
+}
 
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin(req);

@@ -28,13 +28,23 @@ import crypto from 'crypto';
 
 // ── 綠界設定（從環境變數讀取）─────────────────────
 // 這些值要去綠界後台申請：https://www.ecpay.com.tw/
-const MERCHANT_ID = (process.env.ECPAY_MERCHANT_ID ?? '3002607').trim();   // 測試商店代號
-const HASH_KEY    = (process.env.ECPAY_HASH_KEY    ?? 'pwFHCqoQZGmho4w6').trim();  // 測試用 HashKey
-const HASH_IV     = (process.env.ECPAY_HASH_IV     ?? 'EkRm7iFT261dpevs').trim();  // 測試用 HashIV
+// 本地開發時使用測試值；正式環境必須設定環境變數，否則啟動時直接報錯
+const isProd = process.env.NODE_ENV === 'production';
+const MERCHANT_ID = (process.env.ECPAY_MERCHANT_ID ?? (isProd ? '' : '3002607')).trim();
+const HASH_KEY    = (process.env.ECPAY_HASH_KEY    ?? (isProd ? '' : 'pwFHCqoQZGmho4w6')).trim();
+const HASH_IV     = (process.env.ECPAY_HASH_IV     ?? (isProd ? '' : 'EkRm7iFT261dpevs')).trim();
+
+if (isProd && (!MERCHANT_ID || !HASH_KEY || !HASH_IV)) {
+  throw new Error('ECPay 環境變數未設定（ECPAY_MERCHANT_ID / ECPAY_HASH_KEY / ECPAY_HASH_IV）');
+}
 
 // 綠界 API 網址（測試 vs 正式）
 const ECPAY_URL = process.env.ECPAY_API_URL
-  ?? 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5';  // 測試環境
+  ?? (isProd ? '' : 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5');
+
+if (isProd && !ECPAY_URL) {
+  throw new Error('ECPay 環境變數未設定（ECPAY_API_URL）');
+}
 
 // ── 產生 CheckMacValue（數位簽章）──────────────────
 // 這是綠界要求的加密方式，步驟如下：

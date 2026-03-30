@@ -8,10 +8,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const MERCHANT_ID = (process.env.ECPAY_LOGISTICS_MERCHANT_ID ?? '2000132').trim();
-
+const isProd = process.env.NODE_ENV === 'production';
+const MERCHANT_ID = (process.env.ECPAY_LOGISTICS_MERCHANT_ID ?? (isProd ? '' : '2000132')).trim();
 const ECPAY_MAP_URL = process.env.ECPAY_MAP_URL
-  ?? 'https://logistics-stage.ecpay.com.tw/Express/map';
+  ?? (isProd ? '' : 'https://logistics-stage.ecpay.com.tw/Express/map');
+
+if (isProd && (!MERCHANT_ID || !ECPAY_MAP_URL)) {
+  throw new Error('ECPay 物流環境變數未設定（ECPAY_LOGISTICS_MERCHANT_ID / ECPAY_MAP_URL）');
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
