@@ -17,11 +17,17 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('pickup_store_sessions')
-    .select('store_brand, store_id, store_name, store_address')
+    .select('store_brand, store_id, store_name, store_address, created_at')
     .eq('token', token)
     .single();
 
   if (error || !data) {
+    return NextResponse.json({ found: false });
+  }
+
+  // 30 分鐘過期
+  const age = Date.now() - new Date(data.created_at).getTime();
+  if (age > 30 * 60 * 1000) {
     return NextResponse.json({ found: false });
   }
 

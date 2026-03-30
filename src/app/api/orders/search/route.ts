@@ -21,11 +21,9 @@ export async function GET(req: NextRequest) {
     .from('orders')
     .select(`
       order_no, status, created_at, total,
-      buyer_name, buyer_email, buyer_phone,
-      customer_name, customer_email, customer_phone,
-      ship_method, address, ship_date,
+      ship_method, ship_date,
       tracking_no, carrier, shipped_at,
-      cvs_store_id, cvs_store_name, cvs_store_address, cvs_store_brand,
+      cvs_store_name, cvs_store_address, cvs_store_brand,
       atm_bank_code, atm_vaccount, atm_expire_date,
       pay_status, pay_method,
       order_items ( name, price, qty )

@@ -3,7 +3,7 @@
 //
 // 規則：
 //   信用卡：建立 30 分鐘內未付款 → 取消 + 釋放庫存
-//   ATM：  建立 24 小時內未付款 → 取消 + 釋放庫存
+//   ATM：  建立 12 小時內未付款 → 取消 + 釋放庫存
 //
 // Vercel Cron 每 10 分鐘呼叫一次
 // ════════════════════════════════════════════════
@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
     .neq('status', 'cancelled')
     .lt('created_at', creditCutoff);
 
-  // ── 2. ATM：超過 24 小時未付款 ────────────────────
-  const atmCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  // ── 2. ATM：超過 12 小時未付款 ────────────────────
+  const atmCutoff = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
   const { data: atmOrders } = await supabaseAdmin
     .from('orders')
     .select('id, order_no, coupon_code')
