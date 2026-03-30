@@ -160,6 +160,124 @@
   padding-left: 2px;
 }
 
+/* 日期模式 — 分組列表 */
+.dateGroup {
+  margin-bottom: 14px;
+}
+.dateGroupLabel {
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #A89888;
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+.dateGroupList {
+  display: grid;
+  gap: 6px;
+}
+.dateItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid #E6D9CC;
+  border-radius: 10px;
+  background: #FDFBF8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+@media (hover: hover) {
+  .dateItem:hover {
+    border-color: #BFA893;
+    background: #F8F2EA;
+  }
+}
+.dateItemSelected {
+  border-color: #BFA893;
+  background: #F8F3EC;
+}
+.dateItemFull {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.dateItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dateRadio {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid #D0C4B6;
+  background: transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+.dateRadioSelected {
+  border-color: var(--btn);
+  background: var(--btn);
+}
+.dateRadioDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fffaf6;
+}
+.dateItemLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4A3429;
+  letter-spacing: 0.02em;
+}
+.dateItemRight {
+  flex-shrink: 0;
+}
+.dateItemRemaining {
+  font-size: 12px;
+  color: #A89888;
+  letter-spacing: 0.02em;
+}
+.dateItemFullTag {
+  font-size: 11px;
+  color: #c0392b;
+  font-weight: 500;
+}
+.showMoreDatesBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 0;
+  border: 1px dashed #D0C4B6;
+  border-radius: 10px;
+  background: transparent;
+  color: #A89888;
+  font-size: 12px;
+  font-family: "Noto Sans TC", sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  margin-bottom: 4px;
+}
+@media (hover: hover) {
+  .showMoreDatesBtn:hover {
+    border-color: #BFA893;
+    color: #6B4A3A;
+    background: #faf6f1;
+  }
+}
+.showMoreArrow {
+  font-size: 13px;
+  transition: transform 0.18s ease;
+}
+
 /* 數量選擇器 */
 .qtyWrap {
   display: flex;

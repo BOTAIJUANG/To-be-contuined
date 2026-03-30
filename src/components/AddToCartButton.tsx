@@ -35,6 +35,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const isDateMode   = product.isDateMode ?? false;
   const dateList     = product.shipDates ?? [];
   const [selectedDate, setSelectedDate] = useState<ShipDate | null>(dateList[0] ?? null);
+  const [showAllDates, setShowAllDates] = useState(false);
 
   const hasVariants  = (product.variants?.length ?? 0) > 0;
   const displayPrice = hasVariants ? (selectedVariant?.price ?? product.price) : product.price;
@@ -225,41 +226,128 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
         </div>
       )}
 
-      {/* 日期模式選擇 */}
-      {isDateMode && dateList.length > 0 && (
-        <div className={s.batchWrap}>
-          <div className={s.sectionLabel}>選擇出貨日期</div>
-          <div className={s.batchList}>
-            {dateList.map(d => {
-              const sel = selectedDate?.id === d.id;
-              const isFull = d.remaining <= 0;
-              return (
-                <div
-                  key={d.id}
-                  className={`${s.batchItem} ${sel ? s.selected : ''} ${isFull ? s.variantSoldOut : ''}`}
-                  onClick={() => { if (!isFull) { setSelectedDate(d); setQty(1); } }}
-                  style={isFull ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div className={`${s.batchRadio} ${sel ? s.selected : ''}`}>
-                      {sel && <div className={s.batchDot} />}
-                    </div>
-                    <div>
-                      <div className={s.batchDate}>
-                        {d.ship_date}
-                        {isFull && <span style={{ color: '#c0392b', marginLeft: 8, fontSize: '0.85em' }}>已額滿</span>}
-                      </div>
-                      <div className={s.batchMeta}>
-                        剩餘 {d.remaining} / {d.capacity} 份
-                      </div>
-                    </div>
+      {/* 日期模式選擇（方案1+3：近期 + 展開分週） */}
+      {isDateMode && dateList.length > 0 && (() => {
+        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+        const fmtDate = (d: string) => {
+          const dt = new Date(d + 'T12:00:00');
+          return `${dt.getMonth() + 1}/${dt.getDate()}（${dayNames[dt.getDay()]}）`;
+        };
+
+        // 分週邏輯：根據 ISO 週分組
+        const getWeekKey = (d: string) => {
+          const dt = new Date(d + 'T12:00:00');
+          const jan1 = new Date(dt.getFullYear(), 0, 1);
+          const dayOfYear = Math.floor((dt.getTime() - jan1.getTime()) / 86400000) + 1;
+          return `${dt.getFullYear()}-W${Math.ceil((dayOfYear + jan1.getDay()) / 7)}`;
+        };
+
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const thisWeekKey = getWeekKey(todayStr);
+        const nextWeekDate = new Date(now);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+        const nextWeekKey = getWeekKey(nextWeekDate.toISOString().split('T')[0]);
+
+        const weekLabel = (key: string) => {
+          if (key === thisWeekKey) return '本週';
+          if (key === nextWeekKey) return '下週';
+          // 從 key 提取顯示用的月份範圍
+          return key;
+        };
+
+        // 按週分組
+        const weekMap = new Map<string, ShipDate[]>();
+        dateList.forEach(d => {
+          const wk = getWeekKey(d.ship_date);
+          if (!weekMap.has(wk)) weekMap.set(wk, []);
+          weekMap.get(wk)!.push(d);
+        });
+        const weekGroups = Array.from(weekMap.entries()).map(([key, dates]) => {
+          // 用第一天日期產生更好的週標籤
+          const firstDate = dates[0].ship_date;
+          const lastDate = dates[dates.length - 1].ship_date;
+          const fmtShort = (d: string) => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth() + 1}/${dt.getDate()}`; };
+          let label = weekLabel(key);
+          if (label === key) label = `${fmtShort(firstDate)} ~ ${fmtShort(lastDate)}`;
+          return { key, label, dates };
+        });
+
+        const previewCount = 3;
+        const previewDates = dateList.slice(0, previewCount);
+        const hasMore = dateList.length > previewCount;
+
+        const renderDateItem = (d: ShipDate) => {
+          const sel = selectedDate?.id === d.id;
+          const isFull = d.remaining <= 0;
+          return (
+            <div
+              key={d.id}
+              className={`${s.dateItem} ${sel ? s.dateItemSelected : ''} ${isFull ? s.dateItemFull : ''}`}
+              onClick={() => { if (!isFull) { setSelectedDate(d); setQty(1); } }}
+            >
+              <div className={s.dateItemLeft}>
+                <div className={`${s.dateRadio} ${sel ? s.dateRadioSelected : ''}`}>
+                  {sel && <div className={s.dateRadioDot} />}
+                </div>
+                <span className={s.dateItemLabel}>{fmtDate(d.ship_date)}</span>
+              </div>
+              <div className={s.dateItemRight}>
+                {isFull
+                  ? <span className={s.dateItemFullTag}>已額滿</span>
+                  : <span className={s.dateItemRemaining}>剩餘 {d.remaining} 份</span>
+                }
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div className={s.batchWrap}>
+            <div className={s.sectionLabel}>選擇取貨日期</div>
+
+            {!showAllDates ? (
+              <>
+                <div className={s.dateGroup}>
+                  <div className={s.dateGroupLabel}>近期可選</div>
+                  <div className={s.dateGroupList}>
+                    {previewDates.map(renderDateItem)}
                   </div>
                 </div>
-              );
-            })}
+                {hasMore && (
+                  <button
+                    type="button"
+                    className={s.showMoreDatesBtn}
+                    onClick={() => setShowAllDates(true)}
+                  >
+                    顯示更多日期（共 {dateList.length} 天）
+                    <span className={s.showMoreArrow}>↓</span>
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                {weekGroups.map(g => (
+                  <div key={g.key} className={s.dateGroup}>
+                    <div className={s.dateGroupLabel}>{g.label}</div>
+                    <div className={s.dateGroupList}>
+                      {g.dates.map(renderDateItem)}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className={s.showMoreDatesBtn}
+                  onClick={() => setShowAllDates(false)}
+                >
+                  收合日期
+                  <span className={s.showMoreArrow} style={{ transform: 'rotate(180deg)' }}>↓</span>
+                </button>
+              </>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 數量選擇器 */}
       <div className={s.qtyWrap}>
