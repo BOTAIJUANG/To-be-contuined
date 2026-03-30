@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { verifyEcpayCallback, ATM_INFO_CODES } from '@/lib/ecpay';
 import { awardStampsForOrder } from '@/lib/stamps';
-import { releaseBatchReserved } from '@/lib/batch-stock';
+import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
 export async function POST(req: NextRequest) {
   console.log('=== ECPay Notify 收到請求 ===');
@@ -144,10 +144,20 @@ export async function POST(req: NextRequest) {
       .select('product_id, variant_id, qty')
       .eq('order_id', order.id);
 
+    // 查商品 stock_mode，date_mode 不走 inventory 表
+    const notifyProductIds = [...new Set((orderItems ?? []).map(i => i.product_id))];
+    const { data: notifyProducts } = notifyProductIds.length > 0
+      ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', notifyProductIds)
+      : { data: [] };
+    const notifyProductMap = new Map((notifyProducts ?? []).map((p: any) => [p.id, p]));
+
     if (orderItems) {
       const inventoryLogs: any[] = [];
 
       for (const item of orderItems) {
+        // date_mode 庫存由 product_ship_dates 管理，跳過 inventory
+        if (notifyProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+
         let query = supabaseAdmin
           .from('inventory')
           .select('*')
@@ -210,6 +220,9 @@ export async function POST(req: NextRequest) {
 
     // 釋放預購批次預留量
     await releaseBatchReserved(order.id);
+
+    // 釋放日期模式預留量
+    await releaseShipDateReserved(order.id);
 
     // 釋放折價券使用次數
     if (order.coupon_code) {

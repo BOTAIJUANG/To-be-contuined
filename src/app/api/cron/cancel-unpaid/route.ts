@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { releaseBatchReserved } from '@/lib/batch-stock';
+import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
 export async function GET(req: NextRequest) {
   // 驗證 Vercel Cron 密鑰（防止外部隨意呼叫）
@@ -66,10 +66,20 @@ export async function GET(req: NextRequest) {
       .select('product_id, variant_id, qty')
       .eq('order_id', order.id);
 
+    // 查商品 stock_mode，date_mode 不走 inventory 表
+    const cronProductIds = [...new Set((items ?? []).map(i => i.product_id))];
+    const { data: cronProducts } = cronProductIds.length > 0
+      ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', cronProductIds)
+      : { data: [] };
+    const cronProductMap = new Map((cronProducts ?? []).map((p: any) => [p.id, p]));
+
     if (items) {
       const inventoryLogs: any[] = [];
 
       for (const item of items) {
+        // date_mode 庫存由 product_ship_dates 管理，跳過 inventory
+        if (cronProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+
         let query = supabaseAdmin
           .from('inventory')
           .select('*')
@@ -132,6 +142,9 @@ export async function GET(req: NextRequest) {
 
     // 釋放預購批次預留量
     await releaseBatchReserved(order.id);
+
+    // 釋放日期模式預留量
+    await releaseShipDateReserved(order.id);
 
     // 釋放折價券使用次數
     if (order.coupon_code) {

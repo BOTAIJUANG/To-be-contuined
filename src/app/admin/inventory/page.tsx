@@ -163,9 +163,10 @@ export default function AdminInventoryPage() {
   const loadShipDates = async () => {
     const { data } = await supabase
       .from('product_ship_dates')
-      .select('*, products(name, is_sold_out)')
+      .select('*, products(name, is_sold_out, stock_mode)')
       .order('ship_date');
-    setShipDateRows(data ?? []);
+    // 只顯示目前仍為 date_mode 的商品（切回總量模式的不顯示）
+    setShipDateRows((data ?? []).filter((d: any) => d.products?.stock_mode === 'date_mode'));
   };
 
   const updateShipDateField = async (id: number, field: string, value: any) => {

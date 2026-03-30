@@ -44,16 +44,17 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     const { data: sdData } = await supabaseAdmin
       .from('product_ship_dates')
-      .select('product_id, variant_id, ship_date, capacity, reserved')
+      .select('id, product_id, variant_id, ship_date, capacity, reserved')
       .in('product_id', dateModeIds)
       .eq('is_open', true)
       .gte('ship_date', today);
 
     dateResult = (sdData ?? []).map((d: any) => ({
-      product_id: d.product_id,
-      variant_id: d.variant_id,
-      ship_date:  d.ship_date,
-      available:  Math.max(0, (d.capacity ?? 0) - (d.reserved ?? 0)),
+      product_id:   d.product_id,
+      variant_id:   d.variant_id,
+      ship_date:    d.ship_date,
+      ship_date_id: d.id,
+      available:    Math.max(0, (d.capacity ?? 0) - (d.reserved ?? 0)),
     }));
   }
 

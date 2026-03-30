@@ -208,11 +208,40 @@ export default function AdminProductsPage() {
       if (form.stock_mode === 'date_mode' && !form.is_preorder) {
         for (const d of shipDates) {
           if (d.id) {
-            await supabase.from('product_ship_dates').update({ capacity: d.capacity, is_open: d.is_open, cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '' }).eq('id', d.id);
+            // 更新既有日期
+            const { error: sdErr } = await supabase.from('product_ship_dates').update({
+              capacity: d.capacity, is_open: d.is_open,
+              cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '',
+            }).eq('id', d.id);
+            if (sdErr) {
+              // fallback：不含 cutoff_time/note（欄位可能尚未建立）
+              await supabase.from('product_ship_dates').update({
+                capacity: d.capacity, is_open: d.is_open,
+              }).eq('id', d.id);
+            }
           } else {
-            await supabase.from('product_ship_dates').insert({ product_id: productId, variant_id: null, ship_date: d.ship_date, capacity: d.capacity, reserved: 0, is_open: d.is_open, cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '' });
+            // 新增日期
+            const { error: sdErr } = await supabase.from('product_ship_dates').insert({
+              product_id: productId, variant_id: null,
+              ship_date: d.ship_date, capacity: d.capacity, reserved: 0, is_open: d.is_open,
+              cutoff_time: d.cutoff_time ?? '17:00', note: d.note ?? '',
+            });
+            if (sdErr) {
+              // fallback：不含 cutoff_time/note
+              const { error: sdErr2 } = await supabase.from('product_ship_dates').insert({
+                product_id: productId, variant_id: null,
+                ship_date: d.ship_date, capacity: d.capacity, reserved: 0, is_open: d.is_open,
+              });
+              if (sdErr2) alert(`日期 ${d.ship_date} 新增失敗：${sdErr2.message}`);
+            }
           }
         }
+      } else if (form.stock_mode !== 'date_mode' && productId) {
+        // 切回總量模式：刪除沒有預約的 ship_dates 記錄
+        await supabase.from('product_ship_dates')
+          .delete()
+          .eq('product_id', productId)
+          .eq('reserved', 0);
       }
 
       // ── 自動建立 inventory row（新增商品 or 有新規格時）──

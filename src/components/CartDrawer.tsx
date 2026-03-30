@@ -75,8 +75,13 @@ export default function CartDrawer() {
           if (!data) return;
           const map: Record<string, number> = {};
           data.forEach((inv: any) => {
-            const key = inv.variant_id ? `${inv.product_id}_${inv.variant_id}` : `${inv.product_id}`;
-            map[key] = inv.available;
+            if (inv.ship_date_id) {
+              // date_mode: 用 ship_date_id 作 key（每日獨立庫存）
+              map[`sd_${inv.ship_date_id}`] = inv.available;
+            } else {
+              const key = inv.variant_id ? `${inv.product_id}_${inv.variant_id}` : `${inv.product_id}`;
+              map[key] = inv.available;
+            }
           });
           setStockMap(map);
         })
@@ -102,6 +107,10 @@ export default function CartDrawer() {
     if (item.isPreorder && item.preorderBatchId) {
       // 批次 stock 尚未載入時，暫用目前數量（不允許加更多）
       return batchStockMap[item.preorderBatchId] ?? item.qty;
+    }
+    // date_mode: 用 ship_date_id 查每日獨立庫存
+    if (item.shipDateId) {
+      return stockMap[`sd_${item.shipDateId}`] ?? item.qty;
     }
     const key = item.variantId ? `${item.productRealId ?? parseInt(item.id)}_${item.variantId}` : `${item.productRealId ?? parseInt(item.id)}`;
     return stockMap[key] ?? item.qty;
@@ -157,6 +166,7 @@ export default function CartDrawer() {
           ) : items.map(item => {
             let key = item.variantId ? `${item.id}_${item.variantId}` : item.id;
             if (item.preorderBatchId) key += `_b${item.preorderBatchId}`;
+            if (item.shipDateId) key += `_sd${item.shipDateId}`;
             return (
               <div key={key} className={s.item}>
                 <div className={s.itemImg}>
@@ -170,6 +180,9 @@ export default function CartDrawer() {
                   {item.variantName && <div className={s.variantName}>{item.variantName}</div>}
                   {item.isPreorder && item.preorderShipDate && (
                     <div className={s.preorderNote}>預購 · 出貨 {item.preorderShipDate}</div>
+                  )}
+                  {!item.isPreorder && item.shipDate && (
+                    <div className={s.preorderNote}>出貨日 {item.shipDate}</div>
                   )}
                   <div className={s.itemRow}>
                     {item.isRedeemItem ? (

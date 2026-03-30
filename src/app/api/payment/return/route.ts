@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { verifyEcpayCallback, ATM_INFO_CODES } from '@/lib/ecpay';
 import { awardStampsForOrder } from '@/lib/stamps';
-import { releaseBatchReserved } from '@/lib/batch-stock';
+import { releaseBatchReserved, releaseShipDateReserved } from '@/lib/batch-stock';
 
 // 綠界「返回商店」有時用 GET 導回，直接轉到訂單查詢頁
 export async function GET() {
@@ -111,10 +111,20 @@ export async function POST(req: NextRequest) {
           .select('product_id, variant_id, qty')
           .eq('order_id', order.id);
 
+        // 查商品 stock_mode，date_mode 不走 inventory 表
+        const returnProductIds = [...new Set((orderItems ?? []).map(i => i.product_id))];
+        const { data: returnProducts } = returnProductIds.length > 0
+          ? await supabaseAdmin.from('products').select('id, stock_mode').in('id', returnProductIds)
+          : { data: [] };
+        const returnProductMap = new Map((returnProducts ?? []).map((p: any) => [p.id, p]));
+
         if (orderItems) {
           const inventoryLogs: any[] = [];
 
           for (const item of orderItems) {
+            // date_mode 庫存由 product_ship_dates 管理，跳過 inventory
+            if (returnProductMap.get(item.product_id)?.stock_mode === 'date_mode') continue;
+
             let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
             if (item.variant_id) query = query.eq('variant_id', item.variant_id);
             else query = query.is('variant_id', null);
@@ -174,6 +184,9 @@ export async function POST(req: NextRequest) {
 
         // 釋放預購批次預留量
         await releaseBatchReserved(order.id);
+
+        // 釋放日期模式預留量
+        await releaseShipDateReserved(order.id);
 
         // 釋放折價券使用次數
         if (order.coupon_code) {
