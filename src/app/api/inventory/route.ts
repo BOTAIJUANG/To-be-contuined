@@ -18,9 +18,10 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 // requireAdmin 會檢查：1. 有沒有登入 2. 是不是 admin 角色
 
 interface OrderItem {
-  product_id:  number;
-  variant_id?: number | null;
-  qty:         number;
+  product_id:   number;
+  variant_id?:  number | null;
+  qty:          number;
+  ship_date_id?: number | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (!items.length) {
     const { data } = await supabaseAdmin
       .from('order_items')
-      .select('product_id, variant_id, qty')
+      .select('product_id, variant_id, qty, ship_date_id')
       .eq('order_id', order_id);
     items = (data ?? []) as OrderItem[];
   }
@@ -67,6 +68,47 @@ export async function POST(req: NextRequest) {
   const errors: string[] = [];
 
   for (const item of items) {
+    // ── date_mode 商品：由 product_ship_dates 管理 ──
+    if (item.ship_date_id) {
+      const { data: sd } = await supabaseAdmin
+        .from('product_ship_dates')
+        .select('id, ship_date, capacity, reserved')
+        .eq('id', item.ship_date_id)
+        .single();
+
+      if (!sd) {
+        errors.push(`找不到日期模式記錄 ship_date_id=${item.ship_date_id}`);
+        continue;
+      }
+
+      const oldReserved = sd.reserved ?? 0;
+      let newReserved = oldReserved;
+      let changeType = '';
+
+      if (action === 'reserve') {
+        newReserved = oldReserved + item.qty;
+        if (newReserved > sd.capacity) {
+          errors.push(`日期 ${sd.ship_date} 容量不足（剩餘 ${sd.capacity - oldReserved}，需要 ${item.qty}）`);
+          continue;
+        }
+        changeType = 'order';
+      } else if (action === 'ship' || action === 'cancel') {
+        newReserved = Math.max(0, oldReserved - item.qty);
+        changeType = action === 'ship' ? 'ship' : 'cancel';
+      }
+
+      const { error: sdErr } = await supabaseAdmin
+        .from('product_ship_dates')
+        .update({ reserved: newReserved })
+        .eq('id', sd.id)
+        .eq('reserved', oldReserved);
+
+      if (sdErr) {
+        errors.push(`更新日期模式庫存失敗：${sdErr.message}`);
+      }
+      continue;
+    }
+
     // 找對應的庫存記錄
     let query = supabaseAdmin
       .from('inventory')

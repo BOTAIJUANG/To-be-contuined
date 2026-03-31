@@ -247,6 +247,14 @@ export default function AdminProductsPage() {
           .delete()
           .eq('product_id', productId)
           .eq('reserved', 0);
+        // 警告：如果還有未完成訂單預留的日期記錄
+        const { data: remainingDates } = await supabase.from('product_ship_dates')
+          .select('id')
+          .eq('product_id', productId)
+          .gt('reserved', 0);
+        if (remainingDates && remainingDates.length > 0) {
+          alert(`注意：有 ${remainingDates.length} 筆出貨日期仍有未完成訂單的預留量，這些記錄將保留到訂單完成或取消後再自動清除。`);
+        }
       }
 
       // ── 自動建立 inventory row（新增商品 or 有新規格時）──

@@ -31,10 +31,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '此訂單不是待確認退款狀態' }, { status: 400 });
   }
 
-  await supabaseAdmin.from('orders').update({
+  const { data: updated } = await supabaseAdmin.from('orders').update({
     pay_status: 'refunded',
     refund_status: 'manual_done',
-  }).eq('id', order.id);
+  }).eq('id', order.id).eq('refund_status', 'manual_pending').select('id');
+
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: '退款狀態已變更，請重整頁面' }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true, message: 'ATM 退款已確認完成' });
 }

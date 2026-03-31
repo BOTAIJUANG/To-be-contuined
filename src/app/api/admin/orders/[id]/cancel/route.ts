@@ -206,10 +206,9 @@ export async function POST(
     }
   }
 
-  // ── 更新訂單狀態 ──
+  // ── 更新訂單狀態（pay_status 保持原值，未付款不應標記 failed）──
   await supabaseAdmin.from('orders').update({
     status: 'cancelled',
-    pay_status: 'failed',
   }).eq('id', orderId);
 
   return NextResponse.json({ ok: true });

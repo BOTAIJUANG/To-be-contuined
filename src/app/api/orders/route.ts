@@ -204,6 +204,24 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // ── 4.5 防重複送出（同買家手機 + 同小計 + 60 秒內有 pending 訂單）──
+  const recentCutoff = new Date(Date.now() - 60 * 1000).toISOString();
+  const { data: recentDup } = await supabaseAdmin
+    .from('orders')
+    .select('order_no')
+    .eq('buyer_phone', body.buyerPhone)
+    .eq('subtotal', subtotal)
+    .eq('pay_status', 'pending')
+    .gt('created_at', recentCutoff)
+    .maybeSingle();
+
+  if (recentDup) {
+    return NextResponse.json({
+      error: '偵測到重複訂單，請勿重複送出',
+      order_no: recentDup.order_no,
+    }, { status: 409 });
+  }
+
   // ── 5. 計算真實運費 ──
   const OUTER_ISLAND_CITIES = ['澎湖縣', '金門縣', '連江縣'];
   const isOuterIsland = OUTER_ISLAND_CITIES.includes(body.city ?? '');
@@ -232,6 +250,7 @@ export async function POST(req: NextRequest) {
   let promoDiscount = 0;
   let appliedPromoIds: number[] = [];
   let giftItems: { product_id: number; variant_id: number | null; qty: number; name: string }[] = [];
+  let giftProductsData: any[] = [];
   let mappedPromos: Promotion[] = [];
 
   const promos = promosRes.data;
@@ -277,13 +296,14 @@ export async function POST(req: NextRequest) {
       const giftVariantIds = result.gifts.map(g => g.variant_id).filter((v): v is number => v !== null);
 
       const [giftProductsRes, giftVariantsRes] = await Promise.all([
-        supabaseAdmin.from('products').select('id, name').in('id', giftProductIds),
+        supabaseAdmin.from('products').select('id, name, stock_mode').in('id', giftProductIds),
         giftVariantIds.length > 0
           ? supabaseAdmin.from('product_variants').select('id, name').in('id', giftVariantIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const giftNameMap = new Map((giftProductsRes.data ?? []).map(p => [p.id, p.name]));
+      giftProductsData = giftProductsRes.data ?? [];
+      const giftNameMap = new Map(giftProductsData.map(p => [p.id, p.name]));
       const giftVariantNameMap = new Map((giftVariantsRes.data ?? []).map((v: any) => [v.id, v.name]));
 
       giftItems = result.gifts.map(g => {
@@ -353,7 +373,16 @@ export async function POST(req: NextRequest) {
               .eq('used_count', cur.used_count)
               .select('id');
             if (!releasedCoupon || releasedCoupon.length === 0) {
-              console.warn(`[orders] 折價券釋放衝突 coupon=${couponClaimedId}（堆疊衝突回滾時）`);
+              // 樂觀鎖失敗 → 重讀重試一次
+              const { data: retry } = await supabaseAdmin
+                .from('coupons').select('used_count').eq('id', couponClaimedId).single();
+              if (retry && (retry.used_count ?? 0) > 0) {
+                await supabaseAdmin.from('coupons')
+                  .update({ used_count: retry.used_count - 1 })
+                  .eq('id', couponClaimedId!)
+                  .eq('used_count', retry.used_count)
+                  .select('id');
+              }
             }
           }
         }
@@ -362,6 +391,12 @@ export async function POST(req: NextRequest) {
       }
     }
   }
+
+  // ── 7.9 偵測 date_mode 贈品（用已查到的 giftProductsData，不再重複查 DB）──
+  const dateModeGiftProductIds = new Set<number>();
+  giftProductsData.forEach((gp: any) => {
+    if (gp.stock_mode === 'date_mode') dateModeGiftProductIds.add(gp.id);
+  });
 
   // ── 8. 批次庫存預檢（一次查出所有庫存，取代迴圈）──
   const allItemsForInventory = [
@@ -382,20 +417,36 @@ export async function POST(req: NextRequest) {
     inventoryMap.set(key, inv);
   });
 
-  // 預檢所有商品 + 贈品庫存
+  // 按庫存 key 彙總需求量（同一商品可能同時出現在一般品和贈品中）
+  const invQtyAgg = new Map<string, { product_id: number; variant_id: number | null; totalQty: number; nonRedeemQty: number }>();
   for (const item of allItemsForInventory) {
-    if (item.is_redeem) continue;
-    // 有 ship_date_id 的項目由 product_ship_dates 管理，跳過 inventory 預檢
-    // （不靠 stock_mode，因為商品可能已從 date_mode 切回總量模式）
     if (item.ship_date_id) continue;
+    if (dateModeGiftProductIds.has(item.product_id)) continue;
     const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
+    const existing = invQtyAgg.get(key);
+    if (existing) {
+      existing.totalQty += item.qty;
+      if (!item.is_redeem) existing.nonRedeemQty += item.qty;
+    } else {
+      invQtyAgg.set(key, {
+        product_id: item.product_id,
+        variant_id: item.variant_id,
+        totalQty: item.qty,
+        nonRedeemQty: item.is_redeem ? 0 : item.qty,
+      });
+    }
+  }
+
+  // 預檢所有商品 + 贈品庫存（使用彙總後的數量，避免同商品分開檢查漏算）
+  for (const [key, agg] of invQtyAgg) {
+    if (agg.nonRedeemQty === 0) continue; // 全是兌換品，跳過預檢
     const inv = inventoryMap.get(key);
     if (!inv) continue;
 
     if (inv.inventory_mode === 'stock') {
       const available = inv.stock - inv.reserved;
-      if (available < item.qty) {
-        const pName = productMap.get(item.product_id)?.name ?? `ID ${item.product_id}`;
+      if (available < agg.nonRedeemQty) {
+        const pName = productMap.get(agg.product_id)?.name ?? `ID ${agg.product_id}`;
         return NextResponse.json(
           { error: `「${pName}」庫存不足（剩餘 ${available} 件）` },
           { status: 400 },
@@ -403,8 +454,8 @@ export async function POST(req: NextRequest) {
       }
     } else if (inv.inventory_mode === 'preorder' && inv.max_preorder) {
       const available = inv.max_preorder - inv.reserved_preorder;
-      if (available < item.qty) {
-        const pName = productMap.get(item.product_id)?.name ?? `ID ${item.product_id}`;
+      if (available < agg.nonRedeemQty) {
+        const pName = productMap.get(agg.product_id)?.name ?? `ID ${agg.product_id}`;
         return NextResponse.json(
           { error: `「${pName}」預購額度不足（剩餘 ${available} 件）` },
           { status: 400 },
@@ -434,44 +485,54 @@ export async function POST(req: NextRequest) {
       .in('id', batchIds);
     batchRows = batchData ?? [];
 
+    // 預檢：先確認所有批次額度足夠
     for (const batch of (batchRows ?? [])) {
       const limitQty = batch.limit_qty ?? 0;
       const currentReserved = batch.reserved ?? 0;
       const needed = batchQtyMap[batch.id] ?? 0;
-
       if (limitQty > 0 && currentReserved + needed > limitQty) {
         return NextResponse.json(
           { error: `預購批次額度不足（剩餘 ${limitQty - currentReserved} 件，需要 ${needed} 件）` },
           { status: 400 },
         );
       }
+    }
 
-      // 樂觀鎖：只有 reserved 沒被別人改過才能成功
+    // 並行樂觀鎖：每個 batch 是不同的 row，可同時更新
+    const batchLockPromises = (batchRows ?? []).map(async (batch) => {
+      const currentReserved = batch.reserved ?? 0;
+      const needed = batchQtyMap[batch.id] ?? 0;
       const newReserved = currentReserved + needed;
       let lockQuery = supabaseAdmin
         .from('preorder_batches')
         .update({ reserved: newReserved })
         .eq('id', batch.id);
-      // NULL 和 0 在 PostgreSQL 中不同，需分別處理
       if (batch.reserved === null || batch.reserved === undefined) {
         lockQuery = lockQuery.is('reserved', null);
       } else {
         lockQuery = lockQuery.eq('reserved', currentReserved);
       }
       const { data: updated, error: batchErr } = await lockQuery.select('id');
+      return { batch, currentReserved, newReserved, ok: !batchErr && updated && updated.length > 0 };
+    });
 
-      if (batchErr || !updated || updated.length === 0) {
-        // 樂觀鎖失敗 → 回滾已成功的批次
-        for (const prev of batchLockResults) {
-          await supabaseAdmin.from('preorder_batches')
-            .update({ reserved: prev.oldReserved })
-            .eq('id', prev.batchId)
-            .eq('reserved', prev.newReserved);
-        }
-        return NextResponse.json({ error: '預購批次額度已被其他訂單搶先預留，請重新下單' }, { status: 409 });
+    const batchLockOuts = await Promise.all(batchLockPromises);
+    const batchLockFailed = batchLockOuts.some(r => !r.ok);
+
+    // 記錄成功的鎖定（無論是否有失敗，都要記錄以便回滾）
+    for (const r of batchLockOuts) {
+      if (r.ok) batchLockResults.push({ batchId: r.batch.id, oldReserved: r.currentReserved, newReserved: r.newReserved });
+    }
+
+    if (batchLockFailed) {
+      // 回滾所有已成功的批次
+      for (const prev of batchLockResults) {
+        await supabaseAdmin.from('preorder_batches')
+          .update({ reserved: prev.oldReserved })
+          .eq('id', prev.batchId)
+          .eq('reserved', prev.newReserved);
       }
-
-      batchLockResults.push({ batchId: batch.id, oldReserved: currentReserved, newReserved });
+      return NextResponse.json({ error: '預購批次額度已被其他訂單搶先預留，請重新下單' }, { status: 409 });
     }
   }
 
@@ -615,11 +676,12 @@ export async function POST(req: NextRequest) {
 
       // 有 ship_date_id 的商品：預留 product_ship_dates 額度（樂觀鎖）
       if (shipDatesData && dateModeProductIds.length > 0) {
+        // Phase 1: 預檢所有 date_mode 項目（不做 DB 寫入）
+        const shipDateLockPlan: { item: typeof body.items[0]; rec: any; oldReserved: number; newReserved: number }[] = [];
         for (const item of body.items) {
           if (!item.ship_date_id) continue;
           const product = productMap.get(item.product_id);
           if (!product) continue;
-          // 必須有 ship_date_id（前面驗證段已確認）
           const rec = shipDatesData.find((d: any) => d.id === item.ship_date_id);
           if (!rec) {
             const pName = product.name ?? `ID ${item.product_id}`;
@@ -627,27 +689,45 @@ export async function POST(req: NextRequest) {
           }
           const oldReserved = rec.reserved ?? 0;
           const newReserved = oldReserved + item.qty;
-          // 容量檢查：防止超賣
           if (newReserved > rec.capacity) {
             const pName = product.name ?? `ID ${item.product_id}`;
-            // 回滾已成功的日期預留
-            for (const prev of shipDateLockResults) {
-              await supabaseAdmin.from('product_ship_dates')
-                .update({ reserved: prev.oldReserved })
-                .eq('id', prev.id)
-                .eq('reserved', prev.newReserved);
-            }
             return NextResponse.json({ error: `「${pName}」該日期剩餘名額不足（剩 ${rec.capacity - oldReserved}），請減少數量或選擇其他日期` }, { status: 400 });
           }
-          const { data: updated } = await supabaseAdmin
-            .from('product_ship_dates')
-            .update({ reserved: newReserved })
-            .eq('id', rec.id)
-            .eq('reserved', oldReserved)
-            .select('id');
-          if (!updated || updated.length === 0) {
-            // 樂觀鎖失敗 → 回滾已成功的日期預留
-            for (const prev of shipDateLockResults) {
+          shipDateLockPlan.push({ item, rec, oldReserved, newReserved });
+        }
+
+        // Phase 2: 並行鎖定（每個是不同 row，可同時更新）
+        if (shipDateLockPlan.length > 0) {
+          const sdLockPromises = shipDateLockPlan.map(async ({ item, rec, oldReserved, newReserved }) => {
+            const { data: updated } = await supabaseAdmin
+              .from('product_ship_dates')
+              .update({ reserved: newReserved })
+              .eq('id', rec.id)
+              .eq('reserved', oldReserved)
+              .select('id');
+            return { item, rec, oldReserved, newReserved, ok: !!(updated && updated.length > 0) };
+          });
+
+          const sdLockOuts = await Promise.all(sdLockPromises);
+
+          // 記錄成功的鎖定
+          for (const r of sdLockOuts) {
+            if (r.ok) {
+              shipDateLockResults.push({ id: r.rec.id, oldReserved: r.oldReserved, newReserved: r.newReserved });
+              const oi = orderItems.find(o =>
+                o.product_id === r.item.product_id &&
+                (o.variant_id ?? null) === (r.item.variant_id ?? null) &&
+                o.ship_date_id === r.rec.id &&
+                !o.is_gift
+              );
+              if (oi) (oi as any).ship_date_id = r.rec.id;
+            }
+          }
+
+          // 任一失敗 → 回滾所有成功的
+          if (sdLockOuts.some(r => !r.ok)) {
+            for (let ri = shipDateLockResults.length - 1; ri >= 0; ri--) {
+              const prev = shipDateLockResults[ri];
               await supabaseAdmin.from('product_ship_dates')
                 .update({ reserved: prev.oldReserved })
                 .eq('id', prev.id)
@@ -655,16 +735,40 @@ export async function POST(req: NextRequest) {
             }
             return NextResponse.json({ error: '出貨日額度已被其他訂單搶先預留，請重新選擇日期' }, { status: 409 });
           }
-          shipDateLockResults.push({ id: rec.id, oldReserved, newReserved });
-          // 回寫 ship_date_id 到 orderItems：用 ship_date_id 精確匹配避免同商品不同日期碰撞
-          const oi = orderItems.find(o =>
-            o.product_id === item.product_id &&
-            (o.variant_id ?? null) === (item.variant_id ?? null) &&
-            o.ship_date_id === rec.id &&
-            !o.is_gift
-          );
-          if (oi) (oi as any).ship_date_id = rec.id;
         }
+      }
+    }
+  }
+
+  // ── 8.8 贈品 date_mode 容量預留 ──
+  if (body.ship_date && giftItems.length > 0 && dateModeGiftProductIds.size > 0) {
+    const dmGiftPids = [...dateModeGiftProductIds];
+    const { data: giftShipDates } = await supabaseAdmin
+      .from('product_ship_dates')
+      .select('id, product_id, variant_id, ship_date, capacity, reserved')
+      .in('product_id', dmGiftPids)
+      .eq('ship_date', body.ship_date)
+      .eq('is_open', true);
+
+    for (const gift of giftItems) {
+      if (!dateModeGiftProductIds.has(gift.product_id)) continue;
+      const rec = (giftShipDates ?? []).find((d: any) =>
+        d.product_id === gift.product_id &&
+        (d.variant_id ?? null) === (gift.variant_id ?? null)
+      );
+      if (!rec) continue; // 贈品無對應日期記錄 → 跳過（不阻擋下單）
+      const oldReserved = rec.reserved ?? 0;
+      const newReserved = oldReserved + gift.qty;
+      if (newReserved > rec.capacity) continue; // 贈品容量不足 → 跳過
+      const { data: updated } = await supabaseAdmin
+        .from('product_ship_dates')
+        .update({ reserved: newReserved })
+        .eq('id', rec.id)
+        .eq('reserved', oldReserved)
+        .select('id');
+      if (updated && updated.length > 0) {
+        shipDateLockResults.push({ id: rec.id, oldReserved, newReserved });
+        (gift as any).ship_date_id = rec.id;
       }
     }
   }
@@ -726,7 +830,8 @@ export async function POST(req: NextRequest) {
         .eq('reserved', prev.newReserved);
     }
     // 回滾日期模式預留
-    for (const prev of shipDateLockResults) {
+    for (let ri = shipDateLockResults.length - 1; ri >= 0; ri--) {
+      const prev = shipDateLockResults[ri];
       await supabaseAdmin.from('product_ship_dates')
         .update({ reserved: prev.oldReserved })
         .eq('id', prev.id)
@@ -752,6 +857,7 @@ export async function POST(req: NextRequest) {
       price: 0,
       qty: gift.qty,
       is_gift: true,
+      ship_date_id: (gift as any).ship_date_id ?? null,
     });
   }
 
@@ -770,7 +876,8 @@ export async function POST(req: NextRequest) {
         .eq('id', prev.batchId)
         .eq('reserved', prev.newReserved);
     }
-    for (const prev of shipDateLockResults) {
+    for (let ri = shipDateLockResults.length - 1; ri >= 0; ri--) {
+      const prev = shipDateLockResults[ri];
       await supabaseAdmin.from('product_ship_dates')
         .update({ reserved: prev.oldReserved })
         .eq('id', prev.id)
@@ -787,15 +894,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `訂單明細寫入失敗：${itemsError.message}` }, { status: 500 });
   }
 
-  // ── 12. 預留庫存（並行更新 + 批次寫 log）──
+  // ── 12. 預留庫存（按彙總 key 並行更新，避免同商品多筆競態）──
   const inventoryLogs: any[] = [];
   const lockFailures: number[] = [];
 
-  await Promise.all(allItemsForInventory.map(async (item) => {
-    // 有 ship_date_id 的項目由 product_ship_dates 管理，跳過 inventory 更新
-    if (item.ship_date_id) return;
-
-    const key = item.variant_id ? `${item.product_id}_${item.variant_id}` : `${item.product_id}`;
+  await Promise.all([...invQtyAgg.entries()].map(async ([key, agg]) => {
     const inv = inventoryMap.get(key);
     if (!inv) return;
 
@@ -803,30 +906,26 @@ export async function POST(req: NextRequest) {
     const isPreorder = inv.inventory_mode === 'preorder';
 
     if (isStock) {
-      const available = inv.stock - inv.reserved;
-      if (!item.is_redeem && available < item.qty) return; // 前面已預檢過
-
       const { data: updated } = await supabaseAdmin
         .from('inventory')
-        .update({ reserved: inv.reserved + item.qty, updated_at: new Date().toISOString() })
+        .update({ reserved: inv.reserved + agg.totalQty, updated_at: new Date().toISOString() })
         .eq('id', inv.id)
         .eq('reserved', inv.reserved) // 樂觀鎖
         .select('id');
 
       if (!updated || updated.length === 0) {
-        // 樂觀鎖失敗：庫存被其他請求搶先修改
-        lockFailures.push(item.product_id);
+        lockFailures.push(agg.product_id);
         return;
       }
 
       inventoryLogs.push({
         inventory_id: inv.id,
-        product_id: item.product_id,
-        variant_id: item.variant_id ?? null,
+        product_id: agg.product_id,
+        variant_id: agg.variant_id ?? null,
         change_type: 'order',
         qty_before: inv.reserved,
-        qty_after: inv.reserved + item.qty,
-        qty_change: item.qty,
+        qty_after: inv.reserved + agg.totalQty,
+        qty_change: agg.totalQty,
         reason: `訂單 #${order.id}`,
         admin_name: '系統',
         order_id: order.id,
@@ -834,24 +933,24 @@ export async function POST(req: NextRequest) {
     } else if (isPreorder) {
       const { data: updated } = await supabaseAdmin
         .from('inventory')
-        .update({ reserved_preorder: inv.reserved_preorder + item.qty, updated_at: new Date().toISOString() })
+        .update({ reserved_preorder: inv.reserved_preorder + agg.totalQty, updated_at: new Date().toISOString() })
         .eq('id', inv.id)
         .eq('reserved_preorder', inv.reserved_preorder) // 樂觀鎖
         .select('id');
 
       if (!updated || updated.length === 0) {
-        lockFailures.push(item.product_id);
+        lockFailures.push(agg.product_id);
         return;
       }
 
       inventoryLogs.push({
         inventory_id: inv.id,
-        product_id: item.product_id,
-        variant_id: item.variant_id ?? null,
+        product_id: agg.product_id,
+        variant_id: agg.variant_id ?? null,
         change_type: 'order',
         qty_before: inv.reserved_preorder,
-        qty_after: inv.reserved_preorder + item.qty,
-        qty_change: item.qty,
+        qty_after: inv.reserved_preorder + agg.totalQty,
+        qty_change: agg.totalQty,
         reason: `訂單 #${order.id}`,
         admin_name: '系統',
         order_id: order.id,
@@ -869,7 +968,8 @@ export async function POST(req: NextRequest) {
         .eq('id', prev.batchId)
         .eq('reserved', prev.newReserved);
     }
-    for (const prev of shipDateLockResults) {
+    for (let ri = shipDateLockResults.length - 1; ri >= 0; ri--) {
+      const prev = shipDateLockResults[ri];
       await supabaseAdmin.from('product_ship_dates')
         .update({ reserved: prev.oldReserved })
         .eq('id', prev.id)

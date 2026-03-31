@@ -52,13 +52,16 @@ export async function PATCH(
   // ── 回退庫存：出貨時扣了 stock & reserved（或 reserved_preorder），現在要加回來 ──
   const { data: items } = await supabaseAdmin
     .from('order_items')
-    .select('product_id, variant_id, qty')
+    .select('product_id, variant_id, qty, ship_date_id')
     .eq('order_id', orderId);
 
   if (items && items.length > 0) {
     const inventoryLogs: any[] = [];
 
     for (const item of items) {
+      // date_mode 商品由 product_ship_dates 管理，跳過 inventory 回補
+      if ((item as any).ship_date_id) continue;
+
       let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
       if (item.variant_id) query = query.eq('variant_id', item.variant_id);
       else query = query.is('variant_id', null);
@@ -125,6 +128,50 @@ export async function PATCH(
 
     if (inventoryLogs.length > 0) {
       await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
+    }
+
+    // date_mode 商品：重新預留 product_ship_dates（出貨時釋放的要加回來）
+    const dateModeItems = items.filter((i: any) => i.ship_date_id);
+    for (const item of dateModeItems) {
+      const { data: sd } = await supabaseAdmin
+        .from('product_ship_dates')
+        .select('id, reserved')
+        .eq('id', (item as any).ship_date_id)
+        .single();
+      if (!sd) continue;
+      const oldReserved = sd.reserved ?? 0;
+      const newReserved = oldReserved + item.qty;
+      let lockQ = supabaseAdmin
+        .from('product_ship_dates')
+        .update({ reserved: newReserved })
+        .eq('id', sd.id);
+      if (sd.reserved === null || sd.reserved === undefined) {
+        lockQ = lockQ.is('reserved', null);
+      } else {
+        lockQ = lockQ.eq('reserved', oldReserved);
+      }
+      const { data: updated } = await lockQ.select('id');
+
+      // 樂觀鎖失敗 → 重讀重試一次
+      if (!updated || updated.length === 0) {
+        const { data: retry } = await supabaseAdmin
+          .from('product_ship_dates')
+          .select('id, reserved')
+          .eq('id', sd.id)
+          .single();
+        if (retry) {
+          let retryQ = supabaseAdmin
+            .from('product_ship_dates')
+            .update({ reserved: (retry.reserved ?? 0) + item.qty })
+            .eq('id', retry.id);
+          if (retry.reserved === null || retry.reserved === undefined) {
+            retryQ = retryQ.is('reserved', null);
+          } else {
+            retryQ = retryQ.eq('reserved', retry.reserved);
+          }
+          await retryQ;
+        }
+      }
     }
   }
 

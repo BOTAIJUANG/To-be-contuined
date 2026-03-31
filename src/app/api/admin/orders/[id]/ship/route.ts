@@ -32,10 +32,10 @@ export async function POST(
     return NextResponse.json({ error: '只有處理中的訂單可以出貨' }, { status: 400 });
   }
 
-  // 取得訂單明細
+  // 取得訂單明細（含 ship_date_id 以判斷 date_mode）
   const { data: items } = await supabaseAdmin
     .from('order_items')
-    .select('product_id, variant_id, qty')
+    .select('product_id, variant_id, qty, ship_date_id')
     .eq('order_id', orderId);
 
   if (!items || items.length === 0) {
@@ -52,6 +52,9 @@ export async function POST(
   const invRecords: InvRecord[] = [];
 
   for (const item of items) {
+    // date_mode 商品由 product_ship_dates 管理，跳過 inventory 預檢
+    if ((item as any).ship_date_id) continue;
+
     let query = supabaseAdmin.from('inventory').select('*').eq('product_id', item.product_id);
     if (item.variant_id) query = query.eq('variant_id', item.variant_id);
     else query = query.is('variant_id', null);
@@ -126,6 +129,50 @@ export async function POST(
   // 批次寫入 log
   if (inventoryLogs.length > 0) {
     await supabaseAdmin.from('inventory_logs').insert(inventoryLogs);
+  }
+
+  // ── Phase 2.5：date_mode 商品釋放預留量 ────────────
+  const dateModeItems = items.filter((i: any) => i.ship_date_id);
+  for (const item of dateModeItems) {
+    const { data: sd } = await supabaseAdmin
+      .from('product_ship_dates')
+      .select('id, reserved')
+      .eq('id', (item as any).ship_date_id)
+      .single();
+    if (!sd) continue;
+    const oldReserved = sd.reserved ?? 0;
+    const newReserved = Math.max(0, oldReserved - item.qty);
+    let lockQ = supabaseAdmin
+      .from('product_ship_dates')
+      .update({ reserved: newReserved })
+      .eq('id', sd.id);
+    if (sd.reserved === null || sd.reserved === undefined) {
+      lockQ = lockQ.is('reserved', null);
+    } else {
+      lockQ = lockQ.eq('reserved', oldReserved);
+    }
+    const { data: updated } = await lockQ.select('id');
+
+    // 樂觀鎖失敗 → 重讀重試一次
+    if (!updated || updated.length === 0) {
+      const { data: retry } = await supabaseAdmin
+        .from('product_ship_dates')
+        .select('id, reserved')
+        .eq('id', sd.id)
+        .single();
+      if (retry) {
+        let retryQ = supabaseAdmin
+          .from('product_ship_dates')
+          .update({ reserved: Math.max(0, (retry.reserved ?? 0) - item.qty) })
+          .eq('id', retry.id);
+        if (retry.reserved === null || retry.reserved === undefined) {
+          retryQ = retryQ.is('reserved', null);
+        } else {
+          retryQ = retryQ.eq('reserved', retry.reserved);
+        }
+        await retryQ;
+      }
+    }
   }
 
   // ── Phase 3：全部成功，更新訂單狀態 ────────────

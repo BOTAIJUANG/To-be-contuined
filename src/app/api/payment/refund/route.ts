@@ -65,12 +65,20 @@ export async function POST(req: NextRequest) {
   }
   const reason = refund_reason ?? '';
 
-  // ── 2. 先標記為 processing ──────────────────────
-  await supabaseAdmin.from('orders').update({
+  // ── 2. 原子標記為 processing（防止併發退款）──────────
+  const { data: processingLock } = await supabaseAdmin.from('orders').update({
     refund_status: 'processing',
     refund_amount: amount,
     refund_reason: reason,
-  }).eq('id', order.id);
+  })
+    .eq('id', order.id)
+    .eq('pay_status', 'paid')
+    .or('refund_status.is.null,refund_status.eq.failed')
+    .select('id');
+
+  if (!processingLock || processingLock.length === 0) {
+    return NextResponse.json({ error: '此訂單正在退款或已退款完成' }, { status: 400 });
+  }
 
   // ── 3. 信用卡 → 呼叫綠界退款 ───────────────────
   const isATM = order.pay_method === 'atm';
@@ -214,7 +222,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 4b. 扣章（先確認該訂單是否真的有集章紀錄，避免扣到沒發過的章）
-  if (order.member_id && order.status === 'done') {
+  // 不限 order.status：集章在付款時就發出（processing/shipped/done 皆可能有章）
+  if (order.member_id) {
     try {
       const { data: awardLog } = await supabaseAdmin
         .from('stamp_logs')

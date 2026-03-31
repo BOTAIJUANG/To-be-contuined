@@ -13,13 +13,19 @@ import ClientShell from '@/components/ClientShell';
 import { supabase } from '@/lib/supabase';
 import Script from 'next/script';
 
-// 動態產生 metadata（從 store_settings 讀取）
-export async function generateMetadata(): Promise<Metadata> {
+// 一次查詢 store_settings（SEO + 追蹤代碼 + 色彩），避免重複 DB 呼叫
+async function getStoreSettings() {
   const { data } = await supabase
     .from('store_settings')
-    .select('seo_title, seo_description, seo_keywords, og_title, og_description, og_image_url, name')
+    .select('name, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_url, ga4_id, fb_pixel_id, gtm_id, color_bg, color_surface, color_dark, color_price, color_btn, font_title, font_body')
     .eq('id', 1)
     .single();
+  return data;
+}
+
+// 動態產生 metadata（從 store_settings 讀取）
+export async function generateMetadata(): Promise<Metadata> {
+  const data = await getStoreSettings();
 
   return {
     title: {
@@ -38,18 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// 取得追蹤代碼和色彩設定
-async function getAppConfig() {
-  const { data } = await supabase
-    .from('store_settings')
-    .select('ga4_id, fb_pixel_id, gtm_id, color_bg, color_surface, color_dark, color_price, color_btn, font_title, font_body')
-    .eq('id', 1)
-    .single();
-  return data;
-}
-
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const config = await getAppConfig();
+  const config = await getStoreSettings();
 
   const ga4Id      = config?.ga4_id      ?? '';
   const fbPixelId  = config?.fb_pixel_id ?? '';
@@ -74,6 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="zh-TW">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400&family=Noto+Sans+TC:wght@300;400;500;700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet" />
         {colorVars && <style dangerouslySetInnerHTML={{ __html: colorVars }} />}
 

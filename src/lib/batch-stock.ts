@@ -86,11 +86,11 @@ export async function releaseShipDateReserved(orderId: number) {
     .eq('id', orderId)
     .single();
 
+  // 不再過濾 is_gift，因為 date_mode 贈品也有 ship_date_id 需要釋放
   const { data: items } = await supabaseAdmin
     .from('order_items')
     .select('product_id, variant_id, qty, ship_date_id')
-    .eq('order_id', orderId)
-    .eq('is_gift', false);
+    .eq('order_id', orderId);
   if (!items || items.length === 0) return;
 
   // 只處理有 ship_date_id 的項目（不靠 products.stock_mode，因為商品可能已切回總量模式）
