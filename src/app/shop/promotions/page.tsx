@@ -57,7 +57,7 @@ async function getPromotionProducts(): Promise<Product[]> {
   if (preorderIds.length > 0) {
     const { data: batches } = await supabaseAdmin
       .from('preorder_batches')
-      .select('product_id, limit_qty, reserved')
+      .select('*')
       .in('product_id', preorderIds)
       .eq('is_active', true);
     (batches ?? []).forEach((b: any) => {

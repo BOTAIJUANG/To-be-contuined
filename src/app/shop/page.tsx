@@ -51,7 +51,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     if (preorderIds.size > 0) {
       const { data: batches } = await supabaseAdmin
         .from('preorder_batches')
-        .select('product_id, limit_qty, reserved')
+        .select('*')
         .in('product_id', [...preorderIds])
         .eq('is_active', true);
 
