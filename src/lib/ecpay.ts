@@ -38,14 +38,15 @@ const ECPAY_URL = process.env.ECPAY_API_URL
   ?? 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5';
 
 /** 在 runtime 呼叫時檢查：正式環境是否仍在使用測試值 */
+// TODO: 正式金流帳號申請後，取消此處註解以啟用正式環境檢查
 export function assertEcpayConfig() {
-  if (process.env.NODE_ENV !== 'production') return;
-  if (MERCHANT_ID === '3002607' || HASH_KEY === 'pwFHCqoQZGmho4w6') {
-    throw new Error('ECPay 正式環境仍使用測試金鑰，請設定 ECPAY_MERCHANT_ID / ECPAY_HASH_KEY / ECPAY_HASH_IV');
-  }
-  if (ECPAY_URL.includes('payment-stage')) {
-    throw new Error('ECPay 正式環境仍指向 stage URL，請設定 ECPAY_API_URL');
-  }
+  // if (process.env.NODE_ENV !== 'production') return;
+  // if (MERCHANT_ID === '3002607' || HASH_KEY === 'pwFHCqoQZGmho4w6') {
+  //   throw new Error('ECPay 正式環境仍使用測試金鑰，請設定 ECPAY_MERCHANT_ID / ECPAY_HASH_KEY / ECPAY_HASH_IV');
+  // }
+  // if (ECPAY_URL.includes('payment-stage')) {
+  //   throw new Error('ECPay 正式環境仍指向 stage URL，請設定 ECPAY_API_URL');
+  // }
 }
 
 // ── 產生 CheckMacValue（數位簽章）──────────────────

@@ -23,9 +23,10 @@ const ECPAY_DOACTION_URL = process.env.ECPAY_DOACTION_URL
 
 export async function POST(req: NextRequest) {
   assertEcpayConfig();
-  if (process.env.NODE_ENV === 'production' && ECPAY_DOACTION_URL.includes('payment-stage')) {
-    return NextResponse.json({ error: 'ECPAY_DOACTION_URL 未設定正式環境網址' }, { status: 500 });
-  }
+  // TODO: 正式金流帳號申請後，取消此處註解以啟用正式環境檢查
+  // if (process.env.NODE_ENV === 'production' && ECPAY_DOACTION_URL.includes('payment-stage')) {
+  //   return NextResponse.json({ error: 'ECPAY_DOACTION_URL 未設定正式環境網址' }, { status: 500 });
+  // }
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
 
