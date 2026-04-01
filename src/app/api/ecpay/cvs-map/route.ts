@@ -13,9 +13,10 @@ const ECPAY_MAP_URL = process.env.ECPAY_MAP_URL
   ?? 'https://logistics-stage.ecpay.com.tw/Express/map';
 
 export async function POST(req: NextRequest) {
-  if (process.env.NODE_ENV === 'production' && (MERCHANT_ID === '2000132' || ECPAY_MAP_URL.includes('logistics-stage'))) {
-    return NextResponse.json({ error: 'ECPay 物流環境變數未設定正式環境值' }, { status: 500 });
-  }
+  // TODO: 正式物流帳號申請後，取消此註解以啟用正式環境檢查
+  // if (process.env.NODE_ENV === 'production' && (MERCHANT_ID === '2000132' || ECPAY_MAP_URL.includes('logistics-stage'))) {
+  //   return NextResponse.json({ error: 'ECPay 物流環境變數未設定正式環境值' }, { status: 500 });
+  // }
   const body = await req.json();
   const { token, subtype } = body as { token?: string; subtype?: string };
 
