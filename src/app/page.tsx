@@ -3,6 +3,7 @@
 export const revalidate = 0;
 
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import HeroCarousel from '@/components/HeroCarousel';
 import ProductCard, { Product } from '@/components/ProductCard';
 import Footer from '@/components/Footer';
@@ -17,16 +18,36 @@ async function getFeaturedProducts(): Promise<Product[]> {
     .eq('is_available', true)
     .order('sort_order');
 
-  return (data ?? []).map((p: any) => ({
-    id:         String(p.id),
-    name:       p.name,
-    slug:       p.slug,
-    price:      p.price,
-    imageUrl:   p.image_url ?? undefined,
-    category:   p.categories?.name ?? '',
-    isSoldOut:  p.is_sold_out  ?? false,
-    isPreorder: p.is_preorder  ?? false,
-  }));
+  const products = data ?? [];
+  const preorderIds = products.filter((p: any) => p.is_preorder).map((p: any) => p.id);
+  const preorderHasBatch = new Set<number>();
+  if (preorderIds.length > 0) {
+    const { data: batches } = await supabaseAdmin
+      .from('preorder_batches')
+      .select('product_id')
+      .in('product_id', preorderIds)
+      .eq('is_active', true);
+    (batches ?? []).forEach((b: any) => preorderHasBatch.add(b.product_id));
+  }
+
+  return products.map((p: any) => {
+    const isPreorder = p.is_preorder ?? false;
+    let preorderStatus: 'active' | 'no_batch' | undefined;
+    if (isPreorder) {
+      preorderStatus = preorderHasBatch.has(p.id) ? 'active' : 'no_batch';
+    }
+    return {
+      id:         String(p.id),
+      name:       p.name,
+      slug:       p.slug,
+      price:      p.price,
+      imageUrl:   p.image_url ?? undefined,
+      category:   p.categories?.name ?? '',
+      isSoldOut:  p.is_sold_out  ?? false,
+      isPreorder,
+      preorderStatus,
+    };
+  });
 }
 
 async function getStoreSettings() {

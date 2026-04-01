@@ -48,6 +48,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   // 查詢即時庫存，判斷真實售完狀態
   const soldOutSet = new Set<number>();
+  const preorderHasBatch = new Set<number>();
   const productIds = products.map((p: any) => p.id);
   if (productIds.length > 0) {
     const { data: invData } = await supabaseAdmin
@@ -75,11 +76,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
       const preorderHasAvail = new Set<number>();
       (batches ?? []).forEach((b: any) => {
+        preorderHasBatch.add(b.product_id);
         if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
       });
 
       for (const pid of preorderIds) {
-        if (!preorderHasAvail.has(pid)) soldOutSet.add(pid);
+        if (preorderHasBatch.has(pid) && !preorderHasAvail.has(pid)) soldOutSet.add(pid);
       }
     }
 
@@ -88,16 +90,24 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     }
   }
 
-  const productList: Product[] = products.map((p: any) => ({
-    id:         String(p.id),
-    name:       p.name,
-    slug:       p.slug,
-    price:      p.price,
-    imageUrl:   p.image_url ?? undefined,
-    category:   p.categories?.name ?? '',
-    isSoldOut:  p.is_sold_out || soldOutSet.has(p.id),
-    isPreorder: p.is_preorder  ?? false,
-  }));
+  const productList: Product[] = products.map((p: any) => {
+    const isPreorder = p.is_preorder ?? false;
+    let preorderStatus: 'active' | 'no_batch' | undefined;
+    if (isPreorder) {
+      preorderStatus = preorderHasBatch.has(p.id) ? 'active' : 'no_batch';
+    }
+    return {
+      id:         String(p.id),
+      name:       p.name,
+      slug:       p.slug,
+      price:      p.price,
+      imageUrl:   p.image_url ?? undefined,
+      category:   p.categories?.name ?? '',
+      isSoldOut:  p.is_sold_out || soldOutSet.has(p.id),
+      isPreorder,
+      preorderStatus,
+    };
+  });
 
   return (
     <>

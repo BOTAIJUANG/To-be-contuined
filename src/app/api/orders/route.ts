@@ -177,8 +177,8 @@ export async function POST(req: NextRequest) {
     if (!product) continue; // 下方會再檢查
     const blocked =
       (shipMethod === 'home'     && product.allow_home_delivery === false) ||
-      (shipMethod === 'cvs'      && product.allow_cvs_711 === false) ||
-      (shipMethod === 'pickup'   && product.allow_store_pickup === false);
+      (shipMethod === 'cvs_711'  && product.allow_cvs_711 === false) ||
+      (shipMethod === 'store'    && product.allow_store_pickup === false);
     if (blocked) {
       return NextResponse.json(
         { error: `商品「${product.name}」不支援此出貨方式` },
