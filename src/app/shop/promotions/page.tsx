@@ -53,21 +53,23 @@ async function getPromotionProducts(): Promise<Product[]> {
 
   const allProducts = products ?? [];
   const preorderIds = allProducts.filter((p: any) => p.is_preorder).map((p: any) => p.id);
-  const preorderHasBatch = new Set<number>();
+  const preorderHasAvail = new Set<number>();
   if (preorderIds.length > 0) {
     const { data: batches } = await supabaseAdmin
       .from('preorder_batches')
-      .select('product_id')
+      .select('product_id, limit_qty, reserved')
       .in('product_id', preorderIds)
       .eq('is_active', true);
-    (batches ?? []).forEach((b: any) => preorderHasBatch.add(b.product_id));
+    (batches ?? []).forEach((b: any) => {
+      if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
+    });
   }
 
   return allProducts.map((p: any) => {
     const isPreorder = p.is_preorder ?? false;
     let preorderStatus: 'active' | 'no_batch' | undefined;
     if (isPreorder) {
-      preorderStatus = preorderHasBatch.has(p.id) ? 'active' : 'no_batch';
+      preorderStatus = preorderHasAvail.has(p.id) ? 'active' : 'no_batch';
     }
     return {
       id:         String(p.id),

@@ -27,6 +27,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
   // 查詢即時庫存，判斷真實售完狀態
   const soldOutSet = new Set<number>();
   const preorderHasBatch = new Set<number>();
+  const preorderHasAvail = new Set<number>();
   if (productIds.length > 0) {
     const { data: invData } = await supabaseAdmin
       .from('inventory')
@@ -46,8 +47,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     // 預購商品：若所有批次都已額滿（reserved >= limit_qty）也標為售完
     const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
 
-    // 查詢預購批次，判斷是否全部額滿
-    const preorderHasAvail = new Set<number>();
+    // 查詢預購批次
     if (preorderIds.size > 0) {
       const { data: batches } = await supabaseAdmin
         .from('preorder_batches')
@@ -61,11 +61,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
         if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
       });
 
-      for (const pid of preorderIds) {
-        // 只有「有 active 批次但全部額滿」才算完售
-        // 沒有 active 批次的預購商品不標為完售（顯示為「預購中」）
-        if (preorderHasBatch.has(pid) && !preorderHasAvail.has(pid)) soldOutSet.add(pid);
-      }
+      // 預購商品不加入 soldOutSet（批次售完或無批次都顯示「暫停接單」，由 preorderStatus 控制）
     }
 
     for (const pid of productIds) {
@@ -87,7 +83,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     const isPreorder = p.is_preorder ?? false;
     let preorderStatus: 'active' | 'no_batch' | undefined;
     if (isPreorder) {
-      preorderStatus = preorderHasBatch.has(p.id) ? 'active' : 'no_batch';
+      preorderStatus = preorderHasAvail.has(p.id) ? 'active' : 'no_batch';
     }
     return {
       id:         String(p.id),

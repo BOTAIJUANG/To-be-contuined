@@ -169,7 +169,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {product.is_sold_out && (
             <div className={`${s.badge} ${s.badgeSoldOut}`}>已完售</div>
           )}
-          {!product.is_sold_out && product.is_preorder && (
+          {!product.is_sold_out && product.is_preorder && preorderStatus === 'no_batch' && (
+            <div className={`${s.badge} ${s.badgeSoldOut}`}>暫停接單</div>
+          )}
+          {!product.is_sold_out && product.is_preorder && preorderStatus !== 'no_batch' && (
             <div className={`${s.badge} ${s.badgePreorder}`}>預購中</div>
           )}
         </div>

@@ -48,7 +48,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   // 查詢即時庫存，判斷真實售完狀態
   const soldOutSet = new Set<number>();
-  const preorderHasBatch = new Set<number>();
+  const preorderHasAvail = new Set<number>();
   const productIds = products.map((p: any) => p.id);
   if (productIds.length > 0) {
     const { data: invData } = await supabaseAdmin
@@ -64,7 +64,6 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       availableByProduct[inv.product_id] = (availableByProduct[inv.product_id] ?? 0) + Math.max(0, avail);
     });
 
-    // 預購商品：若所有批次都已額滿（reserved >= limit_qty）也標為售完
     const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
 
     if (preorderIds.size > 0) {
@@ -74,15 +73,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         .in('product_id', [...preorderIds])
         .eq('is_active', true);
 
-      const preorderHasAvail = new Set<number>();
       (batches ?? []).forEach((b: any) => {
-        preorderHasBatch.add(b.product_id);
         if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
       });
 
-      for (const pid of preorderIds) {
-        if (preorderHasBatch.has(pid) && !preorderHasAvail.has(pid)) soldOutSet.add(pid);
-      }
+      // 預購商品不加入 soldOutSet（批次售完或無批次都顯示「暫停接單」，由 preorderStatus 控制）
     }
 
     for (const pid of productIds) {
@@ -94,7 +89,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     const isPreorder = p.is_preorder ?? false;
     let preorderStatus: 'active' | 'no_batch' | undefined;
     if (isPreorder) {
-      preorderStatus = preorderHasBatch.has(p.id) ? 'active' : 'no_batch';
+      preorderStatus = preorderHasAvail.has(p.id) ? 'active' : 'no_batch';
     }
     return {
       id:         String(p.id),
