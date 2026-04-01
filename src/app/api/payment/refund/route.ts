@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   // ── 1. 取得完整訂單資料 ────────────────────────
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, total, status, pay_status, pay_method, ecpay_trade_no, member_id, redemption_id, refund_status')
+    .select('id, order_no, total, status, pay_status, pay_method, ecpay_trade_no, member_id, redemption_id, refund_status, coupon_code')
     .eq('id', order_id)
     .single();
 
@@ -285,21 +285,51 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         }).eq('id', order.redemption_id);
 
-        // 解凍被凍結的章數（僅限章數仍凍結中的狀態：pending_cart / pending_order）
-        if (redemption.stamps_cost > 0 && ['pending_cart', 'pending_order'].includes(redemption.status)) {
-          const { data: member } = await supabaseAdmin
-            .from('members')
-            .select('stamps_frozen')
-            .eq('id', redemption.member_id)
-            .single();
+        if (redemption.stamps_cost > 0) {
+          if (['pending_cart', 'pending_order'].includes(redemption.status)) {
+            // 章數仍凍結中 → 解凍 stamps_frozen
+            const { data: member } = await supabaseAdmin
+              .from('members')
+              .select('stamps_frozen')
+              .eq('id', redemption.member_id)
+              .single();
 
-          if (member) {
-            const frozenBefore = member.stamps_frozen ?? 0;
-            const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
-              stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
-            }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
-            if (!frozenUpdated || frozenUpdated.length === 0) {
-              warnings.push('凍結章數解凍衝突');
+            if (member) {
+              const frozenBefore = member.stamps_frozen ?? 0;
+              const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
+                stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
+              }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
+              if (!frozenUpdated || frozenUpdated.length === 0) {
+                warnings.push('凍結章數解凍衝突');
+              }
+            }
+          } else if (redemption.status === 'used') {
+            // 章數已永久扣除（訂單完成時扣的）→ 恢復 stamps
+            const { data: member } = await supabaseAdmin
+              .from('members')
+              .select('stamps')
+              .eq('id', redemption.member_id)
+              .single();
+
+            if (member) {
+              const stampsBefore = member.stamps ?? 0;
+              const stampsAfter = stampsBefore + redemption.stamps_cost;
+              const { data: stampsUpdated } = await supabaseAdmin.from('members').update({
+                stamps: stampsAfter,
+                stamp_last_updated: new Date().toISOString(),
+              }).eq('id', redemption.member_id).eq('stamps', stampsBefore).select('id');
+              if (stampsUpdated && stampsUpdated.length > 0) {
+                await supabaseAdmin.from('stamp_logs').insert({
+                  member_id: redemption.member_id,
+                  order_id: order.id,
+                  change: redemption.stamps_cost,
+                  stamps_before: stampsBefore,
+                  stamps_after: stampsAfter,
+                  reason: '退款恢復兌換章數',
+                });
+              } else {
+                warnings.push('兌換章數恢復衝突');
+              }
             }
           }
         }
@@ -310,10 +340,30 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4d. 釋放預購批次預留量
+  // 4d. 釋放折價券使用次數
+  if (order.coupon_code) {
+    try {
+      const { data: coupon } = await supabaseAdmin
+        .from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
+      if (coupon && (coupon.used_count ?? 0) > 0) {
+        const { data: couponUpdated } = await supabaseAdmin.from('coupons')
+          .update({ used_count: coupon.used_count - 1 })
+          .eq('id', coupon.id).eq('used_count', coupon.used_count)
+          .select('id');
+        if (!couponUpdated || couponUpdated.length === 0) {
+          warnings.push('折價券使用次數釋放衝突');
+        }
+      }
+    } catch (err) {
+      console.error('退款折價券釋放失敗:', err);
+      warnings.push('折價券使用次數釋放失敗');
+    }
+  }
+
+  // 4e. 釋放預購批次預留量
   await releaseBatchReserved(order.id);
 
-  // 4e. 釋放日期模式預留量
+  // 4f. 釋放日期模式預留量
   await releaseShipDateReserved(order.id);
 
   // ── 5. 最後才更新訂單最終狀態 ─────────────────

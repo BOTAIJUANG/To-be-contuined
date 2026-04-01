@@ -111,6 +111,35 @@ export async function POST(req: NextRequest) {
   if (!memberId && body.redemption_id) {
     return NextResponse.json({ error: '兌換品僅限會員使用，請先登入' }, { status: 400 });
   }
+  // ── is_redeem 後端驗證：防止偽造免費商品 ──
+  const redeemItems = body.items.filter(i => i.is_redeem);
+  if (redeemItems.length > 0) {
+    if (!body.redemption_id) {
+      return NextResponse.json({ error: '兌換品需搭配有效的兌換單' }, { status: 400 });
+    }
+    // 驗證 redemption 存在且屬於該會員、狀態為 pending_cart
+    const { data: redemption } = await supabaseAdmin
+      .from('redemptions')
+      .select('id, member_id, status, redeem_item_id')
+      .eq('id', body.redemption_id)
+      .single();
+    if (!redemption || redemption.member_id !== memberId || redemption.status !== 'pending_cart') {
+      return NextResponse.json({ error: '兌換單無效或已過期' }, { status: 400 });
+    }
+    // 驗證 is_redeem 項目的 product_id 對應 redeem_items 表中的商品
+    const { data: redeemItemDef } = await supabaseAdmin
+      .from('redeem_items')
+      .select('product_id')
+      .eq('id', redemption.redeem_item_id)
+      .single();
+    if (redeemItemDef) {
+      for (const ri of redeemItems) {
+        if (ri.product_id !== redeemItemDef.product_id) {
+          return NextResponse.json({ error: '兌換品與兌換單不符' }, { status: 400 });
+        }
+      }
+    }
+  }
   // ── 配送方式白名單 + 條件必填驗證 ──
   const ALLOWED_SHIP_METHODS = ['home', 'cvs_711', 'store'];
   if (!body.ship_method || !ALLOWED_SHIP_METHODS.includes(body.ship_method)) {

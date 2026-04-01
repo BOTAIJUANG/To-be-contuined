@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const creditCutoff = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
   const { data: creditOrders } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, coupon_code')
+    .select('id, order_no, coupon_code, redemption_id, member_id')
     .eq('pay_status', 'pending')
     .eq('pay_method', 'credit')
     .neq('status', 'cancelled')
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   const atmCutoff = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
   const { data: atmOrders } = await supabaseAdmin
     .from('orders')
-    .select('id, order_no, coupon_code')
+    .select('id, order_no, coupon_code, redemption_id, member_id')
     .eq('pay_status', 'pending')
     .eq('pay_method', 'atm')
     .neq('status', 'cancelled')
@@ -152,6 +152,45 @@ export async function GET(req: NextRequest) {
         if (!couponUpdated || couponUpdated.length === 0) {
           console.warn(`[cron] 折價券釋放衝突 coupon=${coupon.id}，訂單=${order.order_no}`);
         }
+      }
+    }
+
+    // 釋放兌換品 + 解凍集章
+    if (order.redemption_id) {
+      try {
+        const { data: redemption } = await supabaseAdmin
+          .from('redemptions')
+          .select('id, member_id, stamps_cost, status')
+          .eq('id', order.redemption_id)
+          .single();
+
+        if (redemption) {
+          await supabaseAdmin.from('redemptions').update({
+            status: 'released',
+            updated_at: now.toISOString(),
+          }).eq('id', order.redemption_id);
+
+          // 解凍凍結的章數（未付款訂單的 redemption 應為 pending_order）
+          if (redemption.stamps_cost > 0 && ['pending_cart', 'pending_order'].includes(redemption.status)) {
+            const { data: member } = await supabaseAdmin
+              .from('members')
+              .select('stamps_frozen')
+              .eq('id', redemption.member_id)
+              .single();
+
+            if (member) {
+              const frozenBefore = member.stamps_frozen ?? 0;
+              const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
+                stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
+              }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
+              if (!frozenUpdated || frozenUpdated.length === 0) {
+                console.warn(`[cron] 凍結章數解凍衝突 member_id=${redemption.member_id}，訂單=${order.order_no}`);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[cron] 兌換品釋放失敗，訂單=${order.order_no}:`, err);
       }
     }
 

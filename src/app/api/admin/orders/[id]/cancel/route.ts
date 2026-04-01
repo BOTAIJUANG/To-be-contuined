@@ -157,21 +157,51 @@ export async function POST(
           updated_at: new Date().toISOString(),
         }).eq('id', order.redemption_id);
 
-        // 解凍被凍結的章數（僅限章數仍凍結中的狀態：pending_cart / pending_order）
-        if (redemption.stamps_cost > 0 && ['pending_cart', 'pending_order'].includes(redemption.status)) {
-          const { data: member } = await supabaseAdmin
-            .from('members')
-            .select('stamps_frozen')
-            .eq('id', redemption.member_id)
-            .single();
+        if (redemption.stamps_cost > 0) {
+          if (['pending_cart', 'pending_order'].includes(redemption.status)) {
+            // 章數仍凍結中 → 解凍 stamps_frozen
+            const { data: member } = await supabaseAdmin
+              .from('members')
+              .select('stamps_frozen')
+              .eq('id', redemption.member_id)
+              .single();
 
-          if (member) {
-            const frozenBefore = member.stamps_frozen ?? 0;
-            const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
-              stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
-            }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
-            if (!frozenUpdated || frozenUpdated.length === 0) {
-              console.error(`[cancel] 凍結章數解凍衝突 member_id=${redemption.member_id}`);
+            if (member) {
+              const frozenBefore = member.stamps_frozen ?? 0;
+              const { data: frozenUpdated } = await supabaseAdmin.from('members').update({
+                stamps_frozen: Math.max(0, frozenBefore - redemption.stamps_cost),
+              }).eq('id', redemption.member_id).eq('stamps_frozen', frozenBefore).select('id');
+              if (!frozenUpdated || frozenUpdated.length === 0) {
+                console.error(`[cancel] 凍結章數解凍衝突 member_id=${redemption.member_id}`);
+              }
+            }
+          } else if (redemption.status === 'used') {
+            // 章數已永久扣除（訂單完成時扣的）→ 恢復 stamps
+            const { data: member } = await supabaseAdmin
+              .from('members')
+              .select('stamps')
+              .eq('id', redemption.member_id)
+              .single();
+
+            if (member) {
+              const stampsBefore = member.stamps ?? 0;
+              const stampsAfter = stampsBefore + redemption.stamps_cost;
+              const { data: stampsUpdated } = await supabaseAdmin.from('members').update({
+                stamps: stampsAfter,
+                stamp_last_updated: new Date().toISOString(),
+              }).eq('id', redemption.member_id).eq('stamps', stampsBefore).select('id');
+              if (stampsUpdated && stampsUpdated.length > 0) {
+                await supabaseAdmin.from('stamp_logs').insert({
+                  member_id: redemption.member_id,
+                  order_id: orderId,
+                  change: redemption.stamps_cost,
+                  stamps_before: stampsBefore,
+                  stamps_after: stampsAfter,
+                  reason: '取消訂單恢復兌換章數',
+                });
+              } else {
+                console.error(`[cancel] 兌換章數恢復衝突 member_id=${redemption.member_id}`);
+              }
             }
           }
         }
