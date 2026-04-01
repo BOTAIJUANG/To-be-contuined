@@ -63,23 +63,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const activeBatches = product.is_preorder ? await getActiveBatches(product.id) : [];
   const hasBatches    = activeBatches.length > 0;
 
-  // 從 order_items 計算每個批次的實際已訂量（排除取消訂單），作為剩餘量依據
-  const batchIds = activeBatches.map((b: any) => b.id);
-  let batchOrderedMap: Record<number, number> = {};
-  if (batchIds.length > 0) {
-    const { data: batchItems } = await supabaseAdmin
-      .from('order_items')
-      .select('preorder_batch_id, qty, orders!inner(status)')
-      .in('preorder_batch_id', batchIds)
-      .neq('orders.status', 'cancelled');
-    (batchItems ?? []).forEach((i: any) => {
-      batchOrderedMap[i.preorder_batch_id] = (batchOrderedMap[i.preorder_batch_id] ?? 0) + (i.qty ?? 0);
-    });
-  }
+  // 直接用 preorder_batches.reserved 計算剩餘量（與 shop 頁、下單 API 一致）
   const batchRemainingMap: Record<number, number> = {};
   activeBatches.forEach((b: any) => {
-    const ordered = batchOrderedMap[b.id] ?? 0;
-    batchRemainingMap[b.id] = Math.max(0, (b.limit_qty ?? 0) - ordered);
+    batchRemainingMap[b.id] = Math.max(0, (b.limit_qty ?? 0) - (b.reserved ?? 0));
   });
   const preorderStatus = (() => {
     if (!product.is_preorder) return null;

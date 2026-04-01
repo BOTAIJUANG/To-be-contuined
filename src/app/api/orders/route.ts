@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
   const [productsRes, variantsRes, settingsRes, promosRes, couponRes] = await Promise.all([
     // 商品真實價格 + 出貨日驗證用欄位
-    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates').in('id', productIds),
+    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates, allow_home_delivery, allow_cvs_711, allow_store_pickup').in('id', productIds),
     // 規格真實價格
     variantIds.length > 0
       ? supabaseAdmin.from('product_variants').select('id, product_id, name, price, price_diff').in('id', variantIds)
@@ -168,6 +168,24 @@ export async function POST(req: NextRequest) {
 
   const productMap = new Map(products.map(p => [p.id, p]));
   const settings = settingsRes.data;
+
+  // ── 3.5 後端出貨方式驗證 ──
+  // 前端已限制可選的出貨方式，這裡做後端二次確認防止繞過
+  const shipMethod = body.ship_method;
+  for (const item of body.items) {
+    const product = productMap.get(item.product_id) as any;
+    if (!product) continue; // 下方會再檢查
+    const blocked =
+      (shipMethod === 'home'     && product.allow_home_delivery === false) ||
+      (shipMethod === 'cvs'      && product.allow_cvs_711 === false) ||
+      (shipMethod === 'pickup'   && product.allow_store_pickup === false);
+    if (blocked) {
+      return NextResponse.json(
+        { error: `商品「${product.name}」不支援此出貨方式` },
+        { status: 400 },
+      );
+    }
+  }
 
   // ── 4. 計算真實金額 ──
   let subtotal = 0;

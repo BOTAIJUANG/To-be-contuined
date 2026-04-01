@@ -26,6 +26,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
 
   // 查詢即時庫存，判斷真實售完狀態
   const soldOutSet = new Set<number>();
+  const preorderHasBatch = new Set<number>();
   if (productIds.length > 0) {
     const { data: invData } = await supabaseAdmin
       .from('inventory')
@@ -46,6 +47,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
 
     // 查詢預購批次，判斷是否全部額滿
+    const preorderHasAvail = new Set<number>();
     if (preorderIds.size > 0) {
       const { data: batches } = await supabaseAdmin
         .from('preorder_batches')
@@ -54,8 +56,6 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
         .eq('is_active', true);
 
       // 按商品分組：有任一批次有餘量就不算售完
-      const preorderHasAvail = new Set<number>();
-      const preorderHasBatch = new Set<number>();
       (batches ?? []).forEach((b: any) => {
         preorderHasBatch.add(b.product_id);
         if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
@@ -83,16 +83,24 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
 
-  return sorted.map((p: any) => ({
-    id:         String(p.id),
-    name:       p.name,
-    slug:       p.slug,
-    price:      p.price,
-    imageUrl:   p.image_url ?? undefined,
-    category:   p.categories?.name ?? '',
-    isSoldOut:  p.is_sold_out || soldOutSet.has(p.id),
-    isPreorder: p.is_preorder  ?? false,
-  }));
+  return sorted.map((p: any) => {
+    const isPreorder = p.is_preorder ?? false;
+    let preorderStatus: 'active' | 'no_batch' | undefined;
+    if (isPreorder) {
+      preorderStatus = preorderHasBatch.has(p.id) ? 'active' : 'no_batch';
+    }
+    return {
+      id:         String(p.id),
+      name:       p.name,
+      slug:       p.slug,
+      price:      p.price,
+      imageUrl:   p.image_url ?? undefined,
+      category:   p.categories?.name ?? '',
+      isSoldOut:  p.is_sold_out || soldOutSet.has(p.id),
+      isPreorder,
+      preorderStatus,
+    };
+  });
 }
 
 async function getStoreSettings() {

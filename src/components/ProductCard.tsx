@@ -11,20 +11,23 @@ export interface ProductPromoTag {
 }
 
 export interface Product {
-  id:          string;
-  name:        string;
-  category:    string;
-  price:       number;
-  imageUrl?:   string;
-  slug:        string;
-  isSoldOut?:  boolean;
-  isPreorder?: boolean;
-  promoTags?:  ProductPromoTag[];
+  id:              string;
+  name:            string;
+  category:        string;
+  price:           number;
+  imageUrl?:       string;
+  slug:            string;
+  isSoldOut?:      boolean;
+  isPreorder?:     boolean;
+  preorderStatus?: 'active' | 'no_batch';
+  promoTags?:      ProductPromoTag[];
 }
 
 export default function ProductCard({ product }: { product: Product }) {
   const badge = product.isSoldOut
     ? { text: '已完售', cls: s.badgeSoldOut }
+    : product.isPreorder && product.preorderStatus === 'no_batch'
+    ? { text: '暫停接單', cls: s.badgeSoldOut }
     : product.isPreorder
     ? { text: '預購中', cls: s.badgePreorder }
     : null;

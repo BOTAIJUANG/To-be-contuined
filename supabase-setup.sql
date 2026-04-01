@@ -164,6 +164,14 @@ CREATE POLICY "admin 管理" ON product_ship_dates FOR ALL USING (is_admin());
 
 
 -- ╔══════════════════════════════════════════════╗
+-- ║  B2. Index ── 唯一索引                       ║
+-- ╚══════════════════════════════════════════════╝
+
+-- 訂單編號唯一，防止極端併發產生重複編號
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_order_no_unique ON orders (order_no);
+
+
+-- ╔══════════════════════════════════════════════╗
 -- ║  C. RPC 函數 ── 後端原子操作                ║
 -- ╚══════════════════════════════════════════════╝
 
