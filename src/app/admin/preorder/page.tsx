@@ -149,7 +149,15 @@ export default function AdminPreorderPage() {
 
   const deleteBatch = async (id: number) => {
     if (!confirm('確定要刪除此批次？')) return;
-    await supabase.from('preorder_batches').delete().eq('id', id);
+    // 先確認是否有訂單記錄（有的話無法刪除）
+    const { count } = await supabase
+      .from('order_items').select('id', { count: 'exact', head: true }).eq('preorder_batch_id', id);
+    if ((count ?? 0) > 0) {
+      alert(`此批次已有 ${count} 筆訂單，無法刪除。若要停止接單請改用「關閉」狀態。`);
+      return;
+    }
+    const { error } = await supabase.from('preorder_batches').delete().eq('id', id);
+    if (error) { alert('刪除失敗：' + error.message); return; }
     load();
   };
 

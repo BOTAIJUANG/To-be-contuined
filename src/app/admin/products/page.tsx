@@ -493,9 +493,21 @@ export default function AdminProductsPage() {
   };
   const handleDeleteProduct = async (prod: Product) => {
     if (!confirm(`確定要刪除「${prod.name}」？此操作無法復原。`)) return;
+    // 先確認是否有歷史訂單（order_items FK 會擋刪除）
+    const { count } = await supabase
+      .from('order_items').select('id', { count: 'exact', head: true }).eq('product_id', prod.id);
+    if ((count ?? 0) > 0) {
+      if (!confirm(`此商品有 ${count} 筆訂單記錄，無法直接刪除。\n是否改為「下架」（隱藏商品並保留歷史記錄）？`)) return;
+      const { error } = await supabase.from('products').update({ is_available: false, is_sold_out: true }).eq('id', prod.id);
+      if (error) { alert('下架失敗：' + error.message); return; }
+      setProducts(prev => prev.filter(x => x.id !== prod.id));
+      return;
+    }
+    // 無訂單 → 正常刪除所有關聯資料
     await supabase.from('product_specs').delete().eq('product_id', prod.id);
     await supabase.from('product_ship_dates').delete().eq('product_id', prod.id);
     await supabase.from('product_variants').delete().eq('product_id', prod.id);
+    await supabase.from('preorder_batches').delete().eq('product_id', prod.id);
     const { error } = await supabase.from('products').delete().eq('id', prod.id);
     if (error) { alert('刪除失敗：' + error.message); return; }
     setProducts(prev => prev.filter(x => x.id !== prod.id));
