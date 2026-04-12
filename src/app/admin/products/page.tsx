@@ -33,7 +33,7 @@ export default function AdminProductsPage() {
   const [categories,   setCategories]  = useState<Category[]>([]);
   const [loading,      setLoading]     = useState(true);
   const [filterCat,    setFilterCat]   = useState('');
-  const [filterStatus, setFilterStatus]= useState('');
+  const [filterStatus, setFilterStatus]= useState('on');
   const [search,       setSearch]      = useState('');
 
   // 商品表單
@@ -500,6 +500,7 @@ export default function AdminProductsPage() {
       if (!confirm(`此商品有 ${count} 筆訂單記錄，無法直接刪除。\n是否改為「下架」（隱藏商品並保留歷史記錄）？`)) return;
       const { error } = await supabase.from('products').update({ is_available: false, is_sold_out: true }).eq('id', prod.id);
       if (error) { alert('下架失敗：' + error.message); return; }
+      alert('已成功下架，商品已從前台隱藏。');
       setProducts(prev => prev.map(x => x.id === prod.id ? { ...x, is_available: false, is_sold_out: true } : x));
       return;
     }
