@@ -35,15 +35,17 @@ export default function AdminDailyPage() {
           .eq('ship_date', today)
           .neq('status', 'cancelled')
           .order('created_at', { ascending: false }),
-        supabase.from('inventory').select('*, products(name)').gt('safety_stock', 0),
+        supabase.from('inventory').select('*, products(name, is_preorder)').gt('safety_stock', 0),
         supabase.from('ingredients').select('id, name, stock, safety_stock, unit').gt('safety_stock', 0),
       ]);
 
       setOrders(todayOrders ?? []);
 
+      // 排除預購商品與預購模式；兩者皆由預購系統管理
       const low = (invData ?? []).filter((i: any) => {
-        const available = i.inventory_mode === 'stock' ? i.stock - i.reserved : i.max_preorder - i.reserved_preorder;
-        return available <= i.safety_stock;
+        if (i.inventory_mode !== 'stock') return false;
+        if (i.products?.is_preorder) return false;
+        return (i.stock - i.reserved) <= i.safety_stock;
       });
       setLowStockItems(low);
 
@@ -82,7 +84,7 @@ export default function AdminDailyPage() {
         <div className={s.warningBar}>
           <div className={p.warningTitle}>商品庫存警示</div>
           {lowStockItems.map((item: any) => {
-            const available = item.inventory_mode === 'stock' ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
+            const available = item.stock - item.reserved;
             return (
               <div key={item.id} className={p.warningItem}>
                 <span onClick={() => router.push('/admin/inventory')} className={p.warningLink}>
