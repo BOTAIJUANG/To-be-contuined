@@ -500,7 +500,7 @@ export default function AdminProductsPage() {
       if (!confirm(`此商品有 ${count} 筆訂單記錄，無法直接刪除。\n是否改為「下架」（隱藏商品並保留歷史記錄）？`)) return;
       const { error } = await supabase.from('products').update({ is_available: false, is_sold_out: true }).eq('id', prod.id);
       if (error) { alert('下架失敗：' + error.message); return; }
-      setProducts(prev => prev.filter(x => x.id !== prod.id));
+      setProducts(prev => prev.map(x => x.id === prod.id ? { ...x, is_available: false, is_sold_out: true } : x));
       return;
     }
     // 無訂單 → 正常刪除所有關聯資料
