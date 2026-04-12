@@ -25,10 +25,11 @@ export async function POST(req: NextRequest) {
 
   // 判斷品牌
   const brandMap: Record<string, string> = {
-    UNIMART: '7-11',
-    FAMI:    '全家',
-    HILIFE:  '萊爾富',
-    OKMART:  'OK',
+    UNIMART:       '7-11',
+    UNIMARTFREEZE: '7-11',
+    FAMI:          '全家',
+    HILIFE:        '萊爾富',
+    OKMART:        'OK',
   };
   const storeBrand = brandMap[subType] ?? subType;
 
