@@ -35,7 +35,11 @@ const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b', refunded: '#5a7a8a' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款' };
-const SHIP_LABEL: Record<string, string>   = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取' };
+const SHIP_LABEL: Record<string, string> = {
+  home_ambient: '宅配（常溫）', home_refrigerated: '宅配（冷藏）', home_frozen: '宅配（冷凍）',
+  cvs_ambient: '7-11取貨（常溫）', cvs_frozen: '7-11取貨（冷凍）', store: '門市自取',
+  home: '宅配', cvs_711: '7-11取貨', // 舊格式相容
+};
 const SORT_OPTIONS = [
   { value: 'newest', label: '最新優先' }, { value: 'oldest', label: '最舊優先' },
   { value: 'amount_desc', label: '金額高到低' }, { value: 'amount_asc', label: '金額低到高' },

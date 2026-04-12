@@ -40,6 +40,13 @@ export default function AdminStoreSettingsPage() {
   const [feeHomeOuterIsland, setFeeHomeOuterIsland] = useState(250);
   const [feeCvs711, setFeeCvs711] = useState(60);
   const [feeStore, setFeeStore] = useState(0);
+  // 各配送方式開關
+  const [shipHomeAmbient,      setShipHomeAmbient]      = useState(true);
+  const [shipHomeRefrigerated, setShipHomeRefrigerated] = useState(true);
+  const [shipHomeFrozen,       setShipHomeFrozen]       = useState(true);
+  const [shipCvsAmbient,       setShipCvsAmbient]       = useState(true);
+  const [shipCvsFrozen,        setShipCvsFrozen]        = useState(true);
+  const [shipStore,            setShipStore]            = useState(true);
   const [freeShipMainland, setFreeShipMainland] = useState(0);
   const [freeShipOuterIsland, setFreeShipOuterIsland] = useState(0);
   const [shipMinDays, setShipMinDays] = useState(1);
@@ -97,6 +104,12 @@ export default function AdminStoreSettingsPage() {
         setFeeHomeOuterIsland(data.fee_home_outer_island ?? 250);
         setFeeCvs711(data.fee_cvs_711 ?? 60);
         setFeeStore(data.fee_store ?? 0);
+        setShipHomeAmbient(data.ship_home_ambient ?? true);
+        setShipHomeRefrigerated(data.ship_home_refrigerated ?? true);
+        setShipHomeFrozen(data.ship_home_frozen ?? true);
+        setShipCvsAmbient(data.ship_cvs_ambient ?? true);
+        setShipCvsFrozen(data.ship_cvs_frozen ?? true);
+        setShipStore(data.ship_store ?? true);
         setFreeShipMainland(data.free_ship_mainland_amount ?? 0);
         setFreeShipOuterIsland(data.free_ship_outer_island_amount ?? 0);
         setShipMinDays(data.ship_min_days ?? 1);
@@ -159,6 +172,9 @@ export default function AdminStoreSettingsPage() {
       instagram_url: instagram, facebook_url: facebook, line_id: lineId,
       fee_home: feeHome, fee_home_outer_island: feeHomeOuterIsland,
       fee_cvs_711: feeCvs711, fee_store: feeStore,
+      ship_home_ambient: shipHomeAmbient, ship_home_refrigerated: shipHomeRefrigerated,
+      ship_home_frozen: shipHomeFrozen, ship_cvs_ambient: shipCvsAmbient,
+      ship_cvs_frozen: shipCvsFrozen, ship_store: shipStore,
       free_ship_mainland_amount: freeShipMainland, free_ship_outer_island_amount: freeShipOuterIsland,
       ship_min_days: shipMinDays, ship_max_days: shipMaxDays,
       sidebar_product_limit: sidebarProductLimit,
@@ -240,6 +256,22 @@ export default function AdminStoreSettingsPage() {
       {/* ════ 配送設定 ════ */}
       {tab === 'shipping' && (
         <div className={p.formContainerMid}>
+          <div className={s.sectionTitleBordered}>開放配送方式</div>
+          <div className={`${s.flex} ${s.flexWrap} ${s.gap24}`} style={{ marginBottom: 24 }}>
+            {[
+              { label: '宅配（常溫）',       val: shipHomeAmbient,      set: setShipHomeAmbient },
+              { label: '宅配（冷藏）',       val: shipHomeRefrigerated, set: setShipHomeRefrigerated },
+              { label: '宅配（冷凍）',       val: shipHomeFrozen,       set: setShipHomeFrozen },
+              { label: '7-11 取貨（常溫）',  val: shipCvsAmbient,       set: setShipCvsAmbient },
+              { label: '7-11 取貨（冷凍）',  val: shipCvsFrozen,        set: setShipCvsFrozen },
+              { label: '門市自取',           val: shipStore,            set: setShipStore },
+            ].map(({ label, val, set }) => (
+              <label key={label} className={s.checkLabel}>
+                <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} className={s.checkbox} /> {label}
+              </label>
+            ))}
+          </div>
+
           <div className={s.sectionTitleBordered}>運費設定</div>
           {[
             { label: '宅配運費（本島）', val: feeHome, set: setFeeHome },

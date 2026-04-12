@@ -1180,3 +1180,5 @@
   color: var(--text-dark, #1E1C1A);
   word-break: break-all;
 }
+
+.noShipMsg { padding: 14px 16px; background: #fff3f0; border: 1px solid #f5c6c0; border-radius: 8px; color: #c0392b; font-size: 0.9rem; line-height: 1.5; }

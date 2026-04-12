@@ -14,7 +14,11 @@ import { fetchApi } from '@/lib/api';
 import s from '../_shared/admin-shared.module.css';
 import p from './logistics.module.css';
 
-const SHIP_LABEL: Record<string, string> = { home: '宅配', cvs_711: '7-11取貨', store: '門市自取' };
+const SHIP_LABEL: Record<string, string> = {
+  home_ambient: '宅配（常溫）', home_refrigerated: '宅配（冷藏）', home_frozen: '宅配（冷凍）',
+  cvs_ambient: '7-11取貨（常溫）', cvs_frozen: '7-11取貨（冷凍）', store: '門市自取',
+  home: '宅配', cvs_711: '7-11取貨',
+};
 
 const CARRIERS = ['黑貓宅急便', '新竹貨運', '大榮貨運', '7-11 超商', '全家超商', '郵局', '其他'];
 

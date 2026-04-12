@@ -21,9 +21,12 @@ const OUTER_ISLAND_CITIES = ['澎湖縣', '金門縣', '連江縣'];
 
 // 配送方式設定（settingKey 對應 store_settings 的開關欄位）
 const SHIP_OPTIONS = [
-  { value: 'home',    title: '一般宅配',  sub: '黑貓 / 新竹物流配送',   settingKey: 'ship_home' },
-  { value: 'cvs_711', title: '7-11 取貨', sub: '7-11 門市取貨',           settingKey: 'ship_cvs_711' },
-  { value: 'store',   title: '門市自取',  sub: '宜蘭市神農路二段 96 號', settingKey: 'ship_store' },
+  { value: 'home_ambient',      title: '宅配（常溫）',      sub: '黑貓宅急便',             settingKey: 'ship_home_ambient' },
+  { value: 'home_refrigerated', title: '宅配（冷藏）',      sub: '黑貓宅急便冷藏配送',     settingKey: 'ship_home_refrigerated' },
+  { value: 'home_frozen',       title: '宅配（冷凍）',      sub: '黑貓宅急便冷凍配送',     settingKey: 'ship_home_frozen' },
+  { value: 'cvs_ambient',       title: '7-11 取貨（常溫）', sub: '7-11 超商門市取貨',       settingKey: 'ship_cvs_ambient' },
+  { value: 'cvs_frozen',        title: '7-11 取貨（冷凍）', sub: '7-11 超商冷凍門市取貨',   settingKey: 'ship_cvs_frozen' },
+  { value: 'store',             title: '門市自取',           sub: '宜蘭市神農路二段 96 號',  settingKey: 'ship_store' },
 ];
 const PAY_OPTIONS = [
   { value: 'credit', title: '信用卡',   sub: 'Visa / Master / JCB — 綠界 ECPay 安全加密' },
@@ -87,7 +90,7 @@ export default function CheckoutPage() {
   const [storeSettings, setStoreSettings] = useState<any>(null);
 
   // 商品可用運輸方式
-  const [productShipFlags, setProductShipFlags] = useState<Record<number, { allow_home_delivery: boolean; allow_cvs_711: boolean; allow_store_pickup: boolean }>>({});
+  const [productShipFlags, setProductShipFlags] = useState<Record<number, { allow_home_ambient: boolean; allow_home_refrigerated: boolean; allow_home_frozen: boolean; allow_cvs_ambient: boolean; allow_cvs_frozen: boolean; allow_store_pickup: boolean }>>({});
 
   // 運費
   const [shippingFee, setShippingFee] = useState(0);
@@ -120,7 +123,7 @@ export default function CheckoutPage() {
   }, [promoResult.gifts]);
 
   // Step 2 欄位
-  const [shipMethod, setShipMethod] = useState('home');
+  const [shipMethod, setShipMethod] = useState('home_ambient');
   // 購買人
   const [buyerName,     setBuyerName]     = useState('');
   const [buyerPhone,    setBuyerPhone]    = useState('');
@@ -186,8 +189,8 @@ export default function CheckoutPage() {
     // 清除舊的輪詢
     if (pickupPollRef.current) { clearInterval(pickupPollRef.current); pickupPollRef.current = null; }
 
-    // 取得 E-map 表單 HTML
-    const subtype = 'UNIMART';
+    // 取得 E-map 表單 HTML（依溫層決定 subtype）
+    const subtype = shipMethod === 'cvs_frozen' ? 'UNIMARTFREEZE' : 'UNIMART';
     const res = await fetch('/api/ecpay/cvs-map', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -227,8 +230,8 @@ export default function CheckoutPage() {
     return sessionStorage.getItem('checkout_orderNo') ?? '';
   });
 
-  const isHomeDelivery = shipMethod === 'home';
-  const isCvsPickup    = shipMethod === 'cvs_711';
+  const isHomeDelivery = shipMethod.startsWith('home');
+  const isCvsPickup    = shipMethod.startsWith('cvs');
   const isStorePickup  = shipMethod === 'store';
 
   // 根據後台設定 + 購物車商品交集過濾可用的配送方式
@@ -241,9 +244,12 @@ export default function CheckoutPage() {
     const productIds = items.filter(i => !i.isRedeemItem).map(i => i.productRealId ?? parseInt(i.id));
     if (productIds.length > 0 && Object.keys(productShipFlags).length > 0) {
       const shipFieldMap: Record<string, keyof typeof productShipFlags[number]> = {
-        home: 'allow_home_delivery',
-        cvs_711: 'allow_cvs_711',
-        store: 'allow_store_pickup',
+        home_ambient:      'allow_home_ambient',
+        home_refrigerated: 'allow_home_refrigerated',
+        home_frozen:       'allow_home_frozen',
+        cvs_ambient:       'allow_cvs_ambient',
+        cvs_frozen:        'allow_cvs_frozen',
+        store:             'allow_store_pickup',
       };
       opts = opts.filter(opt => {
         const field = shipFieldMap[opt.value];
@@ -292,11 +298,18 @@ export default function CheckoutPage() {
   useEffect(() => {
     const productIds = [...new Set(items.filter(i => !i.isRedeemItem).map(i => i.productRealId ?? parseInt(i.id)))];
     if (productIds.length === 0) return;
-    supabase.from('products').select('id, allow_home_delivery, allow_cvs_711, allow_store_pickup').in('id', productIds).then(({ data, error }) => {
-      if (error) return; // 欄位尚未建立時靜默跳過，全部預設為 true
+    supabase.from('products').select('id, allow_home_ambient, allow_home_refrigerated, allow_home_frozen, allow_cvs_ambient, allow_cvs_frozen, allow_store_pickup').in('id', productIds).then(({ data, error }) => {
+      if (error) return;
       if (data) {
         const map: typeof productShipFlags = {};
-        data.forEach((p: any) => { map[p.id] = { allow_home_delivery: p.allow_home_delivery ?? true, allow_cvs_711: p.allow_cvs_711 ?? true, allow_store_pickup: p.allow_store_pickup ?? true }; });
+        data.forEach((p: any) => { map[p.id] = {
+          allow_home_ambient:      p.allow_home_ambient      ?? true,
+          allow_home_refrigerated: p.allow_home_refrigerated ?? false,
+          allow_home_frozen:       p.allow_home_frozen       ?? false,
+          allow_cvs_ambient:       p.allow_cvs_ambient       ?? true,
+          allow_cvs_frozen:        p.allow_cvs_frozen        ?? false,
+          allow_store_pickup:      p.allow_store_pickup      ?? true,
+        }; });
         setProductShipFlags(map);
       }
     });
@@ -324,17 +337,17 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!storeSettings) return;
     let fee = 0;
-    if (shipMethod === 'home') {
+    if (isHomeDelivery) {
       fee = isOuterIsland
         ? (storeSettings.fee_home_outer_island ?? 250)
         : (storeSettings.fee_home ?? 100);
-    } else if (shipMethod === 'cvs_711') {
+    } else if (isCvsPickup) {
       fee = storeSettings.fee_cvs_711 ?? 60;
     } else if (shipMethod === 'store') {
       fee = storeSettings.fee_store ?? 0;
     }
     // 免運判斷
-    if (shipMethod === 'home' || shipMethod === 'cvs_711') {
+    if (isHomeDelivery || isCvsPickup) {
       const threshold = isOuterIsland
         ? (storeSettings.free_ship_outer_island_amount ?? 0)
         : (storeSettings.free_ship_mainland_amount ?? 0);
@@ -360,12 +373,12 @@ export default function CheckoutPage() {
     setCustomerPhone(addr.phone ?? '');
     setSameAsBuyer(false);
     if (addr.type === 'home') {
-      setShipMethod('home');
+      setShipMethod('home_ambient');
       setCity(addr.city ?? '');
       setDistrict(addr.district ?? '');
       setAddress(addr.address ?? '');
     } else {
-      setShipMethod('cvs_711');
+      setShipMethod('cvs_ambient');
     }
   };
 
@@ -491,6 +504,7 @@ export default function CheckoutPage() {
   }, [step]);
 
   const validateStep2 = () => {
+    if (availableShipOptions.length === 0) { alert('您的購物車商品沒有共同支援的配送方式，請將商品分開下單。'); return; }
     if (!buyerName || !buyerPhone || !buyerEmail) { alert('請填寫購買人資訊'); return; }
     const finalCustomerName  = sameAsBuyer ? buyerName  : customerName;
     const finalCustomerPhone = sameAsBuyer ? buyerPhone : customerPhone;
@@ -869,9 +883,15 @@ export default function CheckoutPage() {
           )}
 
           <div className={s.sectionTitle}>配送方式</div>
-          {availableShipOptions.map(opt => (
-            <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
-          ))}
+          {availableShipOptions.length === 0 ? (
+            <div className={s.noShipMsg}>
+              您的購物車商品沒有共同支援的配送方式，請將商品分開下單。
+            </div>
+          ) : (
+            availableShipOptions.map(opt => (
+              <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
+            ))
+          )}
 
           {isHomeDelivery && (
             <>

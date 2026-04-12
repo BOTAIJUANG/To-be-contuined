@@ -22,7 +22,8 @@ async function getProduct(slug: string) {
   const shipCols = `
     id, name, name_en, slug, price, description, image_url,
     is_available, is_sold_out, is_preorder, preorder_note, variant_label,
-    allow_home_delivery, allow_cvs_711, allow_store_pickup, stock_mode,
+    allow_home_ambient, allow_home_refrigerated, allow_home_frozen,
+    allow_cvs_ambient, allow_cvs_frozen, allow_store_pickup, stock_mode,
     categories(name),
     product_specs(label, value),
     product_variants(id, name, price, price_diff, sku, stock, is_available, sort_order)
@@ -248,8 +249,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {/* 運送方式 */}
           {(() => {
             const methods: string[] = [];
-            if ((product as any).allow_home_delivery !== false) methods.push('一般宅配');
-            if ((product as any).allow_cvs_711 !== false) methods.push('7-11 取貨');
+            if ((product as any).allow_home_ambient)      methods.push('宅配（常溫）');
+            if ((product as any).allow_home_refrigerated) methods.push('宅配（冷藏）');
+            if ((product as any).allow_home_frozen)       methods.push('宅配（冷凍）');
+            if ((product as any).allow_cvs_ambient)       methods.push('7-11 取貨（常溫）');
+            if ((product as any).allow_cvs_frozen)        methods.push('7-11 取貨（冷凍）');
             if ((product as any).allow_store_pickup !== false) methods.push('門市自取');
             return methods.length > 0 ? (
               <div className={s.specs}>

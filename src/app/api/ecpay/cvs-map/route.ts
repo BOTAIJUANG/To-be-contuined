@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'token 不合法（需 ≤20 字元）' }, { status: 400 });
   }
 
-  const logisticsSubType = subtype === 'FAMI' ? 'FAMI' : 'UNIMART';
+  const ALLOWED_SUBTYPES = ['UNIMART', 'UNIMARTFREEZE'];
+  if (!subtype || !ALLOWED_SUBTYPES.includes(subtype)) {
+    return NextResponse.json({ error: 'subtype 不合法' }, { status: 400 });
+  }
+  const logisticsSubType = subtype;
 
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL
     ?? req.headers.get('origin')

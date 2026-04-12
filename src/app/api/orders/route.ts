@@ -141,12 +141,12 @@ export async function POST(req: NextRequest) {
     }
   }
   // ── 配送方式白名單 + 條件必填驗證 ──
-  const ALLOWED_SHIP_METHODS = ['home', 'cvs_711', 'store'];
+  const ALLOWED_SHIP_METHODS = ['home_ambient', 'home_refrigerated', 'home_frozen', 'cvs_ambient', 'cvs_frozen', 'store'];
   if (!body.ship_method || !ALLOWED_SHIP_METHODS.includes(body.ship_method)) {
     return NextResponse.json({ error: '配送方式不合法' }, { status: 400 });
   }
-  const isHomeShip = body.ship_method === 'home';
-  const isCvsShip  = body.ship_method === 'cvs_711';
+  const isHomeShip = (body.ship_method as string).startsWith('home');
+  const isCvsShip  = (body.ship_method as string).startsWith('cvs');
   if (isHomeShip && (!body.city || !body.district || !body.address)) {
     return NextResponse.json({ error: '宅配需填寫完整收件地址（縣市 + 區域 + 地址）' }, { status: 400 });
   }
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
 
   const [productsRes, variantsRes, settingsRes, promosRes, couponRes] = await Promise.all([
     // 商品真實價格 + 出貨日驗證用欄位
-    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates, allow_home_delivery, allow_cvs_711, allow_store_pickup').in('id', productIds),
+    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates, allow_home_ambient, allow_home_refrigerated, allow_home_frozen, allow_cvs_ambient, allow_cvs_frozen, allow_store_pickup').in('id', productIds),
     // 規格真實價格
     variantIds.length > 0
       ? supabaseAdmin.from('product_variants').select('id, product_id, name, price, price_diff').in('id', variantIds)
@@ -199,20 +199,26 @@ export async function POST(req: NextRequest) {
   const settings = settingsRes.data;
 
   // ── 3.5 後端出貨方式驗證 ──
-  // 前端已限制可選的出貨方式，這裡做後端二次確認防止繞過
-  const shipMethod = body.ship_method;
-  for (const item of body.items) {
-    const product = productMap.get(item.product_id) as any;
-    if (!product) continue; // 下方會再檢查
-    const blocked =
-      (shipMethod === 'home'     && product.allow_home_delivery === false) ||
-      (shipMethod === 'cvs_711'  && product.allow_cvs_711 === false) ||
-      (shipMethod === 'store'    && product.allow_store_pickup === false);
-    if (blocked) {
-      return NextResponse.json(
-        { error: `商品「${product.name}」不支援此出貨方式` },
-        { status: 400 },
-      );
+  const shipMethod = body.ship_method as string;
+  const shipFieldMap: Record<string, string> = {
+    home_ambient:      'allow_home_ambient',
+    home_refrigerated: 'allow_home_refrigerated',
+    home_frozen:       'allow_home_frozen',
+    cvs_ambient:       'allow_cvs_ambient',
+    cvs_frozen:        'allow_cvs_frozen',
+    store:             'allow_store_pickup',
+  };
+  const shipField = shipFieldMap[shipMethod];
+  if (shipField) {
+    for (const item of body.items) {
+      const product = productMap.get(item.product_id) as any;
+      if (!product) continue;
+      if ((product as any)[shipField] === false) {
+        return NextResponse.json(
+          { error: `商品「${product.name}」不支援此出貨方式` },
+          { status: 400 },
+        );
+      }
     }
   }
 

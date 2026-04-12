@@ -216,3 +216,32 @@ GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 
 -- 序列權限（INSERT 自動生成 ID 用）
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+
+-- ╔══════════════════════════════════════════════╗
+-- ║  E. 配送溫層欄位 migration（2026-04）        ║
+-- ╚══════════════════════════════════════════════╝
+
+-- products 新增溫層配送欄位
+ALTER TABLE products
+  ADD COLUMN IF NOT EXISTS allow_home_ambient      boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS allow_home_refrigerated boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS allow_home_frozen       boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS allow_cvs_ambient       boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS allow_cvs_frozen        boolean DEFAULT false;
+
+-- 從舊欄位遷移（舊商品全開對應溫層）
+UPDATE products SET
+  allow_home_ambient      = COALESCE(allow_home_delivery, true),
+  allow_home_refrigerated = COALESCE(allow_home_delivery, true),
+  allow_home_frozen       = COALESCE(allow_home_delivery, true),
+  allow_cvs_ambient       = COALESCE(allow_cvs_711, true),
+  allow_cvs_frozen        = COALESCE(allow_cvs_711, true);
+
+-- store_settings 新增各溫層開關
+ALTER TABLE store_settings
+  ADD COLUMN IF NOT EXISTS ship_home_ambient      boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS ship_home_refrigerated boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS ship_home_frozen       boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS ship_cvs_ambient       boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS ship_cvs_frozen        boolean DEFAULT true;
