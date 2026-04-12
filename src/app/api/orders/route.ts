@@ -847,7 +847,7 @@ export async function POST(req: NextRequest) {
 
   // ── 10. 寫入訂單 ──
   const orderNo = generateOrderNo();
-  const isHome = body.ship_method === 'home';
+  const isHome = (body.ship_method as string).startsWith('home');
   const fullAddress = isHome
     ? `${body.city ?? ''}${body.district ?? ''}${body.address ?? ''}`
     : body.ship_method === 'store' ? null : (body.address ?? null);

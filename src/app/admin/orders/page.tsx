@@ -28,8 +28,15 @@ const PAY_OPTIONS = [
   { value: 'refunded', label: '已退款' },
 ];
 const SHIP_OPTIONS = [
-  { value: '', label: '全部配送方式' }, { value: 'home', label: '宅配' },
-  { value: 'cvs_711', label: '7-11取貨' }, { value: 'store', label: '門市自取' },
+  { value: '', label: '全部配送方式' },
+  { value: 'home_ambient',      label: '宅配（常溫）' },
+  { value: 'home_refrigerated', label: '宅配（冷藏）' },
+  { value: 'home_frozen',       label: '宅配（冷凍）' },
+  { value: 'cvs_ambient',       label: '7-11取貨（常溫）' },
+  { value: 'cvs_frozen',        label: '7-11取貨（冷凍）' },
+  { value: 'store',             label: '門市自取' },
+  { value: 'home',              label: '宅配（舊）' },
+  { value: 'cvs_711',           label: '7-11取貨（舊）' },
 ];
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };

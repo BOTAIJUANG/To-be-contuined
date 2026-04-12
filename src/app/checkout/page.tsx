@@ -683,15 +683,15 @@ export default function CheckoutPage() {
   const feeDisplay = (opt: typeof SHIP_OPTIONS[0]) => {
     if (!storeSettings) return '';
     let fee = 0;
-    if (opt.value === 'home') {
+    if (opt.value.startsWith('home')) {
       fee = isOuterIsland ? (storeSettings.fee_home_outer_island ?? 250) : (storeSettings.fee_home ?? 100);
-    } else if (opt.value === 'cvs_711') {
+    } else if (opt.value.startsWith('cvs')) {
       fee = storeSettings.fee_cvs_711 ?? 60;
     } else if (opt.value === 'store') {
       fee = storeSettings.fee_store ?? 0;
     }
     // 免運判斷
-    if (opt.value === 'home' || opt.value === 'cvs_711') {
+    if (opt.value.startsWith('home') || opt.value.startsWith('cvs')) {
       const threshold = isOuterIsland
         ? (storeSettings.free_ship_outer_island_amount ?? 0)
         : (storeSettings.free_ship_mainland_amount ?? 0);
@@ -1085,7 +1085,7 @@ export default function CheckoutPage() {
           <div className={s.infoNotice}>
             &middot; 下單後將寄送確認信至您的 Email<br />
             &middot; 信用卡付款由綠界 ECPay 安全處理<br />
-            &middot; ATM虛擬帳號請於 72 小時內完成轉帳，逾時訂單自動取消
+            &middot; ATM虛擬帳號請於 12 小時內完成轉帳，逾時訂單自動取消
           </div>
 
           <div className={s.actionRow}>
