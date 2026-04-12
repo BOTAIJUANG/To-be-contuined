@@ -244,4 +244,5 @@ ALTER TABLE store_settings
   ADD COLUMN IF NOT EXISTS ship_home_refrigerated boolean DEFAULT true,
   ADD COLUMN IF NOT EXISTS ship_home_frozen       boolean DEFAULT true,
   ADD COLUMN IF NOT EXISTS ship_cvs_ambient       boolean DEFAULT true,
-  ADD COLUMN IF NOT EXISTS ship_cvs_frozen        boolean DEFAULT true;
+  ADD COLUMN IF NOT EXISTS ship_cvs_frozen        boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS ship_store             boolean DEFAULT true;

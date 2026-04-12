@@ -200,6 +200,22 @@ export async function POST(req: NextRequest) {
 
   // ── 3.5 後端出貨方式驗證 ──
   const shipMethod = body.ship_method as string;
+
+  // 3.5a 驗證 store_settings 層級的出貨開關
+  const storeShipFieldMap: Record<string, string> = {
+    home_ambient:      'ship_home_ambient',
+    home_refrigerated: 'ship_home_refrigerated',
+    home_frozen:       'ship_home_frozen',
+    cvs_ambient:       'ship_cvs_ambient',
+    cvs_frozen:        'ship_cvs_frozen',
+    store:             'ship_store',
+  };
+  const storeShipField = storeShipFieldMap[shipMethod];
+  if (storeShipField && settings && (settings as any)[storeShipField] === false) {
+    return NextResponse.json({ error: '此運送方式目前未開放' }, { status: 400 });
+  }
+
+  // 3.5b 驗證商品層級的出貨方式
   const shipFieldMap: Record<string, string> = {
     home_ambient:      'allow_home_ambient',
     home_refrigerated: 'allow_home_refrigerated',
