@@ -8,6 +8,7 @@ import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
 import s from './orders.module.css';
 import AdminDatePicker from '../_shared/AdminDatePicker';
+import { exportShippingExcel } from '@/lib/export-shipping';
 
 type OrderTab = 'list' | 'shiplist' | 'shipped' | 'report';
 type ReportPeriod = 'today' | 'week' | 'month' | 'custom';
@@ -642,7 +643,8 @@ export default function AdminOrdersPage() {
             </label>
             <span className={s.batchCount}>已選 {shipSelected.size} 筆</span>
             <div className={s.batchActions}>
-              <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportCSV(list, `待出貨_${new Date().toISOString().split('T')[0]}.csv`); }}>匯出 Excel</button>
+              <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportCSV(list, `待出貨_${new Date().toISOString().split('T')[0]}.csv`); }}>匯出 CSV</button>
+              <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportShippingExcel(list); }}>黑貓出貨單</button>
               <button className={s.btnShipBatch} disabled={shipSelected.size === 0} onClick={() => setShipConfirmModal(true)}>標記出貨</button>
             </div>
           </div>
