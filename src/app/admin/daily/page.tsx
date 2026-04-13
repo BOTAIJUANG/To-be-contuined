@@ -33,6 +33,7 @@ export default function AdminDailyPage() {
           .from('orders')
           .select('*, order_items(name, qty, price, variant_name_snapshot, product_name_snapshot)')
           .eq('ship_date', today)
+          .eq('pay_status', 'paid')
           .neq('status', 'cancelled')
           .order('created_at', { ascending: false }),
         supabase.from('inventory').select('*, products(name, is_preorder)').gt('safety_stock', 0),
