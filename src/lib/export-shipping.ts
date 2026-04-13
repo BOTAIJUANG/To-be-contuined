@@ -26,6 +26,16 @@ function fmtDate(d: string | null | undefined): string {
   return d.replace(/-/g, '/'); // YYYY-MM-DD → YYYY/MM/DD
 }
 
+// 強制文字格式的 cell（避免 Excel 把電話號碼的開頭 0 吃掉）
+function textCell(v: string) {
+  return { v, t: 's' };
+}
+
+// aoa row 中需要強制文字的欄位用 textCell 包裝
+function phoneCell(v: string | null | undefined) {
+  return textCell(v ?? '');
+}
+
 /**
  * 依配送方式分組，產生對應的黑貓 Excel 並觸發下載。
  * - home_* → 宅配出貨_黑貓_YYYY-MM-DD.xlsx
@@ -51,9 +61,9 @@ export function exportShippingExcel(orders: any[]) {
       '可刷卡(Y/N)', '手機支付(Y/N)',
     ];
     const rows = homeOrders.map(o => [
-      o.customer_name || o.buyer_name || '',   // 1 收件人姓名
-      '',                                       // 2 收件人電話（市話，留空）
-      o.customer_phone || o.buyer_phone || '',  // 3 收件人手機
+      o.customer_name || o.buyer_name || '',        // 1 收件人姓名
+      '',                                           // 2 收件人電話（市話，留空）
+      phoneCell(o.customer_phone || o.buyer_phone), // 3 收件人手機
       o.address || '',                          // 4 收件人地址
       '',                                       // 5 代收金額（平台付款，留空）
       1,                                        // 6 件數
@@ -104,7 +114,7 @@ export function exportShippingExcel(orders: any[]) {
       const rows = cvsOrders.map(o => [
         o.order_no,
         o.customer_name || o.buyer_name || '',
-        o.customer_phone || o.buyer_phone || '',
+        phoneCell(o.customer_phone || o.buyer_phone),
         '',                                      // FB名稱（留空）
         o.note || '',
         '',                                      // 代收金額（留空）
