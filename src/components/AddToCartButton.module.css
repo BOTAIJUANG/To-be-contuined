@@ -315,10 +315,18 @@
   font-family: "Montserrat", sans-serif;
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
+  border-top: none;
+  border-bottom: none;
   height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+.qtyValue::-webkit-inner-spin-button,
+.qtyValue::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* 即時金額 */

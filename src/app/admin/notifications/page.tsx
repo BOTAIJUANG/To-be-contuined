@@ -94,8 +94,9 @@ export default function AdminNotificationsPage() {
   const [templates,     setTemplates]     = useState<EmailTemplate[]>(DEFAULT_TEMPLATES);
   const [batchSubject,  setBatchSubject]  = useState('');
   const [batchBody,     setBatchBody]     = useState('');
-  const [sending,       setSending]       = useState(false);
-  const [log,           setLog]           = useState<any[]>([]);
+  const [sending,            setSending]            = useState(false);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState('');
+  const [log,                setLog]                = useState<any[]>([]);
   // 新增範本表單
   const [showNewForm,   setShowNewForm]   = useState(false);
   const [newName,       setNewName]       = useState('');
@@ -380,7 +381,7 @@ export default function AdminNotificationsPage() {
           {/* 發送內容 */}
           <div className={s.mb16}>
             <label className={s.label}>使用範本</label>
-            <select onChange={e => { const t = templates.find(x => x.key === e.target.value); if (t) { setBatchSubject(t.subject); setBatchBody(t.body); } }} className={`${s.select} ${p.batchTemplateSelect}`}>
+            <select value={selectedTemplateKey} onChange={e => { setSelectedTemplateKey(e.target.value); const t = templates.find(x => x.key === e.target.value); if (t) { setBatchSubject(t.subject); setBatchBody(t.body); } }} className={`${s.select} ${p.batchTemplateSelect}`}>
               <option value="">自行輸入</option>
               {templates.map(t => <option key={t.key} value={t.key}>{t.name}</option>)}
             </select>

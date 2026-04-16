@@ -189,22 +189,30 @@ export default function CheckoutPage() {
     // 清除舊的輪詢
     if (pickupPollRef.current) { clearInterval(pickupPollRef.current); pickupPollRef.current = null; }
 
-    // 取得 E-map 表單 HTML（依溫層決定 subtype）
-    const subtype = shipMethod === 'cvs_frozen' ? 'UNIMARTFREEZE' : 'UNIMART';
-    const res = await fetch('/api/ecpay/cvs-map', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, subtype }),
-    });
-    const html = await res.text();
-
-    // 開啟新視窗
+    // 必須在任何 await 之前開啟視窗，否則 iOS Safari 因非同步後失去使用者手勢而封鎖彈窗
     const popup = window.open('', 'ecpay_cvs_map', 'width=1024,height=700,scrollbars=yes');
-    if (popup) {
-      popup.document.open();
-      popup.document.write(html);
-      popup.document.close();
-      mapWindowRef.current = popup;
+
+    try {
+      // 取得 E-map 表單 HTML（依溫層決定 subtype）
+      const subtype = shipMethod === 'cvs_frozen' ? 'UNIMARTFREEZE' : 'UNIMART';
+      const res = await fetch('/api/ecpay/cvs-map', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, subtype }),
+      });
+      if (!res.ok) throw new Error('cvs-map API failed');
+      const html = await res.text();
+
+      if (popup) {
+        popup.document.open();
+        popup.document.write(html);
+        popup.document.close();
+        mapWindowRef.current = popup;
+      }
+    } catch {
+      popup?.close();
+      alert('無法開啟門市選擇視窗，請稍後再試');
+      return;
     }
 
     // 開始輪詢（每 2 秒）

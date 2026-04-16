@@ -132,11 +132,12 @@ export async function POST(req: NextRequest) {
       .select('product_id')
       .eq('id', redemption.redeem_item_id)
       .single();
-    if (redeemItemDef) {
-      for (const ri of redeemItems) {
-        if (ri.product_id !== redeemItemDef.product_id) {
-          return NextResponse.json({ error: '兌換品與兌換單不符' }, { status: 400 });
-        }
+    if (!redeemItemDef) {
+      return NextResponse.json({ error: '兌換品設定無效，請聯繫客服' }, { status: 400 });
+    }
+    for (const ri of redeemItems) {
+      if (ri.product_id !== redeemItemDef.product_id) {
+        return NextResponse.json({ error: '兌換品與兌換單不符' }, { status: 400 });
       }
     }
   }
@@ -389,9 +390,11 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 7. 折扣碼驗證 ──
+  // 先計算折扣金額與 stackable 設定，尚未正式 claim（避免互斥邏輯確定捨棄後還要回滾）
   let discount = 0;
   let couponClaimedId: number | null = null;
   let couponStackable = true;
+  let pendingClaimCouponId: number | null = null;
 
   const coupon = couponRes.data;
   if (coupon && body.coupon_code) {
@@ -408,15 +411,7 @@ export async function POST(req: NextRequest) {
       discount = coupon.type === 'percent'
         ? Math.floor(subtotal * coupon.value / 100)
         : Math.min(coupon.value, subtotal);
-
-      const { data: claimed } = await supabaseAdmin
-        .rpc('claim_coupon_usage', { p_coupon_id: coupon.id });
-
-      if (!claimed) {
-        discount = 0;
-      } else {
-        couponClaimedId = coupon.id;
-      }
+      pendingClaimCouponId = coupon.id; // 確定使用前先暫存，不立即 claim
     }
   }
 
@@ -428,36 +423,25 @@ export async function POST(req: NextRequest) {
     });
     if (!couponStackable || hasNonCouponStackablePromo) {
       if (discount >= promoDiscount) {
+        // 折扣碼勝出，取消促銷折扣
         promoDiscount = 0;
         appliedPromoIds = [];
       } else {
-        if (couponClaimedId) {
-          const { data: cur } = await supabaseAdmin
-            .from('coupons').select('used_count').eq('id', couponClaimedId).single();
-          if (cur && cur.used_count > 0) {
-            const { data: releasedCoupon } = await supabaseAdmin
-              .from('coupons')
-              .update({ used_count: cur.used_count - 1 })
-              .eq('id', couponClaimedId)
-              .eq('used_count', cur.used_count)
-              .select('id');
-            if (!releasedCoupon || releasedCoupon.length === 0) {
-              // 樂觀鎖失敗 → 重讀重試一次
-              const { data: retry } = await supabaseAdmin
-                .from('coupons').select('used_count').eq('id', couponClaimedId).single();
-              if (retry && (retry.used_count ?? 0) > 0) {
-                await supabaseAdmin.from('coupons')
-                  .update({ used_count: retry.used_count - 1 })
-                  .eq('id', couponClaimedId!)
-                  .eq('used_count', retry.used_count)
-                  .select('id');
-              }
-            }
-          }
-        }
+        // 促銷折扣勝出，捨棄折扣碼（尚未 claim，直接丟棄即可，無需回滾）
         discount = 0;
-        couponClaimedId = null;
+        pendingClaimCouponId = null;
       }
+    }
+  }
+
+  // ── 7.8.1 正式 claim 折扣碼（互斥邏輯確定後再呼叫，確保不會留下孤兒 used_count）──
+  if (pendingClaimCouponId) {
+    const { data: claimed } = await supabaseAdmin
+      .rpc('claim_coupon_usage', { p_coupon_id: pendingClaimCouponId });
+    if (!claimed) {
+      discount = 0;
+    } else {
+      couponClaimedId = pendingClaimCouponId;
     }
   }
 

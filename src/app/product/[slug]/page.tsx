@@ -65,9 +65,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const hasBatches    = activeBatches.length > 0;
 
   // 直接用 preorder_batches.reserved 計算剩餘量（與 shop 頁、下單 API 一致）
-  const batchRemainingMap: Record<number, number> = {};
+  // limit_qty = 0 / null 代表無限額，remaining 留 undefined，讓 AddToCartButton 視為不限量
+  const batchRemainingMap: Record<number, number | undefined> = {};
   activeBatches.forEach((b: any) => {
-    batchRemainingMap[b.id] = Math.max(0, (b.limit_qty ?? 0) - (b.reserved ?? 0));
+    if ((b.limit_qty ?? 0) > 0) {
+      batchRemainingMap[b.id] = Math.max(0, (b.limit_qty as number) - (b.reserved ?? 0));
+    }
   });
   const preorderStatus = (() => {
     if (!product.is_preorder) return null;
@@ -107,6 +110,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     }
   }
   const variants = rawVariants;
+
+  // 依實際庫存計算是否已完售（避免單一規格售完就封鎖整個商品）
+  const allVariantsSoldOut = (() => {
+    if (product.is_preorder) return product.is_sold_out; // 預購商品沿用資料庫旗標
+    if (variants.length > 0) return variants.every(v => (variantStockMap[v.id] ?? 0) <= 0);
+    if (productStock !== null) return productStock <= 0;
+    return product.is_sold_out;
+  })();
 
   // 日期模式：載入 product_ship_dates
   const isDateMode = (product as any).stock_mode === 'date_mode';
@@ -167,13 +178,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             )}
           </div>
 
-          {product.is_sold_out && (
+          {allVariantsSoldOut && (
             <div className={`${s.badge} ${s.badgeSoldOut}`}>已完售</div>
           )}
-          {!product.is_sold_out && product.is_preorder && preorderStatus === 'no_batch' && (
+          {!allVariantsSoldOut && product.is_preorder && preorderStatus === 'no_batch' && (
             <div className={`${s.badge} ${s.badgeSoldOut}`}>暫停接單</div>
           )}
-          {!product.is_sold_out && product.is_preorder && preorderStatus !== 'no_batch' && (
+          {!allVariantsSoldOut && product.is_preorder && preorderStatus !== 'no_batch' && (
             <div className={`${s.badge} ${s.badgePreorder}`}>預購中</div>
           )}
         </div>
@@ -272,13 +283,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               price:            product.price,
               imageUrl:         product.image_url ?? undefined,
               slug:             product.slug,
-              isSoldOut:        product.is_sold_out,
+              isSoldOut:        allVariantsSoldOut,
               isPreorder:       product.is_preorder,
               isDateMode:       isDateMode,
               shipDates:        shipDates,
               preorderBatches:  activeBatches.map((b: any) => ({
                 ...b,
-                remaining: batchRemainingMap[b.id] ?? 0,
+                remaining: batchRemainingMap[b.id], // undefined = 不限量
               })),
               preorderShipDate: activeBatches[0]?.ship_date ?? undefined,
               preorderStatus:   (preorderStatus as any) ?? undefined,

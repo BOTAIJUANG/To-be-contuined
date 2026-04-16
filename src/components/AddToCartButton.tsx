@@ -352,7 +352,17 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       {/* 數量選擇器 */}
       <div className={s.qtyWrap}>
         <button className={s.qtyBtn} onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
-        <span className={s.qtyValue}>{qty}</span>
+        <input
+          type="number"
+          className={s.qtyValue}
+          value={qty}
+          min={1}
+          max={isFinite(maxSelectableQty) ? maxSelectableQty : undefined}
+          onChange={e => {
+            const v = parseInt(e.target.value, 10);
+            if (!isNaN(v)) setQty(Math.min(Math.max(1, v), maxSelectableQty));
+          }}
+        />
         <button
           className={s.qtyBtn}
           onClick={() => setQty(q => Math.min(q + 1, maxSelectableQty))}

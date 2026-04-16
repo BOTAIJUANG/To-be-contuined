@@ -52,13 +52,35 @@ async function getPromotionProducts(): Promise<Product[]> {
     .order('sort_order');
 
   const allProducts = products ?? [];
-  const preorderIds = allProducts.filter((p: any) => p.is_preorder).map((p: any) => p.id);
+  const allProductIds = allProducts.map((p: any) => p.id);
+  const preorderIds = new Set(allProducts.filter((p: any) => p.is_preorder).map((p: any) => p.id));
   const preorderHasAvail = new Set<number>();
-  if (preorderIds.length > 0) {
+  const soldOutSet = new Set<number>();
+
+  if (allProductIds.length > 0) {
+    const { data: invData } = await supabaseAdmin
+      .from('inventory')
+      .select('product_id, stock, reserved, inventory_mode')
+      .in('product_id', allProductIds);
+
+    const availableByProduct: Record<number, number> = {};
+    (invData ?? []).forEach((inv: any) => {
+      const avail = inv.inventory_mode === 'stock'
+        ? (inv.stock ?? 0) - (inv.reserved ?? 0)
+        : 0; // preorder availability determined by batches below
+      availableByProduct[inv.product_id] = (availableByProduct[inv.product_id] ?? 0) + Math.max(0, avail);
+    });
+
+    for (const pid of allProductIds) {
+      if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+    }
+  }
+
+  if (preorderIds.size > 0) {
     const { data: batches } = await supabaseAdmin
       .from('preorder_batches')
       .select('*')
-      .in('product_id', preorderIds)
+      .in('product_id', [...preorderIds])
       .eq('is_active', true);
     (batches ?? []).forEach((b: any) => {
       if ((b.limit_qty ?? 0) - (b.reserved ?? 0) > 0) preorderHasAvail.add(b.product_id);
@@ -78,7 +100,7 @@ async function getPromotionProducts(): Promise<Product[]> {
       price:      p.price,
       imageUrl:   p.image_url ?? undefined,
       category:   p.categories?.name ?? '',
-      isSoldOut:  p.is_sold_out  ?? false,
+      isSoldOut:  soldOutSet.has(p.id),
       isPreorder,
       preorderStatus,
     };

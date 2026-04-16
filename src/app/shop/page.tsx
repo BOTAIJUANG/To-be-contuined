@@ -92,7 +92,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
       price:      p.price,
       imageUrl:   p.image_url ?? undefined,
       category:   p.categories?.name ?? '',
-      isSoldOut:  p.is_sold_out || soldOutSet.has(p.id),
+      isSoldOut:  soldOutSet.has(p.id),
       isPreorder,
       preorderStatus,
     };

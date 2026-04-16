@@ -473,7 +473,7 @@ export default function AdminInventoryPage() {
             {[
               { label: '商品種類',   value: inventory.length + (new Set(shipDateRows.map(d => d.product_id))).size },
               { label: '低庫存',     value: inventory.filter(i => i.inventory_mode === 'stock' && (i.stock - i.reserved) <= i.safety_stock && i.safety_stock > 0).length, color: '#b87a2a' },
-              { label: '完售中',     value: inventory.filter(i => i.products?.is_sold_out).length, color: '#c0392b' },
+              { label: '完售中',     value: inventory.filter(i => i.inventory_mode === 'stock' ? (i.stock - i.reserved) <= 0 : i.products?.is_sold_out).length, color: '#c0392b' },
               { label: '每日接單',   value: new Set(shipDateRows.map(d => d.product_id)).size },
             ].map(({ label, value, color }) => (
               <div key={label} className={s.statCard}>
@@ -516,7 +516,7 @@ export default function AdminInventoryPage() {
                     const isStock    = item.inventory_mode === 'stock';
                     const available  = isStock ? item.stock - item.reserved : item.max_preorder - item.reserved_preorder;
                     const isLow      = isStock && item.safety_stock > 0 && available <= item.safety_stock;
-                    const isSoldOut  = item.products?.is_sold_out;
+                    const isSoldOut  = isStock ? available <= 0 : item.products?.is_sold_out;
                     return (
                       <tr key={item.id} className={s.tr}>
                         <td className={s.td}>{item.products?.name ?? '—'}</td>
