@@ -40,6 +40,7 @@ export default function Nav() {
   const { totalCount, openCart, cartBounceKey } = useCart();
 
   const [storeName, setStoreName] = useState('未半甜點');
+  const [logoUrl,   setLogoUrl]   = useState<string | null>(null);
   const [userName,  setUserName]  = useState<string | null>(null);
   const [isAdmin,   setIsAdmin]   = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -59,10 +60,13 @@ export default function Nav() {
     return pathname === href || pathname.startsWith(href + '/');
   }, [pathname]);
 
-  // 載入商店名稱
+  // 載入商店名稱與 Logo
   useEffect(() => {
-    supabase.from('store_settings').select('name').eq('id', 1).single()
-      .then(({ data }) => { if (data?.name) setStoreName(data.name); });
+    supabase.from('store_settings').select('name, logo_url').eq('id', 1).single()
+      .then(({ data }) => {
+        if (data?.name) setStoreName(data.name);
+        setLogoUrl(data?.logo_url || null);
+      });
   }, []);
 
   // 驗證角色
@@ -125,8 +129,12 @@ export default function Nav() {
           <span /><span /><span />
         </button>
 
-        {/* 品牌名稱 */}
-        <Link href="/" className={s.brand}>{storeName}</Link>
+        {/* 品牌名稱 / Logo */}
+        <Link href="/" className={s.brand}>
+          {logoUrl
+            ? <img src={logoUrl} alt={storeName} className={s.brandLogo} />
+            : storeName}
+        </Link>
 
         {/* 桌機導覽連結（≥ 1280px） — 不受 auth 影響 */}
         <div className={s.desktopLinks}>
