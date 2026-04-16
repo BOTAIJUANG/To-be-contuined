@@ -105,8 +105,14 @@ export default function CartDrawer() {
 
   const getMaxQty = (item: any) => {
     if (item.isPreorder && item.preorderBatchId) {
+      const batchRemaining = batchStockMap[item.preorderBatchId];
       // 批次 stock 尚未載入時，暫用目前數量（不允許加更多）
-      return batchStockMap[item.preorderBatchId] ?? item.qty;
+      if (batchRemaining === undefined) return item.qty;
+      // 扣除同批次其他品項的數量，避免合計超過批次上限
+      const otherBatchQty = items
+        .filter(i => i !== item && i.isPreorder && i.preorderBatchId === item.preorderBatchId)
+        .reduce((sum, i) => sum + i.qty, 0);
+      return Math.max(item.qty, batchRemaining - otherBatchQty);
     }
     // date_mode: 用 ship_date_id 查每日獨立庫存
     if (item.shipDateId) {

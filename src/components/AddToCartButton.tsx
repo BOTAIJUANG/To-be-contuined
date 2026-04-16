@@ -44,6 +44,24 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const isPreorder   = product.isPreorder ?? false;
   const batches      = product.preorderBatches ?? [];
 
+  // 每個預購批次扣除購物車後的實際剩餘量（用於顯示與判斷是否額滿）
+  const batchDisplayRemaining = useMemo(() => {
+    if (!isPreorder) return {} as Record<number, number | undefined>;
+    const result: Record<number, number | undefined> = {};
+    const pid = parseInt(product.id);
+    for (const batch of batches) {
+      if (batch.remaining == null) { result[batch.id] = undefined; continue; }
+      const inCart = items
+        .filter(i => {
+          if (!i.isPreorder || i.preorderBatchId !== batch.id) return false;
+          return (i.productRealId ?? parseInt(i.id)) === pid;
+        })
+        .reduce((sum, i) => sum + i.qty, 0);
+      result[batch.id] = Math.max(0, batch.remaining - inCart);
+    }
+    return result;
+  }, [isPreorder, batches, items, product.id]);
+
   // 計算這個商品/規格在購物車裡已經有幾件（預購還要比對批次）
   const cartQtyForBatch = useMemo(() => {
     if (!isPreorder || !selectedBatch) return 0;
@@ -94,8 +112,12 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
   const remainingStock = realStock == null ? null : Math.max(0, realStock - cartQtyForLimit);
   const maxSelectableQty = remainingStock == null ? Infinity : remainingStock;
 
-  // 批次額滿
-  const batchFull = isPreorder && selectedBatch?.remaining != null && selectedBatch.remaining <= 0;
+  // 批次額滿（以購物車調整後的剩餘量判斷）
+  const batchFull = isPreorder && selectedBatch != null &&
+    batchDisplayRemaining[selectedBatch.id] != null && batchDisplayRemaining[selectedBatch.id]! <= 0;
+  // 所有批次皆已售完（以伺服器剩餘量判斷，非購物車）
+  const allBatchesFull = isPreorder && batches.length > 0 &&
+    batches.every(b => b.remaining != null && b.remaining <= 0);
   // 日期額滿
   const dateFull = isDateMode && selectedDate?.remaining != null && selectedDate.remaining <= 0;
 
@@ -106,6 +128,14 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
     if (hasVariants && !selectedVariant) return;
     if (maxSelectableQty <= 0) return;
 
+    // 確保 qty 不超過當前可購量（防止批次剩餘量在設定 qty 後又被更新）
+    const actualQty = isFinite(maxSelectableQty) ? Math.min(qty, maxSelectableQty) : qty;
+    if (actualQty <= 0) return;
+
+    // 預購：maxStock 扣除同批次其他規格的購物車數量，避免合計超過批次上限
+    const otherBatchQty = isPreorder ? Math.max(0, cartQtyForBatch - cartQty) : 0;
+    const effectiveMaxStock = realStock != null ? realStock - otherBatchQty : undefined;
+
     const result = addItem({
       id: product.id, slug: product.slug, name: product.name,
       price: displayPrice, imageUrl: product.imageUrl,
@@ -115,7 +145,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       shipDate: isDateMode ? selectedDate?.ship_date : undefined,
       variantId: hasVariants ? selectedVariant?.id : variantId,
       variantName: hasVariants ? selectedVariant?.name : variantName,
-    }, qty, realStock != null ? realStock : undefined);
+    }, actualQty, effectiveMaxStock);
 
     if (!result.ok) {
       if ('redeemLimit' in result) {
@@ -126,7 +156,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
       return;
     }
 
-    showToast(`已加入購物車：${product.name} × ${qty}`);
+    showToast(`已加入購物車：${product.name} × ${actualQty}`);
     triggerBounce();
     setAdded(true);
     setQty(1);
@@ -137,10 +167,10 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
     return <div className={s.soldOut}>今日完售</div>;
   }
 
-  if (isPreorder && batches.length === 0) {
+  if (isPreorder && (batches.length === 0 || allBatchesFull)) {
     return (
       <div>
-        <div className={s.noBatch}>目前暫無開放預購批次</div>
+        <div className={s.noBatch}>{batches.length === 0 ? '目前暫無開放預購批次' : '預購批次已全數額滿'}</div>
         <button disabled className={s.disabledBtn}>暫停接單</button>
       </div>
     );
@@ -189,7 +219,9 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
           <div className={s.batchList}>
             {batches.map(batch => {
               const sel = selectedBatch?.id === batch.id;
-              const isFull = batch.remaining != null && batch.remaining <= 0;
+              // 以購物車調整後的剩餘量判斷是否額滿，確保顯示與可購量一致
+              const displayRem = batchDisplayRemaining[batch.id];
+              const isFull = displayRem != null && displayRem <= 0;
               return (
                 <div
                   key={batch.id}
@@ -208,8 +240,8 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
                       </div>
                       <div className={s.batchMeta}>
                         {batch.name}{batch.ends_at ? ` · 截止 ${batch.ends_at}` : ''}
-                        {!isFull && batch.remaining != null && (
-                          <span style={{ marginLeft: 8, color: '#888' }}>剩餘 {batch.remaining} 份</span>
+                        {!isFull && displayRem != null && (
+                          <span style={{ marginLeft: 8, color: '#888' }}>剩餘 {displayRem} 份</span>
                         )}
                       </div>
                     </div>

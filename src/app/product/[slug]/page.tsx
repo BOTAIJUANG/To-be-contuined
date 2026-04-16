@@ -75,7 +75,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const preorderStatus = (() => {
     if (!product.is_preorder) return null;
     if (!hasBatches) return 'no_batch';
-    return 'active';
+    // 所有批次皆已額滿 → 視為暫停接單
+    const anyAvail = activeBatches.some((b: any) =>
+      (b.limit_qty ?? 0) === 0 || ((b.limit_qty as number) - (b.reserved ?? 0)) > 0
+    );
+    return anyAvail ? 'active' : 'no_batch';
   })();
 
   const specs    = (product.product_specs   ?? []) as { label: string; value: string }[];
