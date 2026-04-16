@@ -24,12 +24,15 @@ export default function AdminStoreSettingsPage() {
   const [saving,  setSaving]  = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingLogo,    setUploadingLogo]    = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const fileInputRef    = useRef<HTMLInputElement>(null);
+  const logoInputRef    = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
-  // Logo
-  const [logoUrl, setLogoUrl] = useState('');
+  // Logo & Favicon
+  const [logoUrl,    setLogoUrl]    = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
 
   // 商店資訊
   const [name, setName] = useState('未半甜點');
@@ -98,6 +101,7 @@ export default function AdminStoreSettingsPage() {
       const { data } = await supabase.from('store_settings').select('*').eq('id', 1).single();
       if (data) {
         setLogoUrl(data.logo_url ?? '');
+        setFaviconUrl(data.favicon_url ?? '');
         setName(data.name ?? '未半甜點');
         setDescription(data.description ?? '');
         setEmail(data.email ?? '');
@@ -171,6 +175,20 @@ export default function AdminStoreSettingsPage() {
     setUploadingLogo(false);
   };
 
+  // 上傳 Favicon
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFavicon(true);
+    const ext = file.name.split('.').pop();
+    const fileName = `store/favicon-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('images').upload(fileName, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+    if (error) { alert('上傳失敗：' + error.message); setUploadingFavicon(false); return; }
+    const { data: urlData } = supabase.storage.from('images').getPublicUrl(fileName);
+    setFaviconUrl(urlData.publicUrl);
+    setUploadingFavicon(false);
+  };
+
   // 上傳品牌故事圖片
   const handleAboutImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -188,7 +206,7 @@ export default function AdminStoreSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     await supabase.from('store_settings').upsert({
-      id: 1, logo_url: logoUrl, name, description, email, phone, address,
+      id: 1, logo_url: logoUrl, favicon_url: faviconUrl, name, description, email, phone, address,
       instagram_url: instagram, facebook_url: facebook, line_id: lineId,
       fee_home: feeHome, fee_home_outer_island: feeHomeOuterIsland,
       fee_cvs_711: feeCvs711, fee_store: feeStore,
@@ -414,6 +432,25 @@ export default function AdminStoreSettingsPage() {
               )}
             </div>
             <div className={p.seoHint}>建議上傳透明背景 PNG，高度 40–60px。未上傳時顯示商店名稱文字。</div>
+          </div>
+
+          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>Favicon（分頁圖示）</div>
+          <div className={p.aboutImgMb28}>
+            <label className={s.label}>Favicon 圖片</label>
+            <div className={p.aboutImgWrap}>
+              {faviconUrl && <img src={faviconUrl} alt="Favicon" style={{ width: 32, height: 32, objectFit: 'contain', background: '#f5f5f5', borderRadius: 4 }} />}
+              <div className={p.aboutImgUploadFlex}>
+                <input value={faviconUrl} onChange={e => setFaviconUrl(e.target.value)} placeholder="貼上圖片網址，或點下方按鈕上傳" className={`${s.input} ${p.aboutImgInputFull}`} />
+                <button onClick={() => faviconInputRef.current?.click()} disabled={uploadingFavicon} className={`${s.btnSmall} ${p.aboutImgBtnMt8}`}>
+                  {uploadingFavicon ? '上傳中...' : '從電腦上傳'}
+                </button>
+                <input ref={faviconInputRef} type="file" accept="image/png,image/x-icon,image/svg+xml" onChange={handleFaviconUpload} className={p.hidden} />
+              </div>
+              {faviconUrl && (
+                <button onClick={() => setFaviconUrl('')} className={s.btnSmall} style={{ marginTop: 8, color: '#c0392b' }}>移除</button>
+              )}
+            </div>
+            <div className={p.seoHint}>建議上傳 512×512 PNG 或 ICO，瀏覽器會自動縮小。未上傳則使用預設圖示。</div>
           </div>
 
           <div className={s.sectionTitleBordered}>品牌文字</div>

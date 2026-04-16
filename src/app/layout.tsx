@@ -17,7 +17,7 @@ import Script from 'next/script';
 async function getStoreSettings() {
   const { data } = await supabase
     .from('store_settings')
-    .select('name, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_url, ga4_id, fb_pixel_id, gtm_id, color_bg, color_surface, color_dark, color_price, color_btn, font_title, font_body')
+    .select('name, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_url, favicon_url, ga4_id, fb_pixel_id, gtm_id, color_bg, color_surface, color_dark, color_price, color_btn, font_title, font_body')
     .eq('id', 1)
     .single();
   return data;
@@ -34,6 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: data?.seo_description ?? '以純粹視覺為引，將甜點的細膩質地融入潔白空間。',
     keywords:    data?.seo_keywords    ?? '手工甜點',
+    icons: {
+      icon: data?.favicon_url ?? '/favicon.ico',
+    },
     openGraph: {
       title:       data?.og_title       ?? data?.seo_title ?? '未半甜點',
       description: data?.og_description ?? data?.seo_description ?? '',
