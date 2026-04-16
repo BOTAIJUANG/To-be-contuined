@@ -131,9 +131,8 @@ export default function Nav() {
 
         {/* 品牌名稱 / Logo */}
         <Link href="/" className={s.brand}>
-          {logoUrl
-            ? <img src={logoUrl} alt={storeName} className={s.brandLogo} />
-            : storeName}
+          {logoUrl && <img src={logoUrl} alt="" className={s.brandLogo} />}
+          <span>{storeName}</span>
         </Link>
 
         {/* 桌機導覽連結（≥ 1280px） — 不受 auth 影響 */}
