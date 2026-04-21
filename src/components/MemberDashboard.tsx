@@ -348,10 +348,8 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               </div>
               <div className={s.stampGrid} style={{ gridTemplateColumns: `repeat(${Math.min(stampTotalSlots, 5)}, 1fr)` }}>
                 {Array.from({ length: stampTotalSlots }).map((_, i) => {
-                  const filled  = i < stamps;
-                  const frozen  = i >= availableStamps && i < stamps;
-                  const reward  = redeemItems.find(r => r.stamps === i + 1);
-                  const isReady = reward && availableStamps >= reward.stamps && activeRedemptions.length === 0;
+                  const filled = i < stamps;
+                  const frozen = i >= availableStamps && i < stamps;
                   return (
                     <div key={i} className={`${s.stampSlot} ${filled ? (frozen ? s.stampSlotFrozen : s.stampSlotCollected) : ''}`}>
                       <div className={s.stampInner}>
@@ -365,11 +363,6 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                           <span className={s.stampNumber}>{i + 1}</span>
                         )}
                       </div>
-                      {reward && (
-                        <div className={isReady ? s.stampRewardBadgeReady : s.stampRewardBadge}>
-                          {isReady ? '✓' : '↑'}
-                        </div>
-                      )}
                     </div>
                   );
                 })}

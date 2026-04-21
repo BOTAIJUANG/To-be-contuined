@@ -221,21 +221,21 @@
 }
 
 .stampCardHeader {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .stampCardName {
   font-family: "Montserrat", sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: rgba(43, 33, 27, 0.42);
-  margin-bottom: 6px;
+  color: rgba(43, 33, 27, 0.58);
+  margin-bottom: 8px;
 }
 
 .stampCardSubtitle {
   font-size: 10px;
-  color: rgba(43, 33, 27, 0.42);
+  color: rgba(43, 33, 27, 0.38);
   letter-spacing: 0.04em;
   line-height: 1.6;
 }
@@ -285,17 +285,18 @@
 }
 
 .stampInner img {
-  opacity: 0.62;
+  opacity: 0.48;
 }
 .stampSlotCollected .stampInner img {
   opacity: 1;
 }
 
 .stampIcon {
-  width: 62%;
-  height: 62%;
+  width: 74%;
+  height: 74%;
   object-fit: contain;
   display: block;
+  border-radius: 8px;
 }
 
 .stampEmoji {
@@ -341,27 +342,27 @@
 /* 底部統計 */
 .stampSummary {
   display: flex;
-  gap: 28px;
+  gap: 36px;
   margin-top: 28px;
   padding-top: 20px;
   border-top: 1px solid rgba(43, 33, 27, 0.08);
 }
 @media (min-width: 640px) {
-  .stampSummary { gap: 36px; }
+  .stampSummary { gap: 52px; }
 }
 
 .stampSummaryItem {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .stampSummaryLabel {
   font-family: "Montserrat", sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(43, 33, 27, 0.48);
+  color: rgba(43, 33, 27, 0.36);
 }
 
 .stampSummaryValue {
