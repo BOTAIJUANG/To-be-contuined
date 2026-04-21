@@ -115,82 +115,203 @@
   text-align: center;
 }
 
-/* Order card */
+/* ── Order card ── */
 .orderCard {
-  border: 1px solid #e6d9cc;
-  border-radius: 14px;
-  padding: 24px 16px;
-  background: rgba(255, 252, 247, 0.4);
+  background: #f9f6f1;
+  border: 1px solid rgba(74, 52, 39, 0.14);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(43, 33, 27, 0.04);
 }
 @media (min-width: 640px) {
-  .orderCard { padding: 32px; }
+  .orderCard { border-radius: 24px; padding: 28px 32px; }
 }
 
+/* Header */
 .orderHeader {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 16px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 8px;
+}
+@media (min-width: 640px) {
+  .orderHeader { margin-bottom: 24px; gap: 20px; }
 }
 
-.orderNo {
+.orderHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.orderNumber {
   font-family: "Montserrat", sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--text-dark);
+  color: #2f231b;
+  line-height: 1.4;
+}
+@media (min-width: 640px) {
+  .orderNumber { font-size: 15px; letter-spacing: 0.12em; }
 }
 
-.badgeGroup {
+.orderDate {
+  font-size: 12px;
+  color: rgba(47, 35, 27, 0.5);
+  line-height: 1.5;
+}
+@media (min-width: 640px) {
+  .orderDate { font-size: 13px; }
+}
+
+.orderStatusGroup {
   display: flex;
-  gap: 6px;
   align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .orderStatusGroup { gap: 8px; }
 }
 
-.statusBadge {
+/* Badges */
+.orderBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
   font-size: 11px;
-  letter-spacing: 0.15em;
-  padding: 3px 10px;
-  font-family: "Montserrat", sans-serif;
-}
-
-.payBadge {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  padding: 3px 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+  white-space: nowrap;
   font-family: "Noto Sans TC", sans-serif;
 }
+@media (min-width: 640px) {
+  .orderBadge { min-height: 32px; padding: 0 12px; font-size: 12px; }
+}
 
-/* Order items */
-.orderItem {
+.orderBadgeProcessing { background: #f7efe6; color: #8c5a2d; border-color: rgba(140, 90, 45, 0.2); }
+.orderBadgeUnpaid     { background: #fdf0ef; color: #9b3a32; border-color: rgba(155, 58, 50, 0.2); }
+.orderBadgeShipped    { background: #edf3fb; color: #2a6aa8; border-color: rgba(42, 106, 168, 0.2); }
+.orderBadgeDone       { background: #edf5ef; color: #2f7a46; border-color: rgba(47, 122, 70, 0.2); }
+.orderBadgeCancelled  { background: #f3f2f0; color: #7a7470; border-color: rgba(122, 116, 112, 0.2); }
+.orderBadgePaid       { background: #edf5ef; color: #4f7d5d; border-color: rgba(79, 125, 93, 0.2); }
+.orderBadgePending    { background: #f3f2f0; color: #7a7470; border-color: rgba(122, 116, 112, 0.2); }
+
+/* 商品摘要 */
+.orderSummary {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(74, 52, 39, 0.08);
+}
+@media (min-width: 640px) {
+  .orderSummary { gap: 12px; padding-bottom: 20px; margin-bottom: 20px; }
+}
+
+.orderSummaryRow {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  font-size: 13px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-  color: var(--text-mid);
+  gap: 16px;
+}
+
+.orderItemName {
+  font-size: 15px;
+  font-weight: 500;
+  color: #3b2c22;
+  line-height: 1.5;
+}
+@media (min-width: 640px) {
+  .orderItemName { font-size: 17px; }
+}
+
+.orderItemPrice {
+  font-size: 14px;
+  font-weight: 500;
+  color: #3b2c22;
+  white-space: nowrap;
+}
+@media (min-width: 640px) {
+  .orderItemPrice { font-size: 16px; }
+}
+
+/* 配送資訊 */
+.orderInfoList {
+  display: flex;
+  flex-direction: column;
+}
+
+.orderInfoRow {
+  display: grid;
+  grid-template-columns: 80px 1fr;
   gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(74, 52, 39, 0.08);
+}
+@media (min-width: 640px) {
+  .orderInfoRow { grid-template-columns: 120px 1fr; gap: 20px; padding: 14px 0; }
 }
 
-/* Info rows */
-.infoRow {
-  display: flex;
-  justify-content: space-between;
+.orderInfoLabel {
   font-size: 13px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
+  color: rgba(59, 44, 34, 0.52);
+  line-height: 1.7;
+}
+@media (min-width: 640px) {
+  .orderInfoLabel { font-size: 14px; }
 }
 
-.infoLabel {
-  color: var(--text-light);
+.orderInfoValue {
+  font-size: 13px;
+  color: #3b2c22;
+  line-height: 1.7;
+  text-align: right;
+}
+@media (min-width: 640px) {
+  .orderInfoValue { font-size: 14px; }
 }
 
-.infoValue {
-  color: var(--text-dark);
+/* 合計 */
+.orderTotalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 18px;
+  margin-top: 4px;
+}
+@media (min-width: 640px) {
+  .orderTotalRow { padding-top: 22px; }
+}
+
+.orderTotalLabel {
+  font-size: 13px;
+  color: rgba(59, 44, 34, 0.52);
+}
+@media (min-width: 640px) {
+  .orderTotalLabel { font-size: 14px; }
+}
+
+.orderTotalValue {
+  font-family: "Noto Serif TC", serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2f231b;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+@media (min-width: 640px) {
+  .orderTotalValue { font-size: 24px; }
 }
 
 /* Tracking box */

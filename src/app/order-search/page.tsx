@@ -11,12 +11,16 @@ const STATUS_LABEL = (status: string, payStatus: string): string => {
   if (status === 'processing') return payStatus === 'paid' ? '處理中' : '尚未付款';
   return { shipped: '已出貨', done: '已完成', cancelled: '已取消' }[status] ?? status;
 };
-const STATUS_COLOR = (status: string, payStatus: string): string => {
-  if (status === 'processing') return payStatus === 'paid' ? '#b87a2a' : '#c0392b';
-  return { shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' }[status] ?? '#888580';
-};
 const PAY_STATUS_LABEL: Record<string, string> = { paid: '已付款', pending: '待付款' };
-const PAY_STATUS_COLOR: Record<string, string> = { paid: '#2ab85a', pending: '#888580' };
+
+const getStatusClass = (s: any, status: string, payStatus: string) => {
+  if (status === 'processing') return payStatus === 'paid' ? s.orderBadgeProcessing : s.orderBadgeUnpaid;
+  if (status === 'shipped')   return s.orderBadgeShipped;
+  if (status === 'done')      return s.orderBadgeDone;
+  return s.orderBadgeCancelled;
+};
+const getPayClass = (s: any, payStatus: string) =>
+  payStatus === 'paid' ? s.orderBadgePaid : s.orderBadgePending;
 const SHIP_LABEL: Record<string, string> = {
   home_ambient: '宅配（常溫）', home_refrigerated: '宅配（冷藏）', home_frozen: '宅配（冷凍）',
   cvs_ambient: '7-11取貨（常溫）', cvs_frozen: '7-11取貨（冷凍）', store: '門市自取',
@@ -89,54 +93,47 @@ export default function OrderSearchPage() {
                 </p>
               ) : (
                 <div className={s.orderCard}>
-                  {/* 訂單編號 + 狀態 */}
+                  {/* Header：訂單編號 + 下單日期 + 狀態 badges */}
                   <div className={s.orderHeader}>
-                    <span className={s.orderNo}>{result.order_no}</span>
-                    <div className={s.badgeGroup}>
-                      <span
-                        className={s.statusBadge}
-                        style={{
-                          color: STATUS_COLOR(result.status, result.pay_status),
-                          border: `1px solid ${STATUS_COLOR(result.status, result.pay_status)}`,
-                        }}
-                      >
+                    <div className={s.orderHeaderLeft}>
+                      <span className={s.orderNumber}>{result.order_no}</span>
+                      <span className={s.orderDate}>{new Date(result.created_at).toLocaleDateString('zh-TW')} 下單</span>
+                    </div>
+                    <div className={s.orderStatusGroup}>
+                      <span className={`${s.orderBadge} ${getStatusClass(s, result.status, result.pay_status)}`}>
                         {STATUS_LABEL(result.status, result.pay_status)}
                       </span>
                       {result.pay_status && (
-                        <span
-                          className={s.payBadge}
-                          style={{
-                            color: PAY_STATUS_COLOR[result.pay_status] ?? '#888580',
-                            border: `1px solid ${PAY_STATUS_COLOR[result.pay_status] ?? '#E8E4DC'}`,
-                          }}
-                        >
+                        <span className={`${s.orderBadge} ${getPayClass(s, result.pay_status)}`}>
                           {PAY_STATUS_LABEL[result.pay_status] ?? result.pay_status}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* 訂購商品 */}
-                  {result.order_items?.map((item: any, i: number) => (
-                    <div key={i} className={s.orderItem}>
-                      <span>{item.name} × {item.qty}</span>
-                      <span>NT$ {(item.price * item.qty).toLocaleString()}</span>
-                    </div>
-                  ))}
+                  {/* 商品摘要 */}
+                  <div className={s.orderSummary}>
+                    {result.order_items?.map((item: any, i: number) => (
+                      <div key={i} className={s.orderSummaryRow}>
+                        <span className={s.orderItemName}>{item.name} × {item.qty}</span>
+                        <span className={s.orderItemPrice}>NT$ {(item.price * item.qty).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
 
-                  {/* 訂單資訊 */}
-                  {[
-                    { label: '下單日期', value: new Date(result.created_at).toLocaleDateString('zh-TW') },
-                    { label: '配送方式', value: SHIP_LABEL[result.ship_method] ?? result.ship_method },
-                    ...(result.cvs_store_name ? [{ label: '取貨門市', value: `${result.cvs_store_brand ? result.cvs_store_brand + ' ' : ''}${result.cvs_store_name}` }] : []),
-                    ...(result.cvs_store_address ? [{ label: '門市地址', value: result.cvs_store_address }] : []),
-                    { label: '合計',     value: `NT$ ${result.total.toLocaleString()}` },
-                  ].map(({ label, value }) => (
-                    <div key={label} className={s.infoRow}>
-                      <span className={s.infoLabel}>{label}</span>
-                      <span className={s.infoValue}>{value}</span>
-                    </div>
-                  ))}
+                  {/* 配送資訊 */}
+                  <div className={s.orderInfoList}>
+                    {[
+                      { label: '配送方式', value: SHIP_LABEL[result.ship_method] ?? result.ship_method },
+                      ...(result.cvs_store_name ? [{ label: '取貨門市', value: `${result.cvs_store_brand ? result.cvs_store_brand + ' ' : ''}${result.cvs_store_name}` }] : []),
+                      ...(result.cvs_store_address ? [{ label: '門市地址', value: result.cvs_store_address }] : []),
+                    ].map(({ label, value }) => (
+                      <div key={label} className={s.orderInfoRow}>
+                        <span className={s.orderInfoLabel}>{label}</span>
+                        <span className={s.orderInfoValue}>{value}</span>
+                      </div>
+                    ))}
+                  </div>
 
                   {/* ATM 轉帳資訊（有才顯示）*/}
                   {result.pay_method === 'atm' && result.atm_vaccount && result.pay_status !== 'paid' && (
@@ -180,6 +177,12 @@ export default function OrderSearchPage() {
                       訂單已出貨，追蹤號碼將由店家盡快更新。
                     </div>
                   )}
+
+                  {/* 合計 */}
+                  <div className={s.orderTotalRow}>
+                    <span className={s.orderTotalLabel}>合計</span>
+                    <span className={s.orderTotalValue}>NT$ {result.total.toLocaleString()}</span>
+                  </div>
                 </div>
               )}
             </div>
