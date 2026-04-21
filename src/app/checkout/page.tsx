@@ -62,23 +62,33 @@ export default function CheckoutPage() {
   // 離開結帳頁時解除購物車鎖定
   useEffect(() => { return () => { unlockCart(); }; }, [unlockCart]);
 
-  // 進入 step 2 時的購物車快照（用於偵測商品異動）
-  const [cartSnapshot, setCartSnapshot] = useState('');
+  // 進入 step 2 時的購物車快照（持久化至 sessionStorage，頁面重訪也能比對）
+  const [cartSnapshot, setCartSnapshot] = useState(() =>
+    typeof window !== 'undefined' ? (sessionStorage.getItem('checkout_snapshot') ?? '') : ''
+  );
+  const saveSnapshot = useCallback((snap: string) => {
+    setCartSnapshot(snap);
+    sessionStorage.setItem('checkout_snapshot', snap);
+  }, []);
+  const clearSnapshot = useCallback(() => {
+    setCartSnapshot('');
+    sessionStorage.removeItem('checkout_snapshot');
+  }, []);
   const makeSnapshot = useCallback(
     () => JSON.stringify(items.map(i => `${i.id}_${i.variantId ?? ''}_${i.preorderBatchId ?? ''}_${i.shipDateId ?? ''}_${i.qty}`)),
     [items]
   );
 
-  // 若在 step 2+ 時購物車有異動，退回 step 1
+  // 若在 step 2+ 時購物車有異動（含重訪頁面後），退回 step 1
   useEffect(() => {
     if (typeof step === 'number' && step > 1 && cartSnapshot) {
       if (makeSnapshot() !== cartSnapshot) {
         _setStep(1);
         sessionStorage.removeItem('checkout_step');
-        setCartSnapshot('');
+        clearSnapshot();
       }
     }
-  }, [items, step, cartSnapshot, makeSnapshot]);
+  }, [items, step, cartSnapshot, makeSnapshot, clearSnapshot]);
 
   // 兌換品相關
   const redeemItem    = items.find(i => i.isRedeemItem);           // 購物車裡的兌換品
@@ -847,7 +857,7 @@ export default function CheckoutPage() {
               )}
               <div className={s.actionRow}>
                 <Link href="/shop" className={s.btnLink}>&larr; 繼續選購</Link>
-                <button onClick={() => { setCartSnapshot(makeSnapshot()); setStep(2); }} className={s.btn}>下一步</button>
+                <button onClick={() => { saveSnapshot(makeSnapshot()); setStep(2); }} className={s.btn}>下一步</button>
               </div>
             </>
           )}
