@@ -16,11 +16,12 @@
 /* 無批次 */
 .noBatch {
   padding: 14px 16px;
-  background: #fef0f0;
-  border: 1px solid #f5c6c6;
+  background: #faf6ef;
+  border: 1px solid rgba(125, 97, 72, 0.16);
+  border-radius: 14px;
   margin-bottom: 8px;
   font-size: 13px;
-  color: #c0392b;
+  color: rgba(63, 47, 36, 0.72);
 }
 .disabledBtn {
   width: 100%;

@@ -503,10 +503,11 @@
 .mixedWarning {
   margin: 16px 0;
   padding: 14px 16px;
-  background: #fff8e1;
-  border: 1px solid #f0c040;
+  background: #faf6ef;
+  border: 1px solid rgba(125, 97, 72, 0.16);
+  border-radius: 14px;
   font-size: 13px;
-  color: #7a5c00;
+  color: rgba(63, 47, 36, 0.72);
   line-height: 2;
 }
 
@@ -650,27 +651,29 @@
 /* ── No-intersection error ── */
 .noIntersection {
   padding: 16px;
-  background: #fef0f0;
-  border: 1px solid #f5c6c6;
+  background: #faf6ef;
+  border: 1px solid rgba(125, 97, 72, 0.16);
+  border-radius: 14px;
   margin-bottom: 24px;
 }
 
 @media (min-width: 640px) {
   .noIntersection {
-    padding: 16px 20px;
+    padding: 18px 22px;
+    border-radius: 18px;
   }
 }
 
 .noIntersectionTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #c0392b;
+  color: #3f2f24;
   margin-bottom: 6px;
 }
 
 .noIntersectionMsg {
   font-size: 13px;
-  color: #c0392b;
+  color: rgba(63, 47, 36, 0.72);
 }
 
 /* ── Fixed ship date (preorder/mixed) ── */
@@ -727,10 +730,11 @@
 
 .mixedDateHint {
   font-size: 12px;
-  color: #7a5c00;
-  background: #fff8e1;
+  color: rgba(63, 47, 36, 0.68);
+  background: #faf6ef;
   padding: 10px 14px;
-  border: 1px solid #f0c040;
+  border: 1px solid rgba(125, 97, 72, 0.14);
+  border-radius: 12px;
   margin-bottom: 12px;
   line-height: 1.6;
 }
@@ -774,7 +778,7 @@
 
 .dateHintError {
   composes: dateHint;
-  color: #c0392b;
+  color: #7a4030;
 }
 
 .dateHintOk {
@@ -818,7 +822,7 @@
 
 .couponMsgErr {
   composes: couponMsg;
-  color: #c0392b;
+  color: #7a4030;
 }
 
 /* ── Step 3: Order summary box ── */
@@ -1181,4 +1185,4 @@
   word-break: break-all;
 }
 
-.noShipMsg { padding: 14px 16px; background: #fff3f0; border: 1px solid #f5c6c0; border-radius: 8px; color: #c0392b; font-size: 0.9rem; line-height: 1.5; }
+.noShipMsg { padding: 14px 16px; background: #faf6ef; border: 1px solid rgba(125, 97, 72, 0.16); border-radius: 14px; color: rgba(63, 47, 36, 0.72); font-size: 0.9rem; line-height: 1.5; }

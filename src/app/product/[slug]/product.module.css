@@ -162,29 +162,31 @@
 .preorderMixNotice {
   margin-bottom: 16px;
   padding: 10px 14px;
-  background: #fff8e1;
-  border: 1px solid #f0c040;
+  background: #faf6ef;
+  border: 1px solid rgba(125, 97, 72, 0.16);
+  border-radius: 14px;
   font-size: 12px;
-  color: #7a5c00;
+  color: rgba(63, 47, 36, 0.68);
   line-height: 1.8;
 }
 @media (min-width: 768px) {
-  .preorderMixNotice { padding: 12px 16px; font-size: 13px; }
+  .preorderMixNotice { padding: 12px 16px; font-size: 13px; border-radius: 16px; }
 }
 
 /* 預購無批次提示 */
 .noBatchBox {
   margin-bottom: 20px;
   padding: 14px 16px;
-  background: #fef0f0;
-  border: 1px solid #f5c6c6;
+  background: #faf6ef;
+  border: 1px solid rgba(125, 97, 72, 0.16);
+  border-radius: 14px;
 }
 @media (min-width: 768px) {
-  .noBatchBox { margin-bottom: 24px; padding: 16px 20px; }
+  .noBatchBox { margin-bottom: 24px; padding: 16px 20px; border-radius: 18px; }
 }
 .noBatchText {
   font-size: 14px;
-  color: #c0392b;
+  color: #3f2f24;
   font-weight: 600;
 }
 
