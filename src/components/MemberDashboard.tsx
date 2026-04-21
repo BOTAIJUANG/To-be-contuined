@@ -389,27 +389,37 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
             {activeRedemptions.length > 0 && (
               <div className={s.redeemActiveSection}>
                 <div className={s.subSectionTitleWarn}>進行中的兌換</div>
-                {activeRedemptions.map(r => {
-                  const isExpired = new Date(r.expires_at) < new Date();
-                  const timeLeft  = Math.max(0, Math.floor((new Date(r.expires_at).getTime() - Date.now()) / 1000 / 60));
-                  return (
-                    <div key={r.id} className={s.activeRedemption}>
-                      <div>
-                        <div className={s.activeRedemptionName}>
-                          {r.redeem_items?.name}
-                          <span className={s.activeRedemptionCost}>（{r.stamps_cost} 章）</span>
-                        </div>
-                        <div className={s.activeRedemptionDetail}>
-                          {r.type === 'code'
-                            ? `兌換碼：${r.redeem_code} · 有效至 ${new Date(r.expires_at).toLocaleString('zh-TW')}`
-                            : `線上兌換 · 有效至 ${new Date(r.expires_at).toLocaleDateString('zh-TW')}`
-                          }
-                        </div>
+                {activeRedemptions.map(r => (
+                  <div key={r.id} className={s.activeRedemption}>
+                    <div className={s.activeRedemptionBody}>
+                      {/* 第一行：名稱 + badge 群 */}
+                      <div className={s.activeRedemptionRow}>
+                        <span className={s.activeRedemptionName}>{r.redeem_items?.name}</span>
+                        <span className={s.activeRedemptionStampBadge}>{r.stamps_cost} 章</span>
+                        <span className={s.activeRedemptionTypeBadge}>
+                          {r.type === 'code' ? '現場兌換' : '線上兌換'}
+                        </span>
                       </div>
-                      <button onClick={() => handleCancelRedemption(r.id, r.stamps_cost)} className={s.cancelRedeemBtn}>取消兌換</button>
+                      {/* 第二行：說明或兌換碼 */}
+                      <div className={s.activeRedemptionDetail}>
+                        {r.type === 'code'
+                          ? <>兌換碼：<strong>{r.redeem_code}</strong></>
+                          : '商品已加入購物車，請於期限內完成下單'
+                        }
+                      </div>
+                      {/* 第三行：有效期限 */}
+                      <div className={s.activeRedemptionExpiry}>
+                        有效至 {r.type === 'code'
+                          ? new Date(r.expires_at).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })
+                          : new Date(r.expires_at).toLocaleDateString('zh-TW')
+                        }
+                      </div>
                     </div>
-                  );
-                })}
+                    <button onClick={() => handleCancelRedemption(r.id, r.stamps_cost)} className={s.cancelRedeemBtn}>
+                      取消兌換
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
