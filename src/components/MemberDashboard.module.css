@@ -208,13 +208,16 @@
 .stampCard {
   background: #f7f4ee;
   border: 1px solid rgba(43, 33, 27, 0.08);
-  border-radius: 24px;
+  border-radius: 16px;
   padding: 28px 20px;
   box-shadow: 0 10px 30px rgba(43, 33, 27, 0.04);
   margin-bottom: 24px;
 }
 @media (min-width: 640px) {
-  .stampCard { padding: 36px 40px; }
+  .stampCard {
+    padding: 36px 40px;
+    border-radius: 24px;
+  }
 }
 
 .stampCardHeader {
@@ -231,10 +234,13 @@
 }
 
 .stampCardSubtitle {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(43, 33, 27, 0.42);
   letter-spacing: 0.04em;
   line-height: 1.6;
+}
+@media (min-width: 640px) {
+  .stampCardSubtitle { font-size: 11px; }
 }
 
 .stampGrid {
@@ -360,10 +366,13 @@
 
 .stampSummaryValue {
   font-family: "Montserrat", sans-serif;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #2b211b;
   line-height: 1;
+}
+@media (min-width: 640px) {
+  .stampSummaryValue { font-size: 26px; }
 }
 
 .stampSummaryValueWarn {
