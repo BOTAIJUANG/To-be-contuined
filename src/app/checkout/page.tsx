@@ -45,7 +45,7 @@ const RadioCard = ({ value, title, sub, checked, onChange, fee }: { value: strin
 );
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clearCart, mixedShipDate, unifiedShipDate } = useCart();
+  const { items, totalPrice, clearCart, mixedShipDate, unifiedShipDate, unlockCart } = useCart();
   const [step, _setStep] = useState<1|2|3|'done'>(() => {
     if (typeof window === 'undefined') return 1;
     const saved = sessionStorage.getItem('checkout_step');
@@ -58,6 +58,27 @@ export default function CheckoutPage() {
     _setStep(s);
     sessionStorage.setItem('checkout_step', String(s));
   };
+
+  // 離開結帳頁時解除購物車鎖定
+  useEffect(() => { return () => { unlockCart(); }; }, [unlockCart]);
+
+  // 進入 step 2 時的購物車快照（用於偵測商品異動）
+  const [cartSnapshot, setCartSnapshot] = useState('');
+  const makeSnapshot = useCallback(
+    () => JSON.stringify(items.map(i => `${i.id}_${i.variantId ?? ''}_${i.preorderBatchId ?? ''}_${i.shipDateId ?? ''}_${i.qty}`)),
+    [items]
+  );
+
+  // 若在 step 2+ 時購物車有異動，退回 step 1
+  useEffect(() => {
+    if (typeof step === 'number' && step > 1 && cartSnapshot) {
+      if (makeSnapshot() !== cartSnapshot) {
+        _setStep(1);
+        sessionStorage.removeItem('checkout_step');
+        setCartSnapshot('');
+      }
+    }
+  }, [items, step, cartSnapshot, makeSnapshot]);
 
   // 兌換品相關
   const redeemItem    = items.find(i => i.isRedeemItem);           // 購物車裡的兌換品
@@ -826,7 +847,7 @@ export default function CheckoutPage() {
               )}
               <div className={s.actionRow}>
                 <Link href="/shop" className={s.btnLink}>&larr; 繼續選購</Link>
-                <button onClick={() => setStep(2)} className={s.btn}>下一步</button>
+                <button onClick={() => { setCartSnapshot(makeSnapshot()); setStep(2); }} className={s.btn}>下一步</button>
               </div>
             </>
           )}
