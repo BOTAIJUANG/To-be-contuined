@@ -206,27 +206,40 @@
 
 /* ── 集章卡 ── */
 .stampCard {
-  background: var(--surface);
-  padding: 20px 16px;
+  background: #f7f4ee;
+  border: 1px solid rgba(43, 33, 27, 0.08);
+  border-radius: 24px;
+  padding: 28px 20px;
+  box-shadow: 0 10px 30px rgba(43, 33, 27, 0.04);
   margin-bottom: 24px;
 }
 @media (min-width: 640px) {
-  .stampCard { padding: 32px; }
+  .stampCard { padding: 36px 40px; }
+}
+
+.stampCardHeader {
+  margin-bottom: 24px;
 }
 
 .stampCardName {
   font-family: "Montserrat", sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: var(--text-light);
-  margin-bottom: 20px;
+  color: rgba(43, 33, 27, 0.42);
+  margin-bottom: 6px;
+}
+
+.stampCardSubtitle {
+  font-size: 11px;
+  color: rgba(43, 33, 27, 0.42);
+  letter-spacing: 0.04em;
+  line-height: 1.6;
 }
 
 .stampGrid {
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
 }
 @media (min-width: 640px) {
   .stampGrid { gap: 10px; }
@@ -237,20 +250,46 @@
   padding-bottom: 100%;
 }
 
-.stampSlotInner {
+.stampSlotCollected {}
+.stampSlotFrozen {}
+
+.stampInner {
   position: absolute;
   inset: 0;
-  border-radius: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(43, 33, 27, 0.10);
+  background: rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: all 0.35s var(--ease);
+}
+@media (min-width: 640px) {
+  .stampInner { border-radius: 14px; }
+}
+
+.stampSlotCollected .stampInner {
+  background: #fbf8f3;
+  border-color: rgba(43, 33, 27, 0.20);
+}
+
+.stampSlotFrozen .stampInner {
+  background: rgba(184, 122, 42, 0.07);
+  border-color: rgba(184, 122, 42, 0.26);
+}
+
+.stampInner img {
+  opacity: 0.62;
+}
+.stampSlotCollected .stampInner img {
+  opacity: 1;
 }
 
 .stampIcon {
-  width: 60%;
-  height: 60%;
+  width: 62%;
+  height: 62%;
   object-fit: contain;
+  display: block;
 }
 
 .stampEmoji {
@@ -263,36 +302,73 @@
 
 .stampNumber {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.2);
+  color: rgba(43, 33, 27, 0.20);
   font-family: "Montserrat", sans-serif;
 }
 
-.stampRewardTag {
+/* 兌換點角落 badge */
+.stampRewardBadge {
   position: absolute;
-  bottom: -22px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 7px;
+  right: 7px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #efe7dc;
+  color: #8a6448;
   font-size: 9px;
   font-family: "Montserrat", sans-serif;
-  white-space: nowrap;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
 }
 
+.stampRewardBadgeReady {
+  composes: stampRewardBadge;
+  background: #e4eedf;
+  color: #3d6b35;
+}
+
+/* 底部統計 */
 .stampSummary {
-  font-size: 13px;
-  color: #555250;
-  letter-spacing: 0.05em;
-  margin-top: 24px;
+  display: flex;
+  gap: 28px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(43, 33, 27, 0.08);
+}
+@media (min-width: 640px) {
+  .stampSummary { gap: 36px; }
 }
 
-.stampFrozenNote {
+.stampSummaryItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stampSummaryLabel {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(43, 33, 27, 0.48);
+}
+
+.stampSummaryValue {
+  font-family: "Montserrat", sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2b211b;
+  line-height: 1;
+}
+
+.stampSummaryValueWarn {
+  composes: stampSummaryValue;
   color: #b87a2a;
-  margin-left: 8px;
-}
-
-.stampAvailable {
-  color: var(--text-light);
-  margin-left: 8px;
 }
 
 /* ── 進行中兌換 ── */

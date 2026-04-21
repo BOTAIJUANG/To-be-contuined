@@ -343,15 +343,19 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
 
             {/* 集章卡 */}
             <div className={s.stampCard}>
-              <div className={s.stampCardName}>{stampCardName}</div>
+              <div className={s.stampCardHeader}>
+                <div className={s.stampCardName}>{stampCardName}</div>
+                <div className={s.stampCardSubtitle}>集滿印章即可兌換會員專屬甜點</div>
+              </div>
               <div className={s.stampGrid} style={{ gridTemplateColumns: `repeat(${Math.min(stampTotalSlots, 5)}, 1fr)` }}>
                 {Array.from({ length: stampTotalSlots }).map((_, i) => {
-                  const filled = i < stamps;
-                  const frozen = i >= availableStamps && i < stamps;
-                  const reward = redeemItems.find(r => r.stamps === i + 1);
+                  const filled  = i < stamps;
+                  const frozen  = i >= availableStamps && i < stamps;
+                  const reward  = redeemItems.find(r => r.stamps === i + 1);
+                  const isReady = reward && availableStamps >= reward.stamps && activeRedemptions.length === 0;
                   return (
-                    <div key={i} className={s.stampSlot}>
-                      <div className={s.stampSlotInner} style={{ border: `1.5px ${filled ? 'solid' : 'dashed'} ${filled ? 'rgba(30,28,26,0.3)' : 'rgba(0,0,0,0.15)'}`, background: frozen ? 'rgba(184,122,42,0.1)' : 'transparent' }}>
+                    <div key={i} className={`${s.stampSlot} ${filled ? (frozen ? s.stampSlotFrozen : s.stampSlotCollected) : ''}`}>
+                      <div className={s.stampInner}>
                         {filled ? (
                           frozen
                             ? <span className={s.stampFrozenEmoji}>🔒</span>
@@ -363,8 +367,8 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                         )}
                       </div>
                       {reward && (
-                        <div className={s.stampRewardTag} style={{ color: availableStamps >= reward.stamps && activeRedemptions.length === 0 ? '#2ab85a' : '#b87a2a' }}>
-                          {availableStamps >= reward.stamps && activeRedemptions.length === 0 ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : '↑'}
+                        <div className={isReady ? s.stampRewardBadgeReady : s.stampRewardBadge}>
+                          {isReady ? '✓' : '↑'}
                         </div>
                       )}
                     </div>
@@ -372,9 +376,20 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                 })}
               </div>
               <div className={s.stampSummary}>
-                已集 <strong style={{ color: '#1E1C1A' }}>{stamps}</strong> 章
-                {stampsFrozen > 0 && <span className={s.stampFrozenNote}>（凍結中 {stampsFrozen} 章）</span>}
-                <span className={s.stampAvailable}>可用 <strong style={{ color: '#1E1C1A' }}>{availableStamps}</strong> 章</span>
+                <div className={s.stampSummaryItem}>
+                  <span className={s.stampSummaryLabel}>已集章數</span>
+                  <span className={s.stampSummaryValue}>{stamps}</span>
+                </div>
+                {stampsFrozen > 0 && (
+                  <div className={s.stampSummaryItem}>
+                    <span className={s.stampSummaryLabel}>凍結中</span>
+                    <span className={s.stampSummaryValueWarn}>{stampsFrozen}</span>
+                  </div>
+                )}
+                <div className={s.stampSummaryItem}>
+                  <span className={s.stampSummaryLabel}>目前可用</span>
+                  <span className={s.stampSummaryValue}>{availableStamps}</span>
+                </div>
               </div>
             </div>
 
