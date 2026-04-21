@@ -363,8 +363,8 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                         )}
                       </div>
                       {reward && (
-                        <div className={s.stampRewardTag} style={{ color: availableStamps >= reward.stamps ? '#2ab85a' : '#b87a2a' }}>
-                          {availableStamps >= reward.stamps ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : '↑'}
+                        <div className={s.stampRewardTag} style={{ color: availableStamps >= reward.stamps && activeRedemptions.length === 0 ? '#2ab85a' : '#b87a2a' }}>
+                          {availableStamps >= reward.stamps && activeRedemptions.length === 0 ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12 9.5 17.5 20 6" /></svg> : '↑'}
                         </div>
                       )}
                     </div>
@@ -416,9 +416,9 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                     const activeCount = activeRedemptions.filter(r => r.reward_id === item.id).length;
                     return (
                       <div key={item.id} className={canRedeem ? s.rewardCardCanRedeem : s.rewardCard}>
-                        <div className={s.rewardHeader} style={{ marginBottom: canRedeem ? '12px' : '0' }}>
-                          <div className={s.rewardStampCircle} style={{ background: canRedeem ? '#2ab85a' : '#E8E4DC' }}>
-                            <span className={s.rewardStampNumber} style={{ color: canRedeem ? '#fff' : '#888580' }}>{item.stamps}</span>
+                        <div className={s.rewardHeader}>
+                          <div className={s.rewardStampCircle} style={{ background: canRedeem ? '#edf7f1' : '#f6f1ea' }}>
+                            <span className={s.rewardStampNumber} style={{ color: canRedeem ? '#2a8a4a' : '#888580' }}>{item.stamps}</span>
                           </div>
                           <div className={s.rewardInfo}>
                             <div className={s.rewardName}>{item.name}</div>
@@ -503,13 +503,10 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                   ? redeemNotice.split('\n').map((line: string, i: number) => <div key={i}>{line}</div>)
                   : (
                     <>
-                      <div>・確認兌換後，您的 {selectedReward.stamps} 章將立即凍結</div>
                       {redeemType === 'online'
-                        ? <div>・兌換品將自動加入您的下一筆訂單購物車，無法手動移除</div>
+                        ? <div>・點選「線上兌換」後，商品將自動加入購物車，請儘快與其他商品一併完成下單。</div>
                         : <div>・現場兌換碼請於 120 分鐘內至門市出示，逾時自動失效</div>
                       }
-                      <div>・確認後章數立即凍結，無法取消</div>
-                      <div>・請確保您確實要兌換此獎勵</div>
                     </>
                   )
                 }

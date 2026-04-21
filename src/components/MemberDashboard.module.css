@@ -375,22 +375,39 @@
 
 .rewardGrid {
   display: grid;
-  gap: 8px;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .rewardGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
 }
 
 .rewardCard {
-  padding: 14px 16px;
+  padding: 16px 18px;
   border: 1px solid var(--line);
+  border-radius: 14px;
   background: #fff;
+  box-shadow: 0 8px 24px rgba(43, 33, 27, 0.05);
+  transition: transform 0.5s var(--ease-slow), box-shadow 0.5s var(--ease-slow);
 }
 @media (min-width: 640px) {
-  .rewardCard { padding: 16px 20px; }
+  .rewardCard {
+    padding: 18px 22px;
+    border-radius: 18px;
+  }
+}
+@media (hover: hover) {
+  .rewardCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(43, 33, 27, 0.10);
+  }
 }
 
 .rewardCardCanRedeem {
   composes: rewardCard;
-  background: #f0faf4;
-  border-color: #2ab85a;
+  border-top: 2px solid rgba(42, 184, 90, 0.38);
 }
 
 .rewardHeader {
@@ -398,25 +415,29 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 0;
 }
 @media (min-width: 640px) {
-  .rewardHeader { gap: 16px; }
+  .rewardHeader { gap: 14px; }
 }
 
 .rewardStampCircle {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: auto;
+  height: auto;
+  border-radius: 999px;
+  padding: 5px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
 }
 
 .rewardStampNumber {
   font-family: "Montserrat", sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.12em;
 }
 
 .rewardInfo {
@@ -425,63 +446,73 @@
 }
 
 .rewardName {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dark);
   font-weight: 500;
-  margin-bottom: 2px;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
 }
 
 .rewardDesc {
   font-size: 11px;
   color: var(--text-light);
+  line-height: 1.7;
 }
 
 .rewardNeedMore {
   font-size: 11px;
   color: var(--text-light);
+  line-height: 1.7;
+  white-space: nowrap;
 }
 
 .rewardActiveBadge {
-  font-size: 11px;
+  font-size: 10px;
   color: #b87a2a;
-  border: 1px solid #b87a2a;
-  padding: 3px 10px;
+  border: 1px solid rgba(184, 122, 42, 0.35);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #faf6ef;
   font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 
 .rewardActions {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
-.redeemOnlineBtn {
-  flex: 1;
-  padding: 9px;
-  background: var(--text-dark);
-  color: var(--bg);
-  border: none;
-  font-family: "Montserrat", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  cursor: pointer;
-  min-height: 44px;
-}
-
+.redeemOnlineBtn,
 .redeemCodeBtn {
   flex: 1;
-  padding: 9px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
   background: transparent;
   color: var(--text-dark);
-  border: 1px solid var(--text-dark);
-  font-family: "Montserrat", sans-serif;
+  font-family: "Montserrat", "Noto Sans TC", sans-serif;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   cursor: pointer;
-  min-height: 44px;
+  transition: all 0.5s var(--ease-slow);
+}
+@media (min-width: 640px) {
+  .redeemOnlineBtn,
+  .redeemCodeBtn {
+    padding: 10px 14px;
+    letter-spacing: 0.18em;
+  }
+}
+@media (hover: hover) {
+  .redeemOnlineBtn:hover,
+  .redeemCodeBtn:hover {
+    background: var(--text-dark);
+    color: var(--bg);
+    transform: translateY(-2px);
+  }
 }
 
 /* ── 集章說明 ── */
