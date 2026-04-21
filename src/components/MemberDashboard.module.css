@@ -437,10 +437,13 @@
 }
 
 .activeRedemptionName {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-dark);
   font-weight: 500;
   letter-spacing: 0.02em;
+}
+@media (min-width: 640px) {
+  .activeRedemptionName { font-size: 14px; }
 }
 
 .activeRedemptionStampBadge {
@@ -483,7 +486,7 @@
 }
 
 .cancelRedeemBtn {
-  padding: 6px 14px;
+  padding: 8px 16px;
   background: transparent;
   border: 1px solid rgba(43, 33, 27, 0.15);
   border-radius: 999px;
@@ -493,12 +496,16 @@
   color: rgba(43, 33, 27, 0.45);
   cursor: pointer;
   flex-shrink: 0;
-  min-height: 36px;
-  align-self: flex-start;
+  min-height: 40px;
+  align-self: stretch;
   transition: all 0.3s var(--ease);
 }
 @media (min-width: 640px) {
-  .cancelRedeemBtn { align-self: center; }
+  .cancelRedeemBtn {
+    min-height: 36px;
+    align-self: center;
+    padding: 6px 14px;
+  }
 }
 @media (hover: hover) {
   .cancelRedeemBtn:hover {
