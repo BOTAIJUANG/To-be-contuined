@@ -7,12 +7,16 @@ import Footer from '@/components/Footer';
 import { useSettings } from '@/lib/useSettings';
 import s from './order-search.module.css';
 
-const STATUS_LABEL: Record<string, string> = {
-  processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消',
+const STATUS_LABEL = (status: string, payStatus: string): string => {
+  if (status === 'processing') return payStatus === 'paid' ? '處理中' : '尚未付款';
+  return { shipped: '已出貨', done: '已完成', cancelled: '已取消' }[status] ?? status;
 };
-const STATUS_COLOR: Record<string, string> = {
-  processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580',
+const STATUS_COLOR = (status: string, payStatus: string): string => {
+  if (status === 'processing') return payStatus === 'paid' ? '#b87a2a' : '#c0392b';
+  return { shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' }[status] ?? '#888580';
 };
+const PAY_STATUS_LABEL: Record<string, string> = { paid: '已付款', pending: '待付款' };
+const PAY_STATUS_COLOR: Record<string, string> = { paid: '#2ab85a', pending: '#888580' };
 const SHIP_LABEL: Record<string, string> = {
   home_ambient: '宅配（常溫）', home_refrigerated: '宅配（冷藏）', home_frozen: '宅配（冷凍）',
   cvs_ambient: '7-11取貨（常溫）', cvs_frozen: '7-11取貨（冷凍）', store: '門市自取',
@@ -88,15 +92,28 @@ export default function OrderSearchPage() {
                   {/* 訂單編號 + 狀態 */}
                   <div className={s.orderHeader}>
                     <span className={s.orderNo}>{result.order_no}</span>
-                    <span
-                      className={s.statusBadge}
-                      style={{
-                        color: STATUS_COLOR[result.status] ?? '#888580',
-                        border: `1px solid ${STATUS_COLOR[result.status] ?? '#E8E4DC'}`,
-                      }}
-                    >
-                      {STATUS_LABEL[result.status] ?? result.status}
-                    </span>
+                    <div className={s.badgeGroup}>
+                      <span
+                        className={s.statusBadge}
+                        style={{
+                          color: STATUS_COLOR(result.status, result.pay_status),
+                          border: `1px solid ${STATUS_COLOR(result.status, result.pay_status)}`,
+                        }}
+                      >
+                        {STATUS_LABEL(result.status, result.pay_status)}
+                      </span>
+                      {result.pay_status && (
+                        <span
+                          className={s.payBadge}
+                          style={{
+                            color: PAY_STATUS_COLOR[result.pay_status] ?? '#888580',
+                            border: `1px solid ${PAY_STATUS_COLOR[result.pay_status] ?? '#E8E4DC'}`,
+                          }}
+                        >
+                          {PAY_STATUS_LABEL[result.pay_status] ?? result.pay_status}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* 訂購商品 */}
