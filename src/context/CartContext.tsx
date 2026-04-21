@@ -58,6 +58,10 @@ interface CartContextType {
   isOpen:      boolean;
   openCart:    () => void;
   closeCart:   () => void;
+  // 結帳鎖定
+  cartLocked:  boolean;
+  lockCart:    () => void;
+  unlockCart:  () => void;
   // Cart feedback
   toast:          CartToastData | null;
   showToast:      (msg: string) => void;
@@ -174,14 +178,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const clearCart  = () => setItems([]);
+  const [cartLocked, setCartLocked] = useState(false);
+  const lockCart   = useCallback(() => setCartLocked(true), []);
+  const unlockCart = useCallback(() => setCartLocked(false), []);
+
+  const clearCart  = () => { setItems([]); setCartLocked(false); };
   const openCart   = () => setIsOpen(true);
   const closeCart  = () => setIsOpen(false);
   const totalCount = items.reduce((s, i) => s + i.qty, 0);
   const totalPrice = items.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, totalCount, totalPrice, cartType, mixedShipDate, unifiedShipDate, addItem, removeItem, updateQty, clearCart, isOpen, openCart, closeCart, toast, showToast, clearToast, cartBounceKey, triggerBounce }}>
+    <CartContext.Provider value={{ items, totalCount, totalPrice, cartType, mixedShipDate, unifiedShipDate, addItem, removeItem, updateQty, clearCart, isOpen, openCart, closeCart, cartLocked, lockCart, unlockCart, toast, showToast, clearToast, cartBounceKey, triggerBounce }}>
       {children}
     </CartContext.Provider>
   );

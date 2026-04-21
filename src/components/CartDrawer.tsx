@@ -21,7 +21,7 @@ interface GiftDisplay {
 
 export default function CartDrawer() {
   const router = useRouter();
-  const { items, totalPrice, totalCount, removeItem, updateQty, clearCart, isOpen, closeCart, cartType, mixedShipDate, unifiedShipDate } = useCart();
+  const { items, totalPrice, totalCount, removeItem, updateQty, clearCart, isOpen, closeCart, cartType, mixedShipDate, unifiedShipDate, cartLocked, lockCart } = useCart();
 
   const hasMixed = items.some(i => i.isPreorder) && items.some(i => !i.isPreorder);
 
@@ -195,7 +195,7 @@ export default function CartDrawer() {
                       <span className={s.redeemQty}>× 1（兌換品）</span>
                     ) : (
                       <div className={s.qtyControl}>
-                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId, undefined, item.preorderBatchId, item.shipDateId)}>−</button>
+                        <button className={s.qtyBtn} onClick={() => updateQty(item.id, item.qty - 1, item.variantId, undefined, item.preorderBatchId, item.shipDateId)} disabled={cartLocked}>−</button>
                         <span className={s.qtyValue}>{item.qty}</span>
                         <button
                           className={s.qtyBtn}
@@ -203,7 +203,7 @@ export default function CartDrawer() {
                             const max = getMaxQty(item);
                             if (item.qty < max) updateQty(item.id, item.qty + 1, item.variantId, max, item.preorderBatchId, item.shipDateId);
                           }}
-                          disabled={item.qty >= getMaxQty(item)}
+                          disabled={cartLocked || item.qty >= getMaxQty(item)}
                         >+</button>
                       </div>
                     )}
@@ -215,7 +215,7 @@ export default function CartDrawer() {
                 {item.isRedeemItem ? (
                   <button className={s.cancelRedeemBtn} onClick={() => handleCancelRedeem(item)}>取消</button>
                 ) : (
-                  <button className={s.removeBtn} onClick={() => removeItem(item.id, item.variantId, item.preorderBatchId, item.shipDateId)}>×</button>
+                  <button className={s.removeBtn} onClick={() => removeItem(item.id, item.variantId, item.preorderBatchId, item.shipDateId)} disabled={cartLocked}>×</button>
                 )}
               </div>
             );
@@ -265,10 +265,15 @@ export default function CartDrawer() {
               <span className={s.subtotalLabel}>小計</span>
               <span className={s.subtotalPrice}>NT$ {(totalPrice - promoResult.total_discount).toLocaleString()}</span>
             </div>
-            <button className={s.checkoutBtn} onClick={() => { closeCart(); router.push('/checkout'); }}>
+            {cartLocked && (
+              <div className={s.lockedNotice}>
+                結帳進行中，購物車暫時鎖定
+              </div>
+            )}
+            <button className={s.checkoutBtn} onClick={() => { lockCart(); closeCart(); router.push('/checkout'); }}>
               前往結帳
             </button>
-            <button className={s.clearBtn} onClick={() => { if (confirm('確定要清空購物車嗎？')) clearCart(); }}>
+            <button className={s.clearBtn} onClick={() => { if (confirm('確定要清空購物車嗎？')) clearCart(); }} disabled={cartLocked}>
               清空購物車
             </button>
           </div>

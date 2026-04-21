@@ -371,4 +371,28 @@
   font-family: "Montserrat", sans-serif;
   font-size: 11px;
   letter-spacing: 0.2em;
+  cursor: pointer;
+}
+.clearBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.lockedNotice {
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: #faf6ef;
+  border: 1px solid rgba(125, 97, 72, 0.16);
+  border-radius: 12px;
+  font-size: 11px;
+  color: rgba(63, 47, 36, 0.62);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.qtyBtn:disabled,
+.removeBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
