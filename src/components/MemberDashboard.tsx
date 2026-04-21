@@ -54,7 +54,6 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
   const [stampIconUrl,    setStampIconUrl]    = useState('');
   const [redeemItems,     setRedeemItems]     = useState<any[]>([]);
   const [stampsFrozen,    setStampsFrozen]    = useState(0);
-  const [redeemNotice,    setRedeemNotice]    = useState('');
 
   // 兌換流程
   const [activeRedemptions, setActiveRedemptions] = useState<any[]>([]);
@@ -90,7 +89,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         ]);
         const member = memberRes.ok ? await memberRes.json() : null;
         if (member)   { setName(member.name ?? userName); setPhone(member.phone ?? ''); setBirthday(member.birthday ?? ''); setStamps(member.stamps ?? 0); setStampsFrozen(member.stamps_frozen ?? 0); }
-        if (settings) { setStampGoal(settings.stamp_goal ?? 8); setStampTotalSlots(settings.stamp_total_slots ?? 10); setStampThreshold(settings.stamp_threshold ?? 200); setStampExpiry(settings.stamp_expiry ?? 365); setStampCardName(settings.stamp_card_name ?? '未半甜點護照'); setStampIconUrl(settings.stamp_icon_url ?? ''); setRedeemNotice(settings.redeem_notice_text ?? ''); }
+        if (settings) { setStampGoal(settings.stamp_goal ?? 8); setStampTotalSlots(settings.stamp_total_slots ?? 10); setStampThreshold(settings.stamp_threshold ?? 200); setStampExpiry(settings.stamp_expiry ?? 365); setStampCardName(settings.stamp_card_name ?? '未半甜點護照'); setStampIconUrl(settings.stamp_icon_url ?? ''); }
         if (redeem)   { setRedeemItems(redeem); }
 
         // 載入集章異動記錄
@@ -514,16 +513,9 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
 
               {/* 注意事項 */}
               <div className={s.warningBox}>
-                {redeemNotice
-                  ? redeemNotice.split('\n').map((line: string, i: number) => <div key={i}>{line}</div>)
-                  : (
-                    <>
-                      {redeemType === 'online'
-                        ? <div>・點選「線上兌換」後，商品將自動加入購物車，請儘快與其他商品一併完成下單。</div>
-                        : <div>・現場兌換碼請於 120 分鐘內至門市出示，逾時自動失效</div>
-                      }
-                    </>
-                  )
+                {redeemType === 'online'
+                  ? <div>・點選「線上兌換」後，商品將自動加入購物車，請儘快與其他商品一併完成下單。</div>
+                  : <div>・現場兌換碼請於 120 分鐘內至門市出示，逾時自動失效</div>
                 }
               </div>
 
