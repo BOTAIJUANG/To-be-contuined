@@ -97,7 +97,7 @@ export default function OrderSearchPage() {
                   <div className={s.orderHeader}>
                     <div className={s.orderHeaderLeft}>
                       <span className={s.orderNumber}>{result.order_no}</span>
-                      <span className={s.orderDate}>{new Date(result.created_at).toLocaleDateString('zh-TW')} 下單</span>
+                      <span className={s.orderDate}>{new Date(result.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })} 下單</span>
                     </div>
                     <div className={s.orderStatusGroup}>
                       <span className={`${s.orderBadge} ${getStatusClass(s, result.status, result.pay_status)}`}>
@@ -157,7 +157,7 @@ export default function OrderSearchPage() {
                           <div className={s.trackingNo}>{result.tracking_no}</div>
                           {result.shipped_at && (
                             <div className={s.shippedAt}>
-                              出貨時間：{new Date(result.shipped_at).toLocaleDateString('zh-TW')}
+                              出貨時間：{new Date(result.shipped_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}
                             </div>
                           )}
                         </div>

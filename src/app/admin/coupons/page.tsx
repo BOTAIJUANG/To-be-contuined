@@ -191,7 +191,7 @@ export default function AdminCouponsPage() {
                 </div>
                 <div className={s.cardRow}>
                   <span className={s.cardLabel}>到期日</span>
-                  <span className={s.cardValue}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-TW') : '永不過期'}</span>
+                  <span className={s.cardValue}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '永不過期'}</span>
                 </div>
                 <div className={s.cardActions}>
                   <input type="checkbox" checked={c.is_active} onChange={() => toggleActive(c)} className={s.checkbox} />
@@ -219,7 +219,7 @@ export default function AdminCouponsPage() {
                   <td className={`${s.td} ${cx.tdMuted}`}>{SCOPE_LABEL[(c as any).user_scope] ?? '所有人'}</td>
                   <td className={`${s.td} ${cx.tdMuted}`}>{(c as any).stackable ? '可併用' : '不可'}</td>
                   <td className={`${s.td} ${cx.tdMuted}`}>{c.used_count} / {c.max_uses > 0 ? c.max_uses : '∞'}</td>
-                  <td className={`${s.td} ${cx.tdLight}`}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-TW') : '永不過期'}</td>
+                  <td className={`${s.td} ${cx.tdLight}`}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '永不過期'}</td>
                   <td className={s.td}>
                     <input type="checkbox" checked={c.is_active} onChange={() => toggleActive(c)} className={s.checkbox} />
                   </td>

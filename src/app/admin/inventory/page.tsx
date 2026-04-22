@@ -979,7 +979,7 @@ export default function AdminInventoryPage() {
                               const ING_TYPE_COLOR: Record<string, string> = { use: '#888580', damage: '#c0392b', scrap: '#c0392b', purchase: '#2ab85a', audit: '#555250', adjust: '#b87a2a' };
                               return (
                                 <tr key={logItem.id} className={s.tr}>
-                                  <td className={`${s.td} ${p.logTimeCell}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</td>
+                                  <td className={`${s.td} ${p.logTimeCell}`}>{new Date(logItem.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                                   <td className={s.td}>{logItem.ingredient_name ?? '—'}</td>
                                   <td className={s.td}>
                                     <span className={s.badge} style={{ color: ING_TYPE_COLOR[logItem.change_type], border: `1px solid ${ING_TYPE_COLOR[logItem.change_type]}` }}>
@@ -1007,7 +1007,7 @@ export default function AdminInventoryPage() {
                             const ING_TYPE_COLOR: Record<string, string> = { use: '#888580', damage: '#c0392b', scrap: '#c0392b', purchase: '#2ab85a', audit: '#555250', adjust: '#b87a2a' };
                             return (
                               <div key={logItem.id} className={s.card}>
-                                <div className={s.cardRow}><span className={s.cardLabel}>時間</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</span></div>
+                                <div className={s.cardRow}><span className={s.cardLabel}>時間</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{new Date(logItem.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</span></div>
                                 <div className={s.cardRow}><span className={s.cardLabel}>品項</span><span className={s.cardValue}>{logItem.ingredient_name ?? '—'}</span></div>
                                 <div className={s.cardRow}><span className={s.cardLabel}>類型</span><span className={s.badge} style={{ color: ING_TYPE_COLOR[logItem.change_type], border: `1px solid ${ING_TYPE_COLOR[logItem.change_type]}` }}>{ING_TYPE_LABEL[logItem.change_type] ?? logItem.change_type}</span></div>
                                 <div className={s.cardRow}><span className={s.cardLabel}>變動</span><span className={`${s.cardValue} ${p.cardChangeBold}`} style={{ color: Number(logItem.qty_change) >= 0 ? '#2ab85a' : '#c0392b' }}>{Number(logItem.qty_change) >= 0 ? `+${logItem.qty_change}` : logItem.qty_change}</span></div>
@@ -1146,7 +1146,7 @@ export default function AdminInventoryPage() {
                     <tr><td colSpan={9} className={s.emptyRow}>沒有符合條件的記錄</td></tr>
                   ) : logs.map(logItem => (
                     <tr key={logItem.id} className={s.tr}>
-                      <td className={`${s.td} ${p.logTimeCell}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</td>
+                      <td className={`${s.td} ${p.logTimeCell}`}>{new Date(logItem.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                       <td className={s.td}>{logItem.products?.name ?? '—'}</td>
                       <td className={`${s.td} ${p.variantCol}`}>{logItem.product_variants?.name ?? '—'}</td>
                       <td className={s.td}>
@@ -1171,7 +1171,7 @@ export default function AdminInventoryPage() {
                   <div className={s.emptyRow}>沒有符合條件的記錄</div>
                 ) : logs.map(logItem => (
                   <div key={logItem.id} className={s.card}>
-                    <div className={s.cardRow}><span className={s.cardLabel}>時間</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{new Date(logItem.created_at).toLocaleString('zh-TW')}</span></div>
+                    <div className={s.cardRow}><span className={s.cardLabel}>時間</span><span className={`${s.cardValue} ${p.cardValueSm}`}>{new Date(logItem.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</span></div>
                     <div className={s.cardRow}><span className={s.cardLabel}>商品</span><span className={s.cardValue}>{logItem.products?.name ?? '—'}</span></div>
                     <div className={s.cardRow}><span className={s.cardLabel}>類型</span><span className={s.badge} style={{ color: CHANGE_TYPE_COLOR[logItem.change_type], border: `1px solid ${CHANGE_TYPE_COLOR[logItem.change_type]}` }}>{CHANGE_TYPE_LABEL[logItem.change_type] ?? logItem.change_type}</span></div>
                     <div className={s.cardRow}><span className={s.cardLabel}>變動</span><span className={`${s.cardValue} ${p.cardChangeBold}`} style={{ color: logItem.qty_change >= 0 ? '#2ab85a' : '#c0392b' }}>{logItem.qty_change >= 0 ? `+${logItem.qty_change}` : logItem.qty_change}</span></div>

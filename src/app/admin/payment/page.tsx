@@ -218,7 +218,7 @@ export default function AdminPaymentPage() {
 
                 {/* 付款時間 */}
                 <td className={`${s.td} ${p.tdDateLight}`}>
-                  {order.paid_at ? new Date(order.paid_at).toLocaleString('zh-TW') : '—'}
+                  {order.paid_at ? new Date(order.paid_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—'}
                 </td>
 
                 {/* 退款狀態 */}
@@ -241,7 +241,7 @@ export default function AdminPaymentPage() {
                   )}
                 </td>
 
-                <td className={`${s.td} ${p.tdDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                <td className={`${s.td} ${p.tdDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
               </tr>
             ))}
           </tbody>
@@ -272,7 +272,7 @@ export default function AdminPaymentPage() {
               {order.paid_at && (
                 <div className={s.cardRow}>
                   <span className={s.cardLabel}>付款時間</span>
-                  <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(order.paid_at).toLocaleString('zh-TW')}</span>
+                  <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(order.paid_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                 </div>
               )}
               <div className={s.cardRow}>
@@ -294,7 +294,7 @@ export default function AdminPaymentPage() {
               </div>
               <div className={s.cardRow}>
                 <span className={s.cardLabel}>日期</span>
-                <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+                <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
               </div>
             </div>
           ))}

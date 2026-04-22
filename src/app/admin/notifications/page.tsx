@@ -117,7 +117,7 @@ export default function AdminNotificationsPage() {
         .limit(100);
       if (data) {
         setLog(data.map(l => ({
-          time: new Date(l.created_at).toLocaleString('zh-TW'),
+          time: new Date(l.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
           type: l.type === 'batch' ? '批次發送' : l.type === 'order_confirm' ? '訂單確認' : l.type === 'ship_notify' ? '出貨通知' : l.type === 'refund_notify' ? '退款通知' : l.type,
           recipients: l.recipient_count,
           subject: l.subject ?? '',

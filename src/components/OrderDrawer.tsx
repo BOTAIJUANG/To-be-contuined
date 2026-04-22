@@ -147,8 +147,8 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                   { label: order.ship_method === 'store' ? '指定到店日' : '指定出貨日', value: order.ship_date || '—' },
                   { label: '物流業者', value: order.carrier || '—' },
                   { label: '追蹤號碼', value: order.tracking_no || '—' },
-                  { label: '實際出貨', value: order.shipped_at ? new Date(order.shipped_at).toLocaleDateString('zh-TW') : '—' },
-                  { label: '完成時間', value: order.completed_at ? new Date(order.completed_at).toLocaleDateString('zh-TW') : '—' },
+                  { label: '實際出貨', value: order.shipped_at ? new Date(order.shipped_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—' },
+                  { label: '完成時間', value: order.completed_at ? new Date(order.completed_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} className={s.row}>
                     <span className={s.rowLabel}>{label}</span>
@@ -191,7 +191,7 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
               <div className={s.section}>
                 <div className={s.sectionTitle}>其他資訊</div>
                 {[
-                  { label: '下單時間', value: new Date(order.created_at).toLocaleString('zh-TW') },
+                  { label: '下單時間', value: new Date(order.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) },
                   { label: '折扣碼', value: order.coupon_code || '—' },
                   { label: '備註', value: order.note || '—' },
                 ].map(({ label, value }) => (
@@ -233,7 +233,7 @@ export default function OrderDrawer({ order, onClose, onStatusChange }: OrderDra
                     )}
                     {order.paid_at && (
                       <div className={s.tradeInfoSub}>
-                        付款時間：{new Date(order.paid_at).toLocaleString('zh-TW')}
+                        付款時間：{new Date(order.paid_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                       </div>
                     )}
                     {order.refund_status && (() => {

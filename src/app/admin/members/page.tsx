@@ -311,7 +311,7 @@ export default function AdminMembersPage() {
                         {m.role === 'admin' ? 'ADMIN' : 'MEMBER'}
                       </span>
                     </td>
-                    <td className={`${s.td} ${p.cellSmallLight}`}>{new Date(m.created_at).toLocaleDateString('zh-TW')}</td>
+                    <td className={`${s.td} ${p.cellSmallLight}`}>{new Date(m.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                   </tr>
                 ))}
               </tbody>
@@ -677,7 +677,7 @@ export default function AdminMembersPage() {
                     { label: '生日',     value: detailMember.birthday },
                     { label: '身份',     value: detailMember.role === 'admin' ? 'Admin' : 'Member' },
                     { label: '集章數',   value: `${detailMember.stamps} 章${(detailMember.stamps_frozen ?? 0) > 0 ? `（凍結 ${detailMember.stamps_frozen} 章）` : ''}` },
-                    { label: '加入時間', value: new Date(detailMember.created_at).toLocaleString('zh-TW') },
+                    { label: '加入時間', value: new Date(detailMember.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) },
                   ].map(({ label, value }) => (
                     <div key={label} className={p.profileRow}>
                       <span className={p.profileLabel}>{label}</span>
@@ -724,7 +724,7 @@ export default function AdminMembersPage() {
                         <div className={p.logContentFlex}>
                           <div className={p.logReason}>{log.reason ?? '—'}</div>
                           <div className={p.logMeta}>
-                            {new Date(log.created_at).toLocaleString('zh-TW')}
+                            {new Date(log.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                             {log.admin_name && <span className={p.adminNameTag}>· {log.admin_name}</span>}
                           </div>
                         </div>
@@ -757,11 +757,11 @@ export default function AdminMembersPage() {
                             </span>
                           </div>
                           <div className={p.redemptionMeta}>
-                            <span>{new Date(r.created_at).toLocaleString('zh-TW')}</span>
+                            <span>{new Date(r.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                             <span className={p.stampCostRed}>−{r.stamps_cost} 章</span>
                             <span>{r.type === 'code' ? `兌換碼：${r.redeem_code}` : '線上兌換'}</span>
                           </div>
-                          {r.used_at && <div className={p.usedAtGreen}>核銷時間：{new Date(r.used_at).toLocaleString('zh-TW')}</div>}
+                          {r.used_at && <div className={p.usedAtGreen}>核銷時間：{new Date(r.used_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</div>}
                         </div>
                       );
                     })}

@@ -189,7 +189,7 @@ export default function AdminLogisticsPage() {
                   {order.order_no}
                   {order.shipped_at && (
                     <div className={p.shippedDate}>
-                      出貨：{new Date(order.shipped_at).toLocaleDateString('zh-TW')}
+                      出貨：{new Date(order.shipped_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}
                     </div>
                   )}
                 </td>

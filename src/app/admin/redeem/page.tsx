@@ -177,7 +177,7 @@ export default function AdminRedeemPage() {
 
           {/* 有效期限 */}
           <div className={p.expiryText} style={{ color: new Date(result.expires_at) < new Date() ? '#c0392b' : 'var(--text-light)' }}>
-            有效期限：{new Date(result.expires_at).toLocaleString('zh-TW')}
+            有效期限：{new Date(result.expires_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
             {new Date(result.expires_at) < new Date() && ' （已過期）'}
           </div>
 
@@ -220,7 +220,7 @@ export default function AdminRedeemPage() {
               <tbody>
                 {recentLogs.map(log => (
                   <tr key={log.id} className={s.tr}>
-                    <td className={`${s.td} ${p.tdDateLight}`}>{new Date(log.used_at).toLocaleString('zh-TW')}</td>
+                    <td className={`${s.td} ${p.tdDateLight}`}>{new Date(log.used_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                     <td className={`${s.td} ${p.tdCodeMono}`}>{log.redeem_code}</td>
                     <td className={s.td}>{log.members?.name ?? '—'}</td>
                     <td className={s.td}>{log.redeem_items?.name ?? '—'}</td>
@@ -252,7 +252,7 @@ export default function AdminRedeemPage() {
                   </div>
                   <div className={s.cardRow}>
                     <span className={s.cardLabel}>時間</span>
-                    <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(log.used_at).toLocaleString('zh-TW')}</span>
+                    <span className={`${s.cardValue} ${p.cardDateLight}`}>{new Date(log.used_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                   </div>
                 </div>
               ))}

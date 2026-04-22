@@ -225,7 +225,7 @@ export default function AdminDashboardPage() {
                         {STATUS_LABEL[order.status]}
                       </span>
                     </td>
-                    <td className={s.tdDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                    <td className={s.tdDate}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                   </tr>
                 ))}
               </tbody>
@@ -237,7 +237,7 @@ export default function AdminDashboardPage() {
                 <div key={order.order_no} className={s.card} onClick={() => router.push('/admin/orders')}>
                   <div className={s.cardTop}>
                     <span className={s.cardOrderNo}>{order.order_no}</span>
-                    <span className={s.cardDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+                    <span className={s.cardDate}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                   </div>
                   <div className={s.cardMid}>
                     <span className={s.cardName}>{order.customer_name ?? order.buyer_name}</span>

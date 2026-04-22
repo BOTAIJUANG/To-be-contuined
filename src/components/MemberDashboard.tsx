@@ -429,7 +429,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                       <div className={s.activeRedemptionExpiry}>
                         有效至 {r.type === 'code'
                           ? new Date(r.expires_at).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })
-                          : new Date(r.expires_at).toLocaleDateString('zh-TW')
+                          : new Date(r.expires_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })
                         }
                       </div>
                     </div>
@@ -495,7 +495,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                     <div key={log.id} className={s.logRow}>
                       <div>
                         <div className={s.logReason}>{log.reason ?? '—'}</div>
-                        <div className={s.logDate}>{new Date(log.created_at).toLocaleDateString('zh-TW')}</div>
+                        <div className={s.logDate}>{new Date(log.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</div>
                       </div>
                       <div>
                         <div className={log.change > 0 ? s.logChangePositive : s.logChangeNegative}>
@@ -595,7 +595,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               </div>
 
               <div className={s.codeExpiry}>
-                有效期限：{new Date(codeResult.expiresAt).toLocaleString('zh-TW')}
+                有效期限：{new Date(codeResult.expiresAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
               </div>
               <div className={s.codeHint}>
                 請出示此畫面給門市人員核銷<br/>
@@ -638,7 +638,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                     </div>
                   )}
                   <div className={s.orderFooter}>
-                    <span className={s.orderDate}>{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+                    <span className={s.orderDate}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                     <span className={s.orderTotal}>NT$ {order.total.toLocaleString()}</span>
                   </div>
                 </div>

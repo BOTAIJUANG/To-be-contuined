@@ -294,7 +294,7 @@ export default function AdminOrdersPage() {
     ];
     const txtPhone = (v: string | null | undefined) => v ? `="${v}"` : '';
     const rows = list.flatMap(o => (o.order_items ?? []).map((item: any) => [
-      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW'),
+      o.order_no, new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }),
       o.buyer_name ?? '', txtPhone(o.buyer_phone), o.buyer_email ?? '',
       o.customer_name ?? o.buyer_name ?? '', txtPhone(o.customer_phone ?? o.buyer_phone), o.customer_email ?? o.buyer_email ?? '',
       SHIP_LABEL[o.ship_method] ?? o.ship_method,
@@ -520,7 +520,7 @@ export default function AdminOrdersPage() {
                   ) : orders.map(o => (
                     <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
                       <td className={s.tdOrderNo}>{o.order_no}</td>
-                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                       <td className={s.tdBuyer}>
                         <div className={s.buyerName}>
                           {o.customer_name ?? o.buyer_name}
@@ -574,7 +574,7 @@ export default function AdminOrdersPage() {
                   <div key={o.id} className={s.card} onClick={() => setSelectedOrder(o)}>
                     <div className={s.cardTop}>
                       <span className={s.cardOrderNo}>{o.order_no}</span>
-                      <span className={s.cardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</span>
+                      <span className={s.cardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                     </div>
                     <div className={s.cardMid}>
                       <div className={s.cardBuyer}>
@@ -665,7 +665,7 @@ export default function AdminOrdersPage() {
                     <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
                       <td className={s.tdCheck} onClick={e => e.stopPropagation()}><input type="checkbox" className={s.checkbox} checked={shipSelected.has(o.id)} onChange={() => toggleShipSelect(o.id)} /></td>
                       <td className={s.tdOrderNo}>{o.order_no}</td>
-                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                       <td className={s.tdBuyer}><div className={s.buyerName}>{o.customer_name ?? o.buyer_name}</div><div className={s.buyerPhone}>{o.customer_phone ?? o.buyer_phone}</div></td>
                       <td className={s.tdAddress}>{o.cvs_store_name ? `${o.cvs_store_brand ?? ''} ${o.cvs_store_name}`.trim() : (o.address || (o.ship_method === 'store' ? '門市自取' : '—'))}</td>
                       <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
@@ -687,7 +687,7 @@ export default function AdminOrdersPage() {
                   <div key={o.id} className={s.shipCard} onClick={() => setSelectedOrder(o)}>
                     <div className={s.shipCardTop}>
                       <span className={s.shipCardOrderNo}>{o.order_no}</span>
-                      <span className={s.shipCardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</span>
+                      <span className={s.shipCardDate}>{new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
                     </div>
                     <div className={s.shipCardRecipient}>{o.customer_name ?? o.buyer_name} ・ {o.customer_phone ?? o.buyer_phone}</div>
                     <div className={s.shipCardAddress}>{o.cvs_store_name ? `${o.cvs_store_brand ?? ''} ${o.cvs_store_name}`.trim() : (o.address || (o.ship_method === 'store' ? '門市自取' : '—'))}</div>
@@ -732,8 +732,8 @@ export default function AdminOrdersPage() {
                   ) : shippedOrders.map(o => (
                     <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
                       <td className={s.tdOrderNo}>{o.order_no}</td>
-                      <td className={s.tdShippedDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</td>
-                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className={s.tdShippedDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—'}</td>
+                      <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                       <td className={s.tdBuyer}><div className={s.buyerName}>{o.customer_name ?? o.buyer_name}</div><div className={s.buyerPhone}>{o.customer_phone ?? o.buyer_phone}</div></td>
                       <td className={s.tdAddress}>{o.cvs_store_name ? `${o.cvs_store_brand ?? ''} ${o.cvs_store_name}`.trim() : (o.address || (o.ship_method === 'store' ? '門市自取' : '—'))}</td>
                       <td className={s.tdProduct}>{productSummary(o.order_items)}</td>
@@ -753,7 +753,7 @@ export default function AdminOrdersPage() {
                   <div key={o.id} className={s.shipCard} onClick={() => setSelectedOrder(o)}>
                     <div className={s.shipCardTop}>
                       <span className={s.shipCardOrderNo}>{o.order_no}</span>
-                      <span className={s.shipCardDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW') : '—'}</span>
+                      <span className={s.shipCardDate}>{o.shipped_at ? new Date(o.shipped_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—'}</span>
                     </div>
                     <div className={s.shipCardRecipient}>{o.customer_name ?? o.buyer_name} ・ {o.customer_phone ?? o.buyer_phone}</div>
                     <div className={s.shipCardAddress}>{o.cvs_store_name ? `${o.cvs_store_brand ?? ''} ${o.cvs_store_name}`.trim() : (o.address || (o.ship_method === 'store' ? '門市自取' : '—'))}</div>
