@@ -123,19 +123,32 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     return product.is_sold_out;
   })();
 
-  // 日期模式：載入 product_ship_dates
+  // 日期模式：載入 product_ship_dates（套用 ship_min_days / ship_max_days）
   const isDateMode = (product as any).stock_mode === 'date_mode';
   let shipDates: { id: number; ship_date: string; capacity: number; remaining: number }[] = [];
   if (isDateMode) {
+    const { data: shipSettings } = await supabaseAdmin
+      .from('store_settings')
+      .select('ship_min_days, ship_max_days')
+      .eq('id', 1)
+      .single();
+    const minDays = shipSettings?.ship_min_days ?? 1;
+    const maxDays = shipSettings?.ship_max_days ?? 30;
+
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const minDate = new Date(now); minDate.setDate(now.getDate() + minDays);
+    const maxDate = new Date(now); maxDate.setDate(now.getDate() + maxDays);
+    const minStr  = minDate.toISOString().split('T')[0];
+    const maxStr  = maxDate.toISOString().split('T')[0];
+
     const { data: sdData } = await supabaseAdmin
       .from('product_ship_dates')
       .select('id, ship_date, capacity, reserved')
       .eq('product_id', product.id)
       .is('variant_id', null)
       .eq('is_open', true)
-      .gte('ship_date', today)
+      .gte('ship_date', minStr)
+      .lte('ship_date', maxStr)
       .order('ship_date');
     shipDates = (sdData ?? [])
       .map((d: any) => ({
