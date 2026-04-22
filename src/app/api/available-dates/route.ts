@@ -39,8 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ dates: [], noIntersection: false });
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // 台灣時區今日日期，用 noon+08:00 確保 fmt()/toISOString() 也回傳正確台灣日期
+  const twFmt    = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
+  const todayTW  = twFmt(new Date());
+  const today    = new Date(todayTW + 'T12:00:00+08:00'); // noon TW = UTC 04:00，fmt() 正確
 
   // ── 1. 取得商店設定 ──────────────────────────────
   const { data: settings } = await supabase
@@ -92,22 +94,14 @@ export async function POST(req: NextRequest) {
       .in('product_id', dateModeProductIds)
       .eq('is_open', true)
       .gt('capacity', 0);
-    // 只取剩餘數量 > 0 且未過截單時間的
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const tomorrowDt = new Date(now); tomorrowDt.setDate(tomorrowDt.getDate() + 1);
-    const tomorrowStr = tomorrowDt.toISOString().split('T')[0];
+    // 台灣時區最早可選日期（今日 + ship_min_days）
+    const minDateDt = new Date(todayTW + 'T12:00:00+08:00');
+    minDateDt.setDate(minDateDt.getDate() + shipMinDays);
+    const minDateStr = twFmt(minDateDt);
+
     shipDates = (data ?? []).filter((d: any) => {
       if (d.capacity - d.reserved <= 0) return false;
-      // 截單時間過濾
-      const rawCutoff = d.cutoff_time;
-      const cutoff = (typeof rawCutoff === 'string' && rawCutoff.includes(':')) ? rawCutoff : '17:00';
-      const [ch, cm] = cutoff.split(':').map(Number);
-      if (isNaN(ch) || isNaN(cm)) return true;
-      if (d.ship_date === todayStr || d.ship_date === tomorrowStr) {
-        const cutoffTime = new Date(now); cutoffTime.setHours(ch, cm, 0, 0);
-        if (now >= cutoffTime) return false;
-      }
+      if (d.ship_date < minDateStr) return false; // 過去日期或未達最少提前天數
       return true;
     });
   }
