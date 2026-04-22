@@ -18,25 +18,22 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: 'last_month', label: '上月' },
 ];
 
-function getPeriodRange(period: Period): { start: string; end: string } {
-  const now   = new Date();
-  const today = now.toISOString().split('T')[0];
+const twDate = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
 
-  if (period === '7') {
-    const d = new Date(now); d.setDate(d.getDate() - 7);
-    return { start: d.toISOString().split('T')[0], end: today };
-  }
-  if (period === '30') {
-    const d = new Date(now); d.setDate(d.getDate() - 30);
-    return { start: d.toISOString().split('T')[0], end: today };
-  }
+function getPeriodRange(period: Period): { start: string; end: string } {
+  const today = twDate(new Date());
+  const daysAgo = (n: number) => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - n); return twDate(d); };
+  const ref = new Date(today + 'T12:00:00');
+
+  if (period === '7')  return { start: daysAgo(7),  end: today };
+  if (period === '30') return { start: daysAgo(30), end: today };
   if (period === 'month') {
-    return { start: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`, end: today };
+    return { start: `${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}-01`, end: today };
   }
   if (period === 'last_month') {
-    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const e = new Date(now.getFullYear(), now.getMonth(), 0);
-    return { start: d.toISOString().split('T')[0], end: e.toISOString().split('T')[0] };
+    const d = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+    const e = new Date(ref.getFullYear(), ref.getMonth(), 0);
+    return { start: twDate(d), end: twDate(e) };
   }
   return { start: today, end: today };
 }
@@ -60,8 +57,8 @@ export default function AdminAnalyticsPage() {
         supabase
           .from('orders')
           .select('total, pay_status, status, buyer_email, created_at, order_items(name, qty, price)')
-          .gte('created_at', start)
-          .lte('created_at', end + 'T23:59:59')
+          .gte('created_at', start + 'T00:00:00+08:00')
+          .lte('created_at', end   + 'T23:59:59+08:00')
           .neq('status', 'cancelled'),
         supabase
           .from('members')
@@ -96,7 +93,7 @@ export default function AdminAnalyticsPage() {
       // 每日趨勢：訂單數算全部（不含取消），營收只算已付款
       const dailyMap: Record<string, { orders: number; revenue: number }> = {};
       list.forEach((o: any) => {
-        const d = o.created_at.split('T')[0];
+        const d = twDate(new Date(o.created_at));
         if (!dailyMap[d]) dailyMap[d] = { orders: 0, revenue: 0 };
         dailyMap[d].orders++;
         if (o.pay_status === 'paid') dailyMap[d].revenue += o.total;

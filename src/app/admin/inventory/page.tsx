@@ -190,7 +190,7 @@ export default function AdminInventoryPage() {
 
   // ── 載入出貨排程 ─────────────────────────────────
   const loadSchedule = async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
     const { data } = await supabase
       .from('orders')
       .select('ship_date, order_items(qty, product_name_snapshot, variant_name_snapshot, products(categories(name)))')
@@ -559,7 +559,7 @@ export default function AdminInventoryPage() {
                       if (!grouped.has(pid)) grouped.set(pid, []);
                       grouped.get(pid)!.push(sd);
                     });
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
                     return Array.from(grouped.entries()).map(([pid, dates]) => {
                       const sorted = [...dates].sort((a: any, b: any) => a.ship_date.localeCompare(b.ship_date));
                       const prodName = sorted[0]?.products?.name ?? '—';

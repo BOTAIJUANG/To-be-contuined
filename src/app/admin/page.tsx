@@ -43,7 +43,8 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const load = async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const todayTW = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
+      const today = `${todayTW}T00:00:00+08:00`;
       const [
         { count: todayOrders },
         { count: pendingPayment },

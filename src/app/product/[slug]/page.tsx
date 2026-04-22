@@ -135,11 +135,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     const minDays = shipSettings?.ship_min_days ?? 1;
     const maxDays = shipSettings?.ship_max_days ?? 30;
 
-    const now = new Date();
-    const minDate = new Date(now); minDate.setDate(now.getDate() + minDays);
-    const maxDate = new Date(now); maxDate.setDate(now.getDate() + maxDays);
-    const minStr  = minDate.toISOString().split('T')[0];
-    const maxStr  = maxDate.toISOString().split('T')[0];
+    const twDate  = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
+    const todayTW = twDate(new Date());
+    const minDate = new Date(todayTW + 'T12:00:00'); minDate.setDate(minDate.getDate() + minDays);
+    const maxDate = new Date(todayTW + 'T12:00:00'); maxDate.setDate(maxDate.getDate() + maxDays);
+    const minStr  = twDate(minDate);
+    const maxStr  = twDate(maxDate);
 
     const { data: sdData } = await supabaseAdmin
       .from('product_ship_dates')
