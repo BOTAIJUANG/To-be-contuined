@@ -735,8 +735,6 @@ export default function AdminProductsPage() {
                             <span style={{ color: 'var(--text-light)' }}>/</span>
                             <span style={{ color: '#c0392b' }}>{sdSummary!.closedStr}</span>
                           </>}
-                          <span style={{ color: 'var(--text-light)' }}>/</span>
-                          <span>截單時間：{sdSummary!.topCt}</span>
                         </div>
                         <span style={{ fontSize: '0.8em', color: 'var(--text-light)', whiteSpace: 'nowrap' }}>
                           共 {sdSummary!.total} 天
@@ -750,7 +748,7 @@ export default function AdminProductsPage() {
                           <table className={s.table}>
                             <thead>
                               <tr>
-                                {['出貨日', '可接單', '已預約', '剩餘', '截單', '備註', '狀態', '操作'].map(h => (
+                                {['出貨日', '可接單', '已預約', '剩餘', '備註', '狀態', '操作'].map(h => (
                                   <th key={h} className={s.th}>{h}</th>
                                 ))}
                               </tr>
@@ -769,7 +767,6 @@ export default function AdminProductsPage() {
                                     <td className={`${s.td} ${p.textRight}`}>{d.capacity}</td>
                                     <td className={`${s.td} ${p.textRight}`} style={{ color: d.reserved > 0 ? '#b87a2a' : 'var(--text-light)' }}>{d.reserved}</td>
                                     <td className={`${s.td} ${p.fw600} ${p.textRight}`} style={{ color: isFull ? '#c0392b' : '#2ab85a' }}>{remaining}</td>
-                                    <td className={`${s.td} ${p.monoFont}`} style={{ fontSize: '0.85em', color: 'var(--text-light)' }}>{d.cutoff_time ?? '17:00'}</td>
                                     <td className={s.td} style={{ fontSize: '0.85em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.note || '—'}</td>
                                     <td className={s.td}>
                                       <span className={s.badge} style={{ color: !d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a', border: `1px solid ${!d.is_open ? 'var(--text-light)' : isFull ? '#c0392b' : '#2ab85a'}` }}>
@@ -1140,11 +1137,6 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className={s.label}>截單時間</label>
-                    <input type="time" value={batchCutoff} onChange={e => setBatchCutoff(e.target.value)} className={`${s.input} ${p.inputW180}`} />
-                    <div className={p.hintText}>超過此時間後，隔日將無法接單（預設 17:00）</div>
-                  </div>
-                  <div>
                     <label className={s.label}>排除日期（選填，逗號分隔）</label>
                     <input value={batchExclude} onChange={e => setBatchExclude(e.target.value)} placeholder="例：2026-03-28,2026-03-29" className={`${s.input} ${p.inputFull}`} />
                     <div className={p.hintText}>輸入不接單的日期，逗號分開</div>
@@ -1163,10 +1155,6 @@ export default function AdminProductsPage() {
                       <input type="number" value={dateForm.capacity || ''} onChange={e => setDateForm({...dateForm, capacity: e.target.value === '' ? 0 : Number(e.target.value)})} placeholder="例：10" className={`${s.input} ${p.inputW100}`} />
                       <span className={p.unitLabel}>份</span>
                     </div>
-                  </div>
-                  <div>
-                    <label className={s.label}>截單時間</label>
-                    <input type="time" value={dateForm.cutoff_time ?? '17:00'} onChange={e => setDateForm({...dateForm, cutoff_time: e.target.value})} className={`${s.input} ${p.inputW180}`} />
                   </div>
                   <div>
                     <label className={s.label}>單日說明（選填）</label>

@@ -131,38 +131,20 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     const today = now.toISOString().split('T')[0];
     const { data: sdData } = await supabaseAdmin
       .from('product_ship_dates')
-      .select('id, ship_date, capacity, reserved, cutoff_time')
+      .select('id, ship_date, capacity, reserved')
       .eq('product_id', product.id)
       .is('variant_id', null)
       .eq('is_open', true)
       .gte('ship_date', today)
       .order('ship_date');
-    shipDates = (sdData ?? []).map((d: any) => ({
-      id: d.id,
-      ship_date: d.ship_date,
-      capacity: d.capacity ?? 0,
-      remaining: Math.max(0, (d.capacity ?? 0) - (d.reserved ?? 0)),
-    })).filter(d => {
-      if (d.remaining <= 0) return false;
-      // 截單時間過濾：如果出貨日是今天或明天，檢查是否已過截單時間
-      const rawCutoff = (sdData ?? []).find((sd: any) => sd.id === d.id)?.cutoff_time;
-      const cutoff = (typeof rawCutoff === 'string' && rawCutoff.includes(':')) ? rawCutoff : '17:00';
-      const [ch, cm] = cutoff.split(':').map(Number);
-      if (isNaN(ch) || isNaN(cm)) return true; // 無法解析截單時間，不過濾
-      const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
-      // 今天的日期：如果已過截單時間則排除
-      if (d.ship_date === today) {
-        const cutoffTime = new Date(now); cutoffTime.setHours(ch, cm, 0, 0);
-        if (now >= cutoffTime) return false;
-      }
-      // 明天的日期：如果已過今天的截單時間則排除
-      if (d.ship_date === tomorrowStr) {
-        const cutoffTime = new Date(now); cutoffTime.setHours(ch, cm, 0, 0);
-        if (now >= cutoffTime) return false;
-      }
-      return true;
-    });
+    shipDates = (sdData ?? [])
+      .map((d: any) => ({
+        id: d.id,
+        ship_date: d.ship_date,
+        capacity: d.capacity ?? 0,
+        remaining: Math.max(0, (d.capacity ?? 0) - (d.reserved ?? 0)),
+      }))
+      .filter(d => d.remaining > 0);
   }
 
   return (
