@@ -240,8 +240,8 @@ async function handleCancel({ redemption_id }: { redemption_id: number }) {
 
   if (!redemption)
     return NextResponse.json({ error: "找不到兌換記錄" }, { status: 404 });
-  if (!["pending_cart", "pending_order"].includes(redemption.status)) {
-    return NextResponse.json({ error: "此兌換無法取消" }, { status: 400 });
+  if (redemption.status !== "pending_cart") {
+    return NextResponse.json({ error: "訂單已建立後無法取消兌換，如需取消請聯絡客服" }, { status: 400 });
   }
 
   // 更新狀態（樂觀鎖：確保狀態未被其他操作更改）

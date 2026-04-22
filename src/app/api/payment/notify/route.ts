@@ -90,19 +90,25 @@ export async function POST(req: NextRequest) {
   const isAtmInfo = ATM_INFO_CODES.includes(rtnCode);
 
   if (rtnCode === '1') {
-    // 付款成功！
-    const { error: updateErr } = await supabaseAdmin
+    // 付款成功！使用 pay_status='pending' 作為 CAS 條件，防止重複 webhook 雙重處理
+    const { data: updatedRows, error: updateErr } = await supabaseAdmin
       .from('orders')
       .update({
         pay_status:     'paid',
-        ecpay_trade_no: tradeNo,        // 記錄綠界交易編號（對帳用）
-        paid_at:        paymentDate,     // 記錄付款時間
+        ecpay_trade_no: tradeNo,
+        paid_at:        paymentDate,
       })
-      .eq('id', order.id);
+      .eq('id', order.id)
+      .eq('pay_status', 'pending')
+      .select('id');
 
     if (updateErr) {
       console.error('訂單付款狀態更新失敗:', updateErr);
       return new NextResponse('0|DB update error', { status: 200 });
+    }
+    if (!updatedRows || updatedRows.length === 0) {
+      // 已被另一個 webhook 處理，直接回 OK
+      return new NextResponse('1|OK', { status: 200 });
     }
 
     // 付款成功後自動集章（如果有會員帳號）
