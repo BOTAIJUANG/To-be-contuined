@@ -63,15 +63,23 @@ export default function AdminDailyPage() {
   const totalRevenue = orders.filter(o => o.pay_status === 'paid').reduce((sum, o) => sum + o.total, 0);
   const pendingShip  = orders.filter(o => o.status === 'processing' && o.pay_status === 'paid').length;
 
-  // 各商品小計
-  const productSummary: Record<string, number> = {};
+  // 各商品小計（依商品名稱分組，規格並列）
+  interface PrepRow { total: number; variants: { name: string; qty: number }[] }
+  const prepMap: Record<string, PrepRow> = {};
   orders.forEach(o => {
     (o.order_items ?? []).forEach((item: any) => {
       const name = item.product_name_snapshot ?? item.name;
-      const key  = item.variant_name_snapshot ? `${name} · ${item.variant_name_snapshot}` : name;
-      productSummary[key] = (productSummary[key] ?? 0) + item.qty;
+      if (!prepMap[name]) prepMap[name] = { total: 0, variants: [] };
+      prepMap[name].total += item.qty;
+      if (item.variant_name_snapshot) {
+        const vn = item.variant_name_snapshot;
+        const existing = prepMap[name].variants.find(v => v.name === vn);
+        if (existing) existing.qty += item.qty;
+        else prepMap[name].variants.push({ name: vn, qty: item.qty });
+      }
     });
   });
+  const prepList = Object.entries(prepMap).sort(([a], [b]) => a.localeCompare(b, 'zh-TW'));
 
   if (loading) return <p className={s.loadingText}>載入中...</p>;
 
@@ -130,15 +138,22 @@ export default function AdminDailyPage() {
       </div>
 
       {/* ── 商品小計 ── */}
-      {Object.keys(productSummary).length > 0 && (
+      {prepList.length > 0 && (
         <>
           <div className={s.sectionTitle}>今日需備料</div>
           <div className={p.prepSection}>
-            {Object.entries(productSummary).map(([name, qty]) => (
-              <div key={name} className={p.prepItem}>
+            {prepList.map(([name, row]) => (
+              <div key={name} className={p.prepRow}>
                 <span className={p.prepName}>{name}</span>
-                <span className={p.prepQty}>{qty}</span>
-                <span className={p.prepUnit}>件</span>
+                {row.variants.length > 0 && (
+                  <span className={p.prepVariants}>
+                    {row.variants.map(v => `${v.name} × ${v.qty}`).join('、')}
+                  </span>
+                )}
+                <span className={p.prepTotal}>
+                  <span className={p.prepQty}>{row.total}</span>
+                  <span className={p.prepUnit}>件</span>
+                </span>
               </div>
             ))}
           </div>
