@@ -18,7 +18,7 @@ const SHIP_LABEL: Record<string, string> = {
 
 export default function AdminDailyPage() {
   const router = useRouter();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
 
   const [orders,         setOrders]         = useState<any[]>([]);
   const [expandedOrder,  setExpandedOrder]  = useState<number | null>(null);
