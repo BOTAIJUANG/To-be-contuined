@@ -201,12 +201,6 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
           ...(selectedReward.product_id && { productRealId: selectedReward.product_id }),
           ...(selectedReward.variant_id && { variantId: selectedReward.variant_id }),
         } as any);
-        if (!result.ok && 'redeemLimit' in result) {
-          alert('購物車已有兌換品，每筆訂單僅限兌換一項。請先結帳或取消現有兌換品後再試。');
-          setRedeeming(false);
-          setRedeemConfirmed(false);
-          return;
-        }
         showToast(`已加入購物車：${selectedReward.name} × 1`);
         triggerBounce();
       }

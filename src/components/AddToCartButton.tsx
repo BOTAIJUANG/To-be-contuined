@@ -148,9 +148,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
     }, actualQty, effectiveMaxStock);
 
     if (!result.ok) {
-      if ('redeemLimit' in result) {
-        alert('購物車已有兌換品，每筆訂單僅限兌換一項。');
-      } else {
+      if ('overStock' in result) {
         alert(`目前最多只能購買 ${result.maxStock} 件（購物車已有 ${cartQtyForLimit} 件）`);
       }
       return;

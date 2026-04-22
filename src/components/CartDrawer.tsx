@@ -273,7 +273,7 @@ export default function CartDrawer() {
             <button className={s.checkoutBtn} onClick={() => { lockCart(); closeCart(); router.push('/checkout'); }}>
               前往結帳
             </button>
-            <button className={s.clearBtn} onClick={() => { if (confirm('確定要清空購物車嗎？')) clearCart(); }} disabled={cartLocked}>
+            <button className={s.clearBtn} onClick={() => { if (confirm('確定要清空購物車嗎？')) clearCart(); }} disabled={cartLocked || items.some(i => i.isRedeemItem)}>
               清空購物車
             </button>
           </div>

@@ -137,11 +137,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = (newItem: Omit<CartItem, 'qty'>, qty = 1, maxStock?: number | null): AddItemResult => {
-    // 每筆訂單只允許一個兌換品
-    if (newItem.isRedeemItem && items.some(i => i.isRedeemItem)) {
-      return { ok: false, redeemLimit: true };
-    }
-
     const key = itemKey(newItem);
     const existing = items.find(i => itemKey(i) === key);
     const existingQty = existing?.qty ?? 0;
