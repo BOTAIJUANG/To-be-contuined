@@ -490,15 +490,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 預檢所有商品 + 贈品庫存（使用彙總後的數量，避免同商品分開檢查漏算）
+  // 預檢所有商品 + 贈品 + 兌換品庫存（totalQty 含兌換品，避免超賣）
   for (const [key, agg] of invQtyAgg) {
-    if (agg.nonRedeemQty === 0) continue; // 全是兌換品，跳過預檢
+    if (agg.totalQty === 0) continue;
     const inv = inventoryMap.get(key);
     if (!inv) continue;
 
     if (inv.inventory_mode === 'stock') {
       const available = inv.stock - inv.reserved;
-      if (available < agg.nonRedeemQty) {
+      if (available < agg.totalQty) {
         const pName = productMap.get(agg.product_id)?.name ?? `ID ${agg.product_id}`;
         return NextResponse.json(
           { error: `「${pName}」庫存不足（剩餘 ${available} 件）` },
@@ -507,7 +507,7 @@ export async function POST(req: NextRequest) {
       }
     } else if (inv.inventory_mode === 'preorder' && inv.max_preorder) {
       const available = inv.max_preorder - inv.reserved_preorder;
-      if (available < agg.nonRedeemQty) {
+      if (available < agg.totalQty) {
         const pName = productMap.get(agg.product_id)?.name ?? `ID ${agg.product_id}`;
         return NextResponse.json(
           { error: `「${pName}」預購額度不足（剩餘 ${available} 件）` },

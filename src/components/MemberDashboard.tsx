@@ -61,6 +61,9 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
   const [showAllLogs,       setShowAllLogs]        = useState(false); // 目前進行中的兌換
   const [showRedeemModal,   setShowRedeemModal]   = useState(false);
   const [selectedReward,    setSelectedReward]    = useState<any | null>(null);
+  const [rewardVariants,    setRewardVariants]    = useState<any[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
+  const [selectedVariantName, setSelectedVariantName] = useState('');
   const [redeemType,        setRedeemType]        = useState<'online' | 'code'>('online');
   const [redeemConfirmed,   setRedeemConfirmed]   = useState(false);
   const [redeeming,         setRedeeming]         = useState(false);
@@ -156,7 +159,20 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
     setSelectedReward(item);
     setRedeemType(type);
     setRedeemConfirmed(false);
+    setSelectedVariantId(null);
+    setSelectedVariantName('');
+    setRewardVariants([]);
     setShowRedeemModal(true);
+
+    if (type === 'online' && item.product_id) {
+      supabase
+        .from('product_variants')
+        .select('id, name, is_available')
+        .eq('product_id', item.product_id)
+        .eq('is_available', true)
+        .order('sort_order')
+        .then(({ data }) => setRewardVariants(data ?? []));
+    }
   };
 
   // 確認兌換
@@ -189,7 +205,15 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
           setRedeemConfirmed(false);
           return;
         }
-        const result = addItem({
+        if (rewardVariants.length > 0 && !selectedVariantId) {
+          alert('請選擇商品規格');
+          setRedeeming(false);
+          setRedeemConfirmed(false);
+          return;
+        }
+        const resolvedVariantId   = selectedVariantId ?? selectedReward.variant_id ?? undefined;
+        const resolvedVariantName = selectedVariantName || undefined;
+        addItem({
           id:            `redeem-${data.redemption_id}`,
           slug:          product.slug ?? 'redeem-item',
           name:          selectedReward.name,
@@ -197,11 +221,11 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
           imageUrl:      product.image_url ?? undefined,
           isRedeemItem:  true,
           redemptionId:  data.redemption_id,
-          // 傳入真實 product_id 供結帳頁計算出貨日和庫存用
           ...(selectedReward.product_id && { productRealId: selectedReward.product_id }),
-          ...(selectedReward.variant_id && { variantId: selectedReward.variant_id }),
+          ...(resolvedVariantId   && { variantId:   resolvedVariantId }),
+          ...(resolvedVariantName && { variantName: resolvedVariantName }),
         } as any);
-        showToast(`已加入購物車：${selectedReward.name} × 1`);
+        showToast(`已加入購物車：${selectedReward.name}${resolvedVariantName ? `（${resolvedVariantName}）` : ''} × 1`);
         triggerBounce();
       }
 
@@ -508,6 +532,24 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
                 <div className={s.rewardInfoCost}>使用 <strong>{selectedReward.stamps}</strong> 章兌換</div>
               </div>
 
+              {/* 規格選擇（線上兌換且商品有規格時才顯示）*/}
+              {redeemType === 'online' && rewardVariants.length > 0 && (
+                <div className={s.variantSelector}>
+                  <div className={s.variantLabel}>選擇規格</div>
+                  <div className={s.variantOptions}>
+                    {rewardVariants.map(v => (
+                      <button
+                        key={v.id}
+                        className={`${s.variantOption} ${selectedVariantId === v.id ? s.variantOptionSelected : ''}`}
+                        onClick={() => { setSelectedVariantId(v.id); setSelectedVariantName(v.name); }}
+                      >
+                        {v.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* 注意事項 */}
               <div className={s.warningBox}>
                 {redeemType === 'online'
@@ -523,7 +565,7 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
               </label>
 
               <div className={s.modalActions}>
-                <button onClick={handleRedeem} disabled={!redeemConfirmed || redeeming} className={redeemConfirmed && !redeeming ? s.modalPrimaryBtn : s.modalPrimaryBtnDisabled}>
+                <button onClick={handleRedeem} disabled={!redeemConfirmed || redeeming || (rewardVariants.length > 0 && !selectedVariantId)} className={redeemConfirmed && !redeeming && !(rewardVariants.length > 0 && !selectedVariantId) ? s.modalPrimaryBtn : s.modalPrimaryBtnDisabled}>
                   {redeeming ? '處理中...' : '確認兌換'}
                 </button>
                 <button onClick={() => setShowRedeemModal(false)} className={s.modalSecondaryBtn}>取消</button>

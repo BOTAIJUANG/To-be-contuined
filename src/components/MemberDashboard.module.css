@@ -813,6 +813,37 @@
   margin-top: 8px;
 }
 
+.variantSelector {
+  margin-bottom: 16px;
+}
+.variantLabel {
+  font-size: 12px;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.variantOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.variantOption {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-dark);
+  background: transparent;
+  cursor: pointer;
+  min-height: 36px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.variantOptionSelected {
+  border-color: var(--text-dark);
+  background: var(--text-dark);
+  color: var(--bg);
+}
+
 .warningBox {
   background: #faf6ef;
   border: 1px solid rgba(125, 97, 72, 0.16);
