@@ -593,9 +593,8 @@ export async function POST(req: NextRequest) {
   const shipDateLockResults: { id: number; oldReserved: number; newReserved: number }[] = [];
   if (body.ship_date) {
     const shipDate = body.ship_date;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = fmt(today);
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
+    const today = new Date(todayStr + 'T12:00:00+08:00'); // for generateStockModeDates
 
     // 不能是過去日期
     if (shipDate < todayStr) {

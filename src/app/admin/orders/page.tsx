@@ -117,10 +117,11 @@ function MultiSelectDropdown({ options, selected, onChange, placeholder }: {
 }
 
 function getPeriodRange(period: ReportPeriod, cs: string, ce: string) {
-  const now = new Date(); const today = now.toISOString().split('T')[0];
+  const twFmt = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
+  const today = twFmt(new Date());
   if (period === 'today') return { start: today, end: today };
-  if (period === 'week') { const d = new Date(now); d.setDate(d.getDate()-7); return { start: d.toISOString().split('T')[0], end: today }; }
-  if (period === 'month') return { start: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`, end: today };
+  if (period === 'week') { const d = new Date(); d.setDate(d.getDate() - 7); return { start: twFmt(d), end: today }; }
+  if (period === 'month') return { start: today.substring(0, 7) + '-01', end: today };
   return { start: cs, end: ce };
 }
 
@@ -643,7 +644,7 @@ export default function AdminOrdersPage() {
             </label>
             <span className={s.batchCount}>已選 {shipSelected.size} 筆</span>
             <div className={s.batchActions}>
-              <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportCSV(list, `待出貨_${new Date().toISOString().split('T')[0]}.csv`); }}>匯出 CSV</button>
+              <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportCSV(list, `待出貨_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date())}.csv`); }}>匯出 CSV</button>
               <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportHomeShippingExcel(list); }}>黑貓宅配</button>
               <button className={s.btnExport} onClick={() => { const list = shipSelected.size > 0 ? shipOrders.filter(o => shipSelected.has(o.id)) : shipOrders; exportCvsShippingExcel(list); }}>黑貓超商</button>
               <button className={s.btnShipBatch} disabled={shipSelected.size === 0} onClick={() => setShipConfirmModal(true)}>標記出貨</button>
@@ -718,7 +719,7 @@ export default function AdminOrdersPage() {
             <input value={shippedKeyword} onChange={e => setShippedKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadShippedOrders()} placeholder="搜尋訂單編號 / 姓名 / 電話" className={s.shipSearchInput} />
             <select value={shippedSort} onChange={e => setShippedSort(e.target.value)} className={s.shipSortSelect}>{SHIPPED_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
             <button onClick={() => loadShippedOrders()} className={s.btnSearch}>搜尋</button>
-            <button className={s.btnExport} onClick={() => exportCSV(shippedOrders, `已出貨_${new Date().toISOString().split('T')[0]}.csv`)}>匯出 Excel</button>
+            <button className={s.btnExport} onClick={() => exportCSV(shippedOrders, `已出貨_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date())}.csv`)}>匯出 Excel</button>
           </div>
 
           {shippedLoading ? <p className={s.loading}>載入中...</p> : (

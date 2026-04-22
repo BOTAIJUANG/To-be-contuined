@@ -124,7 +124,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // 一般商品最快 = 明天（粗略門檻，實際以 API 為準）
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const stockDate = tomorrow.toISOString().split('T')[0];
+    const stockDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(tomorrow);
     return mixedShipDate > stockDate ? mixedShipDate : stockDate;
   })();
 

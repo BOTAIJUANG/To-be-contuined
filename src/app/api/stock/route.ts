@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
   // date_mode 商品走 product_ship_dates 表
   let dateResult: any[] = [];
   if (dateModeIds.length > 0) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
     const { data: sdData } = await supabaseAdmin
       .from('product_ship_dates')
       .select('id, product_id, variant_id, ship_date, capacity, reserved')

@@ -852,8 +852,8 @@ export default function AdminInventoryPage() {
                         .filter(i => (!ingSearch || i.name.includes(ingSearch)) && (!ingCatFilter || i.category === ingCatFilter))
                         .map(ing => {
                           const isLow = Number(ing.safety_stock) > 0 && Number(ing.stock) <= Number(ing.safety_stock);
-                          const today = new Date(); today.setHours(0, 0, 0, 0);
-                          const isExpired = ing.expiry_date && new Date(ing.expiry_date + 'T23:59:59') < today;
+                          const todayTW = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
+                          const isExpired = ing.expiry_date && ing.expiry_date < todayTW;
                           return (
                             <tr key={ing.id} className={s.tr}>
                               <td className={`${s.td} ${isLow ? p.ingNameLow : ''}`}>{ing.name}</td>

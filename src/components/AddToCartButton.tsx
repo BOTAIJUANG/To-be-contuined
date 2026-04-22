@@ -272,12 +272,12 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
           return `${dt.getFullYear()}-W${Math.ceil((dayOfYear + jan1.getDay()) / 7)}`;
         };
 
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        const twFmt = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
+        const todayStr = twFmt(new Date());
         const thisWeekKey = getWeekKey(todayStr);
-        const nextWeekDate = new Date(now);
+        const nextWeekDate = new Date();
         nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-        const nextWeekKey = getWeekKey(nextWeekDate.toISOString().split('T')[0]);
+        const nextWeekKey = getWeekKey(twFmt(nextWeekDate));
 
         const weekLabel = (key: string) => {
           if (key === thisWeekKey) return '本週';

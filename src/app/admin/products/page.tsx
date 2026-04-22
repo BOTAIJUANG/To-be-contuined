@@ -757,7 +757,7 @@ export default function AdminProductsPage() {
                               {shipDates.map((d, i) => {
                                 const remaining = d.capacity - d.reserved;
                                 const isFull    = remaining <= 0;
-                                const isPast    = d.ship_date < new Date().toISOString().split('T')[0];
+                                const isPast    = d.ship_date < new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
                                 return (
                                   <tr key={d.ship_date} className={s.tr} style={{ opacity: isPast ? 0.5 : 1 }}>
                                     <td className={`${s.td} ${p.monoFont}`}>
@@ -1187,7 +1187,7 @@ export default function AdminProductsPage() {
         const [calY, calM] = deleteCalMonth.split('-').map(Number);
         const firstDay = new Date(calY, calM - 1, 1).getDay();
         const daysInMonth = new Date(calY, calM, 0).getDate();
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
         const shipDateSet = new Map(shipDates.map(d => [d.ship_date, d]));
         const prevMonth = () => {
           const d = new Date(calY, calM - 2, 1);

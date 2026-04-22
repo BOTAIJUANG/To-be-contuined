@@ -49,7 +49,7 @@ export default function AdminPaymentPage() {
       .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, ecpay_trade_no, ecpay_error_code, ecpay_error_msg, paid_at, created_at')
       .order('created_at', { ascending: false });
     const list = data ?? [];
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
     const todayPaid = list.filter(o => o.pay_status === 'paid' && o.paid_at?.startsWith(today)).reduce((sum, o) => sum + o.total, 0);
     setStats({
       pending:   list.filter(o => o.pay_status === 'pending').length,

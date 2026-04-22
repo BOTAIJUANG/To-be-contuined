@@ -121,12 +121,12 @@ function _buildCvsExcel(cvsOrders: any[], dateStr: string) {
 export function exportHomeShippingExcel(orders: any[]) {
   const homeOrders = orders.filter(o => (o.ship_method ?? '').startsWith('home'));
   if (homeOrders.length === 0) return;
-  _buildHomeExcel(homeOrders, new Date().toISOString().split('T')[0]);
+  _buildHomeExcel(homeOrders, new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date()));
 }
 
 /** 超商出貨單（10 欄）— 僅處理 ship_method 以 cvs 開頭的訂單 */
 export function exportCvsShippingExcel(orders: any[]) {
   const cvsOrders = orders.filter(o => (o.ship_method ?? '').startsWith('cvs'));
   if (cvsOrders.length === 0) return;
-  _buildCvsExcel(cvsOrders, new Date().toISOString().split('T')[0]);
+  _buildCvsExcel(cvsOrders, new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date()));
 }
