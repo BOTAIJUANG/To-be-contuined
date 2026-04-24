@@ -119,7 +119,7 @@
 
 .searchActions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* ── Filter Toggle (mobile only) ── */
@@ -392,12 +392,12 @@
 }
 
 .btnToday {
-  padding: 0 20px;
+  padding: 0 14px;
   background: #6b4f3f;
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   font-family: "Noto Sans TC", sans-serif;

@@ -479,15 +479,15 @@ export default function AdminOrdersPage() {
                 <AdminDatePicker value={dateStart} onChange={val => setDateStart(val)} className={s.searchDateInput} />
                 <span className={s.dateSep}>～</span>
                 <AdminDatePicker value={dateEnd} onChange={val => setDateEnd(val)} className={s.searchDateInput} />
+              </div>
+              <div className={s.searchActions}>
+                <button onClick={() => loadOrders()} className={s.btnSearch}>搜尋</button>
                 <button className={s.btnToday} onClick={() => {
                   const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
                   const ds = new Date(t + 'T00:00:00+08:00').toISOString().slice(0, 19);
                   const de = new Date(t + 'T23:59:59+08:00').toISOString().slice(0, 19);
                   loadOrders({ dateStart: ds, dateEnd: de });
                 }}>當日訂單</button>
-              </div>
-              <div className={s.searchActions}>
-                <button onClick={() => loadOrders()} className={s.btnSearch}>搜尋</button>
                 <button onClick={clearAll} className={s.btnClear}>清除</button>
               </div>
             </div>
