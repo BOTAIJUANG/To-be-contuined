@@ -871,25 +871,24 @@ export default function CheckoutPage() {
         <div>
           <h2 className={s.heading}>收件資訊</h2>
 
-          {/* 已儲存地址快速帶入 */}
-          {savedAddresses.length > 0 && (
-            <div className={`${s.sectionCard} ${s.savedAddressesWrap}`}>
-              <div className={s.sectionTitle}>選擇已儲存地址</div>
-              <div className={s.savedAddressList}>
-                {savedAddresses.map(addr => {
-                  const isSelected = selectedAddrId === addr.id;
-                  return (
-                    <button key={addr.id} onClick={() => applyAddress(addr)} className={`${s.savedAddrBtn} ${isSelected ? s.savedAddrBtnSelected : ''}`}>
-                      {addr.label || addr.name}
-                      {addr.is_default && ' ★'}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           <div className={s.sectionCard}>
+            {/* 已儲存地址快速帶入 */}
+            {savedAddresses.length > 0 && (
+              <div className={s.savedAddressesWrap}>
+                <div className={s.sectionTitle}>選擇已儲存地址</div>
+                <div className={s.savedAddressList}>
+                  {savedAddresses.map(addr => {
+                    const isSelected = selectedAddrId === addr.id;
+                    return (
+                      <button key={addr.id} onClick={() => applyAddress(addr)} className={`${s.savedAddrBtn} ${isSelected ? s.savedAddrBtnSelected : ''}`}>
+                        {addr.label || addr.name}
+                        {addr.is_default && ' ★'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className={s.sectionTitle}>購買人資訊</div>
             <div className={s.grid2}>
               {[
