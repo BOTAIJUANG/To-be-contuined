@@ -74,6 +74,7 @@ export async function middleware(req: NextRequest) {
     '/api/stock',
     '/api/batch-stock',
     '/api/orders/search',
+    '/api/cron',
   ];
   // /api/orders 只允許精確匹配（POST 建單），不開放子路徑
   const exactPublicPaths = ['/api/orders'];
