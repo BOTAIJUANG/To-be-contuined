@@ -772,6 +772,7 @@ export default function CheckoutPage() {
             <p className={s.emptyCart}>購物車是空的，<Link href="/shop" className={s.emptyCartLink}>去選購</Link>。</p>
           ) : (
             <>
+              <div className={s.sectionCard}>
               {items.map(item => {
                 let cartKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
                 if (item.preorderBatchId) cartKey += `_b${item.preorderBatchId}`;
@@ -850,14 +851,15 @@ export default function CheckoutPage() {
                   此訂單需統一出貨，可選出貨日期將於下一步依商品與配送條件顯示。
                 </div>
               )}
+              </div>
               {!memberId && (
                 <div className={s.guestNotice}>
                   目前為訪客購買。<Link href="/member" className={s.guestLink}>登入會員</Link> 可累積集章、自動帶入地址，查單也更方便。
                 </div>
               )}
-              <div className={s.actionRow}>
-                <Link href="/shop" className={s.btnLink}>&larr; 繼續選購</Link>
-                <button onClick={() => { saveSnapshot(makeSnapshot()); setStep(2); }} className={s.btn}>下一步</button>
+              <div className={s.footerNav}>
+                <Link href="/shop" className={s.btnSecondary}>← 繼續選購</Link>
+                <button onClick={() => { saveSnapshot(makeSnapshot()); setStep(2); }} className={s.btnPrimary}>下一步</button>
               </div>
             </>
           )}
@@ -887,193 +889,208 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <div className={s.sectionTitle}>購買人資訊</div>
-          <div className={s.grid2}>
-            {[
-              { label: '姓名 *',  type: 'text',  val: buyerName,  set: setBuyerName,  ph: '購買人姓名' },
-              { label: '手機 *',  type: 'tel',   val: buyerPhone, set: setBuyerPhone, ph: '0912-345-678' },
-              { label: 'Email *', type: 'email', val: buyerEmail, set: setBuyerEmail, ph: '用於寄送訂單確認信' },
-            ].map(({ label, type, val, set, ph }) => (
-              <div key={label} className={s.fieldGroup}>
-                <label className={s.label}>{label}</label>
-                <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
-              </div>
-            ))}
-          </div>
-
-          <div className={s.sectionTitleSpaced}>收件人資訊</div>
-          <label className={s.checkboxLabel}>
-            <input type="checkbox" checked={sameAsBuyer} onChange={e => handleSameAsBuyer(e.target.checked)} className={s.checkbox} />
-            與購買人相同
-          </label>
-          {!sameAsBuyer && (
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>購買人資訊</div>
             <div className={s.grid2}>
               {[
-                { label: '姓名 *',  type: 'text',  val: customerName,  set: setCustomerName,  ph: '收件人姓名' },
-                { label: '手機 *',  type: 'tel',   val: customerPhone, set: setCustomerPhone, ph: '0912-345-678' },
-                { label: 'Email *', type: 'email', val: customerEmail, set: setCustomerEmail, ph: '收件人 Email' },
+                { label: '姓名 *',  type: 'text',  val: buyerName,  set: setBuyerName,  ph: '購買人姓名' },
+                { label: '手機 *',  type: 'tel',   val: buyerPhone, set: setBuyerPhone, ph: '0912-345-678' },
+                { label: 'Email *', type: 'email', val: buyerEmail, set: setBuyerEmail, ph: '用於寄送訂單確認信' },
               ].map(({ label, type, val, set, ph }) => (
-                <div key={`customer-${label}`} className={s.fieldGroup}>
+                <div key={label} className={s.fieldGroup}>
                   <label className={s.label}>{label}</label>
                   <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
                 </div>
               ))}
             </div>
-          )}
-
-          <div className={s.sectionTitle}>配送方式</div>
-          {availableShipOptions.length === 0 ? (
-            <div className={s.noShipMsg}>
-              您的購物車商品沒有共同支援的配送方式，請將商品分開下單。
-            </div>
-          ) : (
-            availableShipOptions.map(opt => (
-              <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
-            ))
-          )}
-
-          {isHomeDelivery && (
-            <>
-              <div className={s.sectionTitleSmSpaced}>收件地址</div>
-              <div className={s.grid2}>
-                <div className={s.fieldGroup}>
-                  <label className={s.label}>縣市 *</label>
-                  <select value={city} onChange={e => setCity(e.target.value)} className={s.inputSelect}>
-                    <option value="">選擇縣市</option>
-                    {CITIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className={s.fieldGroup}>
-                  <label className={s.label}>鄉鎮市區 *</label>
-                  <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="鄉鎮市區" className={s.input} />
-                </div>
-                <div className={s.fieldGroupFull}>
-                  <label className={s.label}>詳細地址 *</label>
-                  <input value={address} onChange={e => setAddress(e.target.value)} placeholder="路名、門牌號碼" className={s.input} />
-                </div>
-              </div>
-            </>
-          )}
-
-          {isCvsPickup && (
-            <>
-              <div className={s.sectionTitleSmSpaced}>取貨門市</div>
-              <button type="button" onClick={openCvsMap} className={s.btnCvsMap}>
-                {cvsStoreName ? '重新選擇門市' : '選擇取貨門市'}
-              </button>
-              {cvsStoreName && (
-                <div className={s.cvsStoreInfo}>
-                  <div className={s.cvsStoreRow}>
-                    <span className={s.cvsStoreLabel}>門市</span>
-                    <span className={s.cvsStoreValue}>{cvsStoreBrand} {cvsStoreName}</span>
-                  </div>
-                  <div className={s.cvsStoreRow}>
-                    <span className={s.cvsStoreLabel}>地址</span>
-                    <span className={s.cvsStoreValue}>{cvsStoreAddr}</span>
-                  </div>
-                  {cvsStoreId && (
-                    <div className={s.cvsStoreRow}>
-                      <span className={s.cvsStoreLabel}>店號</span>
-                      <span className={s.cvsStoreValue}>{cvsStoreId}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {isStorePickup && (
-            <div className={s.storePickupInfo}>
-              門市自取地址：宜蘭市神農路二段 96 號<br />
-              請於指定日期攜帶訂單編號至門市取貨。
-            </div>
-          )}
-
-          <div className={s.sectionTitleMdSpaced}>
-            {shipMethod === 'store' ? '指定到店日期' : '指定出貨日期'}
           </div>
 
-          {/* 無交集：提示分開下單 */}
-          {noIntersection ? (
-            <div className={s.noIntersection}>
-              <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
-              <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
-            </div>
-          ) : allDateMode && dateModeDates.length > 0 ? (
-            /* 全日期模式：已在商品頁選好出貨日 */
-            <div className={s.fixedDateWrap}>
-              <div className={s.fixedDateBox}>
-                <div className={s.fixedDateLabel}>已選擇出貨日期</div>
-                <div className={s.fixedDateValue}>
-                  {dateModeDates.map(d => {
-                    const dt = new Date(d + 'T12:00:00');
-                    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-                    return `${dt.getMonth() + 1}/${dt.getDate()}（${dayNames[dt.getDay()]}）`;
-                  }).join('、')}
-                </div>
-                <div className={s.fixedDateHint}>出貨日期已於商品頁選定，如需更改請回商品頁選取其它日期。</div>
-              </div>
-            </div>
-          ) : items.every(i => i.isPreorder) && mixedShipDate ? (
-            /* 純預購：固定顯示批次出貨日 */
-            <div className={s.fixedDateWrap}>
-              <div className={s.fixedDateBox}>
-                <div className={s.fixedDateLabel}>統一出貨日（固定）</div>
-                <div className={s.fixedDateValue}>{mixedShipDate}</div>
-                <div className={s.fixedDateHint}>預購批次固定出貨日，無法更改</div>
-              </div>
-            </div>
-          ) : datesLoading ? (
-            /* 載入中 */
-            <div className={s.datesLoading}>計算可出貨日期中...</div>
-          ) : availableDates.length > 0 ? (
-            /* 有可選日期：顯示日期按鈕（混購時多一行提示） */
-            <div className={s.datesWrap}>
-              {hasMixed && unifiedShipDate && (
-                <div className={s.mixedDateHint}>
-                  此訂單需統一出貨，以下為可選出貨日期。
-                </div>
-              )}
-              <div className={s.dateList}>
-                {availableDates.map(d => (
-                  <button
-                    key={d}
-                    onClick={() => setDate(d)}
-                    className={`${s.dateBtn} ${date === d ? s.dateBtnSelected : ''}`}
-                  >
-                    {d}
-                  </button>
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>收件人資訊</div>
+            <label className={s.checkboxLabel}>
+              <input type="checkbox" checked={sameAsBuyer} onChange={e => handleSameAsBuyer(e.target.checked)} className={s.checkbox} />
+              與購買人相同
+            </label>
+            {!sameAsBuyer && (
+              <div className={s.grid2}>
+                {[
+                  { label: '姓名 *',  type: 'text',  val: customerName,  set: setCustomerName,  ph: '收件人姓名' },
+                  { label: '手機 *',  type: 'tel',   val: customerPhone, set: setCustomerPhone, ph: '0912-345-678' },
+                  { label: 'Email *', type: 'email', val: customerEmail, set: setCustomerEmail, ph: '收件人 Email' },
+                ].map(({ label, type, val, set, ph }) => (
+                  <div key={`customer-${label}`} className={s.fieldGroup}>
+                    <label className={s.label}>{label}</label>
+                    <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
+                  </div>
                 ))}
               </div>
-              {!date && <div className={s.dateHintError}>請選擇出貨日期</div>}
-              {date && <div className={s.dateHintOk}>
-                {shipMethod === 'store' ? '已選擇到店日期：' : '已選擇出貨日期：'}{date}
-              </div>}
-            </div>
-          ) : (
-            /* 沒有可選日期（空陣列，不是無交集） */
-            <div className={s.noDates}>
-              目前沒有可選的出貨日期，請聯絡客服。
-            </div>
-          )}
-
-          <div className={s.sectionTitle}>備註（選填）</div>
-          <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="包裝需求、禮盒說明等..." className={s.inputTextarea} />
-
-          <div className={s.sectionTitle}>折扣碼（選填）</div>
-          <div className={s.couponRow}>
-            <input value={coupon} onChange={e => { setCoupon(e.target.value); if (discount > 0) { setDiscount(0); setCouponMsg(''); } }} placeholder="輸入折扣碼" className={s.inputCoupon} />
-            {discount > 0 ? (
-              <button onClick={() => { setCoupon(''); setDiscount(0); setCouponMsg(''); }} className={s.btnApply} style={{ background: '#888580' }}>取消</button>
-            ) : (
-              <button onClick={applyCoupon} className={s.btnApply}>套用</button>
             )}
           </div>
-          {couponMsg && <div className={discount > 0 ? s.couponMsgOk : s.couponMsgErr}>{couponMsg}</div>}
 
-          <div className={s.actionRow}>
-            <button onClick={() => setStep(1)} className={s.btn}>&larr; 上一步</button>
-            <button onClick={validateStep2} className={s.btn}>下一步</button>
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>配送方式</div>
+            {availableShipOptions.length === 0 ? (
+              <div className={s.noShipMsg}>
+                您的購物車商品沒有共同支援的配送方式，請將商品分開下單。
+              </div>
+            ) : (
+              availableShipOptions.map(opt => (
+                <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={shipMethod === opt.value} onChange={() => setShipMethod(opt.value)} fee={feeDisplay(opt)} />
+              ))
+            )}
+
+            {isHomeDelivery && (
+              <>
+                <div className={s.sectionTitleSmSpaced}>收件地址</div>
+                <div className={s.grid2}>
+                  <div className={s.fieldGroup}>
+                    <label className={s.label}>縣市 *</label>
+                    <select value={city} onChange={e => setCity(e.target.value)} className={s.inputSelect}>
+                      <option value="">選擇縣市</option>
+                      {CITIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className={s.fieldGroup}>
+                    <label className={s.label}>鄉鎮市區 *</label>
+                    <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="鄉鎮市區" className={s.input} />
+                  </div>
+                  <div className={s.fieldGroupFull}>
+                    <label className={s.label}>詳細地址 *</label>
+                    <input value={address} onChange={e => setAddress(e.target.value)} placeholder="路名、門牌號碼" className={s.input} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {isCvsPickup && (
+              <>
+                <div className={s.sectionTitleSmSpaced}>取貨門市</div>
+                <button type="button" onClick={openCvsMap} className={s.btnCvsMap}>
+                  {cvsStoreName ? '重新選擇門市' : '選擇取貨門市'}
+                </button>
+                {cvsStoreName && (
+                  <div className={s.cvsStoreInfo}>
+                    <div className={s.cvsStoreRow}>
+                      <span className={s.cvsStoreLabel}>門市</span>
+                      <span className={s.cvsStoreValue}>{cvsStoreBrand} {cvsStoreName}</span>
+                    </div>
+                    <div className={s.cvsStoreRow}>
+                      <span className={s.cvsStoreLabel}>地址</span>
+                      <span className={s.cvsStoreValue}>{cvsStoreAddr}</span>
+                    </div>
+                    {cvsStoreId && (
+                      <div className={s.cvsStoreRow}>
+                        <span className={s.cvsStoreLabel}>店號</span>
+                        <span className={s.cvsStoreValue}>{cvsStoreId}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {isStorePickup && (
+              <div className={s.storePickupInfo}>
+                門市自取地址：宜蘭市神農路二段 96 號<br />
+                請於指定日期攜帶訂單編號至門市取貨。
+              </div>
+            )}
+          </div>
+
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>
+            {shipMethod === 'store' ? '指定到店日期' : '指定出貨日期'}
+            </div>
+
+            {/* 無交集：提示分開下單 */}
+            {noIntersection ? (
+              <div className={s.noIntersection}>
+                <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
+                <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
+              </div>
+            ) : allDateMode && dateModeDates.length > 0 ? (
+              /* 全日期模式：已在商品頁選好出貨日 */
+              <div className={s.fixedDateWrap}>
+                <div className={s.fixedDateBox}>
+                  <div className={s.fixedDateLabel}>已選擇出貨日期</div>
+                  <div className={s.fixedDateValue}>
+                    {dateModeDates.map(d => {
+                      const dt = new Date(d + 'T12:00:00');
+                      const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                      return `${dt.getMonth() + 1}/${dt.getDate()}（${dayNames[dt.getDay()]}）`;
+                    }).join('、')}
+                  </div>
+                  <div className={s.fixedDateHint}>出貨日期已於商品頁選定，如需更改請回商品頁選取其它日期。</div>
+                </div>
+              </div>
+            ) : items.every(i => i.isPreorder) && mixedShipDate ? (
+              /* 純預購：固定顯示批次出貨日 */
+              <div className={s.fixedDateWrap}>
+                <div className={s.fixedDateBox}>
+                  <div className={s.fixedDateLabel}>統一出貨日（固定）</div>
+                  <div className={s.fixedDateValue}>{mixedShipDate}</div>
+                  <div className={s.fixedDateHint}>預購批次固定出貨日，無法更改</div>
+                </div>
+              </div>
+            ) : datesLoading ? (
+              /* 載入中 */
+              <div className={s.datesLoading}>計算可出貨日期中...</div>
+            ) : availableDates.length > 0 ? (
+              /* 有可選日期：顯示日期卡片 */
+              <div className={s.datesWrap}>
+                {hasMixed && unifiedShipDate && (
+                  <div className={s.mixedDateHint}>
+                    此訂單需統一出貨，以下為可選出貨日期。
+                  </div>
+                )}
+                <div className={s.dateGrid}>
+                  {availableDates.map(d => {
+                    const dt = new Date(d + 'T12:00:00');
+                    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => setDate(d)}
+                        className={date === d ? s.dateCardActive : s.dateCard}
+                      >
+                        <div className={s.dateMain}>{dt.getMonth() + 1}/{dt.getDate()}</div>
+                        <div className={s.dateSub}>星期{dayNames[dt.getDay()]}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!date && <div className={s.dateHintError}>請選擇出貨日期</div>}
+                {date && <div className={s.dateHintOk}>
+                  {shipMethod === 'store' ? '已選擇到店日期：' : '已選擇出貨日期：'}{date}
+                </div>}
+              </div>
+            ) : (
+              /* 沒有可選日期（空陣列，不是無交集） */
+              <div className={s.noDates}>
+                目前沒有可選的出貨日期，請聯絡客服。
+              </div>
+            )}
+          </div>
+
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>備註（選填）</div>
+            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="包裝需求、禮盒說明等..." className={s.inputTextarea} />
+
+            <div className={s.sectionTitleSmSpaced}>折扣碼（選填）</div>
+            <div className={s.couponRow}>
+              <input value={coupon} onChange={e => { setCoupon(e.target.value); if (discount > 0) { setDiscount(0); setCouponMsg(''); } }} placeholder="輸入折扣碼" className={s.inputCoupon} />
+              {discount > 0 ? (
+                <button onClick={() => { setCoupon(''); setDiscount(0); setCouponMsg(''); }} className={s.btnApply} style={{ background: '#888580' }}>取消</button>
+              ) : (
+                <button onClick={applyCoupon} className={s.btnApply}>套用</button>
+              )}
+            </div>
+            {couponMsg && <div className={discount > 0 ? s.couponMsgOk : s.couponMsgErr}>{couponMsg}</div>}
+          </div>
+
+          <div className={s.footerNav}>
+            <button onClick={() => setStep(1)} className={s.btnSecondary}>← 上一步</button>
+            <button onClick={validateStep2} className={s.btnPrimary}>下一步</button>
           </div>
         </div>
       )}
@@ -1082,47 +1099,54 @@ export default function CheckoutPage() {
       {step === 3 && (
         <div>
           <h2 className={s.heading}>選擇付款方式</h2>
-          {PAY_OPTIONS.map(opt => (
-            <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={payMethod === opt.value} onChange={() => setPayMethod(opt.value)} />
-          ))}
-
-          <div className={s.sectionTitleSpaced}>訂單摘要</div>
-          <div className={s.orderSummaryBox}>
-            {items.map(item => {
-              let summaryKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
-              if (item.preorderBatchId) summaryKey += `_b${item.preorderBatchId}`;
-              if ((item as any).shipDateId) summaryKey += `_sd${(item as any).shipDateId}`;
-              return (
-              <div key={summaryKey} className={s.orderSummaryItem}>
-                <span>{item.name} &times; {item.qty}</span>
-                <span>{item.isRedeemItem ? '免費' : `NT$ ${(item.price * item.qty).toLocaleString()}`}</span>
-              </div>
-            )})}
-            {promoResult.gifts.map(g => (
-              <div key={`gift3-${g.promotion_id}-${g.product_id}`} className={s.orderSummaryItem} style={{ color: '#2ab85a' }}>
-                <span>{giftProductNames[g.product_id]?.name ?? `贈品 #${g.product_id}`} &times; {g.qty}（贈品）</span>
-                <span>免費</span>
-              </div>
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>付款方式</div>
+            {PAY_OPTIONS.map(opt => (
+              <RadioCard key={opt.value} value={opt.value} title={opt.title} sub={opt.sub} checked={payMethod === opt.value} onChange={() => setPayMethod(opt.value)} />
             ))}
           </div>
 
-          {[
-            { label: '商品小計', value: `NT$ ${totalPrice.toLocaleString()}` },
-            { label: '運費', value: shippingFee === 0 ? '免運' : `NT$ ${shippingFee.toLocaleString()}` },
-            ...(promoDiscount > 0 ? promoResult.discounts.map(d => ({ label: d.promotion_name, value: `− NT$ ${d.discount_amount.toLocaleString()}`, green: true })) : []),
-            ...(discount > 0 ? [{ label: '折扣碼', value: `− NT$ ${discount.toLocaleString()}`, green: true }] : []),
-          ].map(({ label, value, green }: any) => (
-            <div key={label} className={s.step3SummaryRow}>
-              <span className={green ? s.step3SummaryLabelGreen : s.step3SummaryLabel}>{label}</span>
-              <span className={green ? s.step3SummaryValueGreen : s.step3SummaryValue}>{value}</span>
+          <div className={s.sectionCard}>
+            <div className={s.sectionTitle}>訂單摘要</div>
+            <div className={s.orderSummaryBox}>
+              {items.map(item => {
+                let summaryKey = item.variantId ? `${item.id}_${item.variantId}` : item.id;
+                if (item.preorderBatchId) summaryKey += `_b${item.preorderBatchId}`;
+                if ((item as any).shipDateId) summaryKey += `_sd${(item as any).shipDateId}`;
+                return (
+                  <div key={summaryKey} className={s.orderSummaryItem}>
+                    <span>{item.name} &times; {item.qty}</span>
+                    <span>{item.isRedeemItem ? '免費' : `NT$ ${(item.price * item.qty).toLocaleString()}`}</span>
+                  </div>
+                );
+              })}
+              {promoResult.gifts.map(g => (
+                <div key={`gift3-${g.promotion_id}-${g.product_id}`} className={s.orderSummaryItem} style={{ color: '#2ab85a' }}>
+                  <span>{giftProductNames[g.product_id]?.name ?? `贈品 #${g.product_id}`} &times; {g.qty}（贈品）</span>
+                  <span>免費</span>
+                </div>
+              ))}
             </div>
-          ))}
 
-          <div className={s.totalRow}>
-            <span className={s.totalLabel}>應付金額</span>
-            <span className={s.totalValue}>
-              NT$ {(Math.max(0, totalPrice - discount - promoDiscount) + shippingFee).toLocaleString()}
-            </span>
+            {[
+              { label: '商品小計', value: `NT$ ${totalPrice.toLocaleString()}` },
+              { label: '運費', value: shippingFee === 0 ? '免運' : `NT$ ${shippingFee.toLocaleString()}` },
+              ...(promoDiscount > 0 ? promoResult.discounts.map(d => ({ label: d.promotion_name, value: `− NT$ ${d.discount_amount.toLocaleString()}`, green: true })) : []),
+              ...(discount > 0 ? [{ label: '折扣碼', value: `− NT$ ${discount.toLocaleString()}`, green: true }] : []),
+            ].map(({ label, value, green }: any) => (
+              <div key={label} className={s.step3SummaryRow}>
+                <span className={green ? s.step3SummaryLabelGreen : s.step3SummaryLabel}>{label}</span>
+                <span className={green ? s.step3SummaryValueGreen : s.step3SummaryValue}>{value}</span>
+              </div>
+            ))}
+
+            <div className={s.totalRow}>
+              <span className={s.totalLabel}>應付金額</span>
+              <span className={s.totalValue}>
+                NT$ {(Math.max(0, totalPrice - discount - promoDiscount) + shippingFee).toLocaleString()}
+              </span>
+            </div>
+
           </div>
 
           <div className={s.infoNotice}>
@@ -1131,9 +1155,9 @@ export default function CheckoutPage() {
             &middot; ATM虛擬帳號請於 12 小時內完成轉帳，逾時訂單自動取消
           </div>
 
-          <div className={s.actionRow}>
-            <button onClick={() => setStep(2)} className={s.btn}>&larr; 上一步</button>
-            <button onClick={handleSubmit} disabled={submitting} className={`${s.btnSubmit} ${submitting ? s.btnSubmitDisabled : ''}`}>
+          <div className={s.footerNav}>
+            <button onClick={() => setStep(2)} className={s.btnSecondary}>← 上一步</button>
+            <button onClick={handleSubmit} disabled={submitting} className={`${s.btnPrimary} ${submitting ? s.btnPrimaryDisabled : ''}`}>
               {submitting ? '處理中...' : '確認下單'}
             </button>
           </div>

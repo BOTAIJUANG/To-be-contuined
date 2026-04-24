@@ -305,10 +305,12 @@
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid var(--line, #E8E4DC);
+  border: 1.5px solid #ede9e2;
+  border-radius: 12px;
+  background: #faf9f7;
   cursor: pointer;
   margin-bottom: 10px;
-  transition: border-color 0.3s var(--ease, ease);
+  transition: border-color 0.2s, background 0.2s;
   min-height: 44px;
 }
 
@@ -319,7 +321,8 @@
 }
 
 .radioCardChecked {
-  border-color: var(--text-dark, #1E1C1A);
+  border-color: #a07848;
+  background: #fdf8f0;
 }
 
 .radioInput {
@@ -1186,3 +1189,151 @@
 }
 
 .noShipMsg { padding: 14px 16px; background: #faf6ef; border: 1px solid rgba(125, 97, 72, 0.16); border-radius: 14px; color: rgba(63, 47, 36, 0.72); font-size: 0.9rem; line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════
+   Card-Based Layout — Section Cards
+   ═══════════════════════════════════════════════ */
+
+.sectionCard {
+  background: #fff;
+  border: 1px solid #ede9e2;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 4px rgba(30, 28, 26, 0.04);
+}
+
+@media (min-width: 640px) {
+  .sectionCard {
+    padding: 24px 28px;
+    margin-bottom: 16px;
+  }
+}
+
+/* ── Date Cards ── */
+.dateGrid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.dateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 14px;
+  min-width: 66px;
+  border: 1.5px solid #ede9e2;
+  border-radius: 12px;
+  background: #faf9f7;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  gap: 3px;
+}
+
+.dateCardActive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 14px;
+  min-width: 66px;
+  border: 1.5px solid #a07848;
+  border-radius: 12px;
+  background: #fdf8f0;
+  cursor: pointer;
+  gap: 3px;
+}
+
+.dateMain {
+  font-family: "Montserrat", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-dark, #1E1C1A);
+  line-height: 1;
+}
+
+.dateSub {
+  font-size: 10px;
+  color: var(--text-light, #888580);
+  letter-spacing: 0.06em;
+}
+
+/* ── Footer Nav (step actions) ── */
+.footerNav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+@media (min-width: 640px) {
+  .footerNav {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 36px;
+  height: 48px;
+  background: var(--text-dark, #1E1C1A);
+  color: var(--bg, #F7F4EF);
+  border: none;
+  border-radius: 12px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  text-decoration: none;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (min-width: 640px) {
+  .btnPrimary {
+    width: auto;
+  }
+}
+
+.btnPrimaryDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 24px;
+  height: 48px;
+  background: transparent;
+  color: #7a7068;
+  border: 1.5px solid #ddd9d2;
+  border-radius: 12px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  text-decoration: none;
+}
+
+@media (min-width: 640px) {
+  .btnSecondary {
+    width: auto;
+  }
+}
