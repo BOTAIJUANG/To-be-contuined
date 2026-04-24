@@ -358,14 +358,15 @@ export default function AdminOrdersPage() {
   const loadReport = async () => {
     setReportLoading(true);
     const { start, end } = getPeriodRange(reportPeriod, reportCustomStart, reportCustomEnd);
-    const { data } = await supabase.from('orders').select('total, pay_status, created_at, order_items(name, qty, price)').gte('created_at', start).lte('created_at', end + 'T23:59:59').neq('status', 'cancelled');
+    const { data } = await supabase.from('orders').select('total, pay_status, created_at, order_items(name, qty, price)').gte('created_at', start + 'T00:00:00+08:00').lte('created_at', end + 'T23:59:59+08:00').neq('status', 'cancelled');
     const list = data ?? []; const paid = list.filter((o: any) => o.pay_status === 'paid');
     const revenue = paid.reduce((s: number, o: any) => s + o.total, 0);
     const totalQty = paid.reduce((s: number, o: any) => s + (o.order_items?.reduce((q: number, i: any) => q + i.qty, 0) ?? 0), 0);
     const productMap: Record<string, { name: string; qty: number; amount: number }> = {};
     paid.forEach((o: any) => { o.order_items?.forEach((item: any) => { if (!productMap[item.name]) productMap[item.name] = { name: item.name, qty: 0, amount: 0 }; productMap[item.name].qty += item.qty; productMap[item.name].amount += item.price * item.qty; }); });
+    const twDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date(iso));
     const dailyMap: Record<string, { orders: number; qty: number; revenue: number }> = {};
-    paid.forEach((o: any) => { const d = o.created_at.split('T')[0]; if (!dailyMap[d]) dailyMap[d] = { orders: 0, qty: 0, revenue: 0 }; dailyMap[d].orders++; dailyMap[d].revenue += o.total; dailyMap[d].qty += o.order_items?.reduce((q: number, i: any) => q + i.qty, 0) ?? 0; });
+    paid.forEach((o: any) => { const d = twDate(o.created_at); if (!dailyMap[d]) dailyMap[d] = { orders: 0, qty: 0, revenue: 0 }; dailyMap[d].orders++; dailyMap[d].revenue += o.total; dailyMap[d].qty += o.order_items?.reduce((q: number, i: any) => q + i.qty, 0) ?? 0; });
     setReportStats({ orders: paid.length, revenue, qty: totalQty, avg: paid.length > 0 ? Math.round(revenue / paid.length) : 0 });
     setReportData(Object.values(productMap).sort((a, b) => b.amount - a.amount));
     setReportDaily(Object.entries(dailyMap).map(([date, v]) => ({ date, ...v })).sort((a, b) => b.date.localeCompare(a.date)));
