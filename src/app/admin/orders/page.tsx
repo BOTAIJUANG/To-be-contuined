@@ -40,7 +40,9 @@ const SHIP_OPTIONS = [
   { value: 'home',              label: '宅配（舊）' },
   { value: 'cvs_711',           label: '7-11取貨（舊）' },
 ];
-const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
+const STATUS_COLOR:  Record<string, string> = { processing: '#9a6820', shipped: '#3a6a8a', done: '#3a7a52', cancelled: '#7a7068' };
+const STATUS_BG:     Record<string, string> = { processing: '#faf4e8', shipped: '#eaf0f5', done: '#eaf4ee',  cancelled: '#f2efec' };
+const STATUS_BORDER: Record<string, string> = { processing: '#e8d4a8', shipped: '#b4ccd9', done: '#b4d9c4',  cancelled: '#d9d2cb' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const PAY_COLOR: Record<string, string>    = { pending: '#9a6820', paid: '#3a7a52', failed: '#8a3030', refunded: '#4a6878' };
 const PAY_BG:    Record<string, string>    = { pending: '#faf4e8', paid: '#eaf4ee',  failed: '#f7eeee', refunded: '#ecf3f6' };
@@ -641,17 +643,13 @@ export default function AdminOrdersPage() {
                       }}>
                         {PAY_LABEL[o.pay_status] ?? o.pay_status}
                       </span>
-                      {o.status === 'cancelled' ? (
-                        <span className={s.cancelledBadge}>已取消</span>
-                      ) : (
-                        <span className={s.payBadge} style={{
-                            color: STATUS_COLOR[o.status],
-                            background: o.status === 'processing' ? '#f5ede7' : o.status === 'shipped' ? '#edf3f5' : o.status === 'done' ? '#ebf5ef' : '#f5f0ea',
-                            border: `1px solid ${o.status === 'processing' ? '#e4d2c4' : o.status === 'shipped' ? '#c8d8e0' : o.status === 'done' ? '#cfe4d4' : '#e7ddd0'}`,
-                          }}>
-                            {STATUS_LABEL[o.status]}
-                          </span>
-                      )}
+                      <span className={s.statusBadge} style={{
+                        color: STATUS_COLOR[o.status] ?? '#7a7068',
+                        background: STATUS_BG[o.status] ?? '#f2efec',
+                        border: `1px solid ${STATUS_BORDER[o.status] ?? '#d9d2cb'}`,
+                      }}>
+                        {o.status === 'cancelled' ? '已取消' : STATUS_LABEL[o.status]}
+                      </span>
                       <span className={s.cardShip}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</span>
                     </div>
                     <div className={s.cardItems}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</div>
