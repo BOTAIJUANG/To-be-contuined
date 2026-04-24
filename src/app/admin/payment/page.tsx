@@ -46,7 +46,7 @@ export default function AdminPaymentPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, refund_status, refund_amount, refund_reason, ecpay_trade_no, ecpay_error_code, ecpay_error_msg, paid_at, created_at')
+      .select('id, order_no, buyer_name, buyer_email, customer_name, customer_email, total, pay_method, pay_status, status, refund_status, refund_amount, refund_reason, ecpay_trade_no, ecpay_error_code, ecpay_error_msg, paid_at, created_at')
       .order('created_at', { ascending: false });
     const list = data ?? [];
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
