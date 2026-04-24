@@ -873,7 +873,7 @@ export default function CheckoutPage() {
 
           {/* 已儲存地址快速帶入 */}
           {savedAddresses.length > 0 && (
-            <div className={s.savedAddressesWrap}>
+            <div className={`${s.sectionCard} ${s.savedAddressesWrap}`}>
               <div className={s.sectionTitle}>選擇已儲存地址</div>
               <div className={s.savedAddressList}>
                 {savedAddresses.map(addr => {
