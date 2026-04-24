@@ -391,6 +391,22 @@
   }
 }
 
+.btnToday {
+  padding: 0 10px;
+  background: transparent;
+  color: #6b4f3f;
+  border: 1px solid #6b4f3f;
+  font-size: 12px;
+  height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .btnToday { height: 36px; }
+}
+.btnToday:hover { background: #f5ede6; }
+
 .btnSearch {
   padding: 0 20px;
   background: #6b4f3f;
