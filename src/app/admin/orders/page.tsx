@@ -208,7 +208,7 @@ export default function AdminOrdersPage() {
     if (pys.length > 0)  q = q.in('pay_status', pys);
     if (shs.length > 0)  q = q.in('ship_method', shs);
     if (ds)  q = q.gte('created_at', ds);
-    if (de)  q = q.lte('created_at', de + 'T23:59:59');
+    if (de)  q = q.lte('created_at', de.includes('T') ? de : de + 'T23:59:59');
     if (mn)  q = q.gte('total', Number(mn));
     if (mx)  q = q.lte('total', Number(mx));
     const { data } = await q;
@@ -479,7 +479,12 @@ export default function AdminOrdersPage() {
                 <AdminDatePicker value={dateStart} onChange={val => setDateStart(val)} className={s.searchDateInput} />
                 <span className={s.dateSep}>～</span>
                 <AdminDatePicker value={dateEnd} onChange={val => setDateEnd(val)} className={s.searchDateInput} />
-                <button className={s.btnToday} onClick={() => { const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); loadOrders({ dateStart: t, dateEnd: t }); }}>今天</button>
+                <button className={s.btnToday} onClick={() => {
+                  const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+                  const ds = new Date(t + 'T00:00:00+08:00').toISOString().slice(0, 19);
+                  const de = new Date(t + 'T23:59:59+08:00').toISOString().slice(0, 19);
+                  loadOrders({ dateStart: ds, dateEnd: de });
+                }}>當日訂單</button>
               </div>
               <div className={s.searchActions}>
                 <button onClick={() => loadOrders()} className={s.btnSearch}>搜尋</button>
