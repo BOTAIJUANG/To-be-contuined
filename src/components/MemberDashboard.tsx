@@ -21,6 +21,7 @@ const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '
 function getDisplayStatus(order: any): { label: string; color: string } {
   const needPay = order.pay_method === 'credit' || order.pay_method === 'atm';
   if (needPay && order.pay_status === 'pending') return { label: '待付款', color: '#b87a2a' };
+  if (order.status === 'cancelled' && order.pay_status === 'failed') return { label: '已取消', color: '#888580' };
   if (needPay && order.pay_status === 'failed')  return { label: '付款失敗', color: '#c44' };
   if (needPay && order.pay_status === 'refunded') return { label: '已退款', color: '#888580' };
   return { label: STATUS_LABEL[order.status] ?? order.status, color: STATUS_COLOR[order.status] ?? '#888' };

@@ -218,7 +218,7 @@ export default function AdminDashboardPage() {
                     <td className={s.tdName}>{order.customer_name ?? order.buyer_name}</td>
                     <td className={s.tdAmount}>NT$ {order.total.toLocaleString()}</td>
                     <td className={s.tdPay} style={{ color: order.pay_status === 'paid' ? '#2ab85a' : '#b87a2a' }}>
-                      {order.pay_status === 'paid' ? '已付款' : order.pay_status === 'failed' ? '失敗' : '待付款'}
+                      {order.pay_status === 'paid' ? '已付款' : (order.status === 'cancelled' && order.pay_status === 'failed') ? '已取消' : order.pay_status === 'failed' ? '失敗' : '待付款'}
                     </td>
                     <td className={s.tdStatus}>
                       <span className={s.statusBadge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
@@ -245,7 +245,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className={s.cardBottom}>
                     <span className={s.cardPay} style={{ color: order.pay_status === 'paid' ? '#2ab85a' : '#b87a2a' }}>
-                      {order.pay_status === 'paid' ? '已付款' : order.pay_status === 'failed' ? '失敗' : '待付款'}
+                      {order.pay_status === 'paid' ? '已付款' : (order.status === 'cancelled' && order.pay_status === 'failed') ? '已取消' : order.pay_status === 'failed' ? '失敗' : '待付款'}
                     </span>
                     <span className={s.statusBadge} style={{ color: STATUS_COLOR[order.status], border: `1px solid ${STATUS_COLOR[order.status]}` }}>
                       {STATUS_LABEL[order.status]}

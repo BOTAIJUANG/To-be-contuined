@@ -52,9 +52,9 @@ export default function AdminPaymentPage() {
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
     const todayPaid = list.filter(o => o.pay_status === 'paid' && o.paid_at?.startsWith(today)).reduce((sum, o) => sum + o.total, 0);
     setStats({
-      pending:   list.filter(o => o.pay_status === 'pending').length,
+      pending:   list.filter(o => o.pay_status === 'pending'  && o.status !== 'cancelled').length,
       paid:      list.filter(o => o.pay_status === 'paid').length,
-      failed:    list.filter(o => o.pay_status === 'failed').length,
+      failed:    list.filter(o => o.pay_status === 'failed'   && o.status !== 'cancelled').length,
       refunded:  list.filter(o => o.pay_status === 'refunded').length,
       totalPaid: list.filter(o => o.pay_status === 'paid').reduce((sum, o) => sum + o.total, 0),
       todayPaid,
