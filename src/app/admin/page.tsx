@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
             待核款{' '}
             <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders')} />{' '}
             筆，未出貨{' '}
-            <ClickableNum value={stats.paidNotShipped} onClick={() => router.push('/admin/orders')} />{' '}
+            <ClickableNum value={stats.paidNotShipped} onClick={() => router.push('/admin/orders?pay=paid&status=processing')} />{' '}
             筆
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function AdminDashboardPage() {
       <div className={s.statGrid3}>
         <StatCard label="今日新增訂單"   value={stats.todayOrders}    onClick={() => router.push('/admin/orders')} />
         <StatCard label="待核款"         value={stats.pendingPayment} alert={stats.pendingPayment > 0} onClick={() => router.push('/admin/orders')} />
-        <StatCard label="完成付款未出貨" value={stats.paidNotShipped} alert={stats.paidNotShipped > 0} onClick={() => router.push('/admin/orders')} />
+        <StatCard label="完成付款未出貨" value={stats.paidNotShipped} alert={stats.paidNotShipped > 0} onClick={() => router.push('/admin/orders?pay=paid&status=processing')} />
         <StatCard label="今日取消訂單"   value={stats.todayCancelled} onClick={() => router.push('/admin/orders')} />
         <StatCard label="今日營收"       value={`NT$ ${stats.todayRevenue.toLocaleString()}`} />
         <StatCard label="總會員數"       value={stats.totalMembers}   onClick={() => router.push('/admin/members')} />
