@@ -1062,8 +1062,12 @@ export default function CheckoutPage() {
 
           <div className={s.sectionTitle}>折扣碼（選填）</div>
           <div className={s.couponRow}>
-            <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="輸入折扣碼" className={s.inputCoupon} />
-            <button onClick={applyCoupon} className={s.btnApply}>套用</button>
+            <input value={coupon} onChange={e => { setCoupon(e.target.value); if (discount > 0) { setDiscount(0); setCouponMsg(''); } }} placeholder="輸入折扣碼" className={s.inputCoupon} />
+            {discount > 0 ? (
+              <button onClick={() => { setCoupon(''); setDiscount(0); setCouponMsg(''); }} className={s.btnApply} style={{ background: '#888580' }}>取消</button>
+            ) : (
+              <button onClick={applyCoupon} className={s.btnApply}>套用</button>
+            )}
           </div>
           {couponMsg && <div className={discount > 0 ? s.couponMsgOk : s.couponMsgErr}>{couponMsg}</div>}
 
