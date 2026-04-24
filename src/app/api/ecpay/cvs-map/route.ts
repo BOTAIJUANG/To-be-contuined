@@ -9,7 +9,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateCheckMacValue } from '@/lib/ecpay';
 
-const MERCHANT_ID = (process.env.ECPAY_LOGISTICS_MERCHANT_ID ?? '2000132').trim();
+const MERCHANT_ID = (
+  process.env.ECPAY_LOGISTICS_MERCHANT_ID ??
+  process.env.ECPAY_MERCHANT_ID ??
+  '2000132'
+).trim();
 const ECPAY_MAP_URL = process.env.ECPAY_MAP_URL
   ?? 'https://logistics-stage.ecpay.com.tw/Express/map';
 
