@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
           <div className={s.alertTitle}>待處理訂單</div>
           <div className={s.alertText}>
             待核款{' '}
-            <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders')} />{' '}
+            <ClickableNum value={stats.pendingPayment} onClick={() => router.push('/admin/orders?pay=pending')} />{' '}
             筆，未出貨{' '}
             <ClickableNum value={stats.paidNotShipped} onClick={() => router.push('/admin/orders?pay=paid&status=processing')} />{' '}
             筆
@@ -168,8 +168,8 @@ export default function AdminDashboardPage() {
       {/* ── 訂單統計卡片 ── */}
       <div className={s.sectionLabel}>訂單資訊</div>
       <div className={s.statGrid3}>
-        <StatCard label="今日新增訂單"   value={stats.todayOrders}    onClick={() => router.push('/admin/orders')} />
-        <StatCard label="待核款"         value={stats.pendingPayment} alert={stats.pendingPayment > 0} onClick={() => router.push('/admin/orders')} />
+        <StatCard label="今日新增訂單"   value={stats.todayOrders}    onClick={() => { const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); router.push(`/admin/orders?dateStart=${t}&dateEnd=${t}`); }} />
+        <StatCard label="待核款"         value={stats.pendingPayment} alert={stats.pendingPayment > 0} onClick={() => router.push('/admin/orders?pay=pending')} />
         <StatCard label="完成付款未出貨" value={stats.paidNotShipped} alert={stats.paidNotShipped > 0} onClick={() => router.push('/admin/orders?pay=paid&status=processing')} />
         <StatCard label="今日取消訂單"   value={stats.todayCancelled} onClick={() => router.push('/admin/orders')} />
         <StatCard label="今日營收"       value={`NT$ ${stats.todayRevenue.toLocaleString()}`} />
