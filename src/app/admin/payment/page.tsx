@@ -125,13 +125,17 @@ export default function AdminPaymentPage() {
   // ── 篩選 ──────────────────────────────────────────
   const filtered = orders.filter(o => {
     const matchSearch = !search || o.order_no.includes(search.toUpperCase()) || (o.buyer_name ?? '').includes(search) || (o.customer_name ?? '').includes(search);
-    const matchFilter = !filter || o.pay_status === filter || o.refund_status === filter;
+    const matchFilter = !filter || o.refund_status === filter ||
+      (filter === 'failed' ? (o.pay_status === 'failed' && o.status !== 'cancelled') : o.pay_status === filter);
     return matchSearch && matchFilter;
   });
 
   // ── 付款狀態 Badge（唯讀）────────────────────────
-  const PayBadge = ({ status }: { status: string }) => {
-    const info = PAY_STATUS_MAP[status] ?? { label: status, color: 'var(--text-light)' };
+  const PayBadge = ({ status, orderStatus }: { status: string; orderStatus?: string }) => {
+    const isCancelledUnpaid = orderStatus === 'cancelled' && status === 'failed';
+    const info = isCancelledUnpaid
+      ? { label: '已取消', color: '#7a7068' }
+      : (PAY_STATUS_MAP[status] ?? { label: status, color: 'var(--text-light)' });
     return (
       <span className={p.payBadge} style={{ color: info.color, borderColor: info.color }}>
         {info.label}
@@ -213,7 +217,7 @@ export default function AdminPaymentPage() {
 
                 {/* 付款狀態（唯讀 badge）*/}
                 <td className={s.td}>
-                  <PayBadge status={order.pay_status} />
+                  <PayBadge status={order.pay_status} orderStatus={order.status} />
                 </td>
 
                 {/* 付款時間 */}
@@ -267,7 +271,7 @@ export default function AdminPaymentPage() {
               </div>
               <div className={s.cardRow}>
                 <span className={s.cardLabel}>付款狀態</span>
-                <PayBadge status={order.pay_status} />
+                <PayBadge status={order.pay_status} orderStatus={order.status} />
               </div>
               {order.paid_at && (
                 <div className={s.cardRow}>
