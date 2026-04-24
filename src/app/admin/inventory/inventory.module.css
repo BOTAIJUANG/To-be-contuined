@@ -346,9 +346,58 @@
   font-weight: 600;
 }
 
-/* Adjust button green accent */
-.btnAdjust {
-  color: #2ab85a;
+/* Primary action (調整庫存) */
+.btnActionPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid #b8d0bc;
+  background: #f2f8f3;
+  color: #4a7358;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+@media (hover: hover) {
+  .btnActionPrimary:hover {
+    background: #e4f0e7;
+    border-color: #9abfa0;
+    color: #3a5e47;
+  }
+}
+
+/* Secondary action (盤點、編輯) */
+.btnActionSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid #d4c4b0;
+  background: #faf6f1;
+  color: #7a6050;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+@media (hover: hover) {
+  .btnActionSecondary:hover {
+    background: #f3ede4;
+    border-color: #bfaa94;
+    color: #5e4433;
+  }
 }
 
 /* Ingredient name bold when low */

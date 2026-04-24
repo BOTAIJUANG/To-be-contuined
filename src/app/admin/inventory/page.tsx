@@ -541,9 +541,9 @@ export default function AdminInventoryPage() {
                         </td>
                         <td className={s.td}>
                           <div className={p.actionRow}>
-                            {isStock && <button onClick={() => openAdj(item, 'adjust')} className={`${s.btnSmall} ${p.btnAdjust}`}>調整庫存</button>}
-                            {isStock && <button onClick={() => openAdj(item, 'audit')} className={s.btnSmall}>盤點</button>}
-                            <button onClick={() => openEditInv(item)} className={s.btnSmall}>編輯</button>
+                            {isStock && <button onClick={() => openAdj(item, 'adjust')} className={p.btnActionPrimary}>調整庫存</button>}
+                            {isStock && <button onClick={() => openAdj(item, 'audit')} className={p.btnActionSecondary}>盤點</button>}
+                            <button onClick={() => openEditInv(item)} className={p.btnActionSecondary}>編輯</button>
                             <button onClick={() => deleteInv(item.id)} className={s.btnDanger}>刪除</button>
                           </div>
                         </td>
@@ -691,9 +691,9 @@ export default function AdminInventoryPage() {
                         </span>
                       </div>
                       <div className={s.cardActions}>
-                        {isStock && <button onClick={() => openAdj(item, 'adjust')} className={`${s.btnSmall} ${p.btnAdjust}`}>調整</button>}
-                        {isStock && <button onClick={() => openAdj(item, 'audit')} className={s.btnSmall}>盤點</button>}
-                        <button onClick={() => openEditInv(item)} className={s.btnSmall}>編輯</button>
+                        {isStock && <button onClick={() => openAdj(item, 'adjust')} className={p.btnActionPrimary}>調整</button>}
+                        {isStock && <button onClick={() => openAdj(item, 'audit')} className={p.btnActionSecondary}>盤點</button>}
+                        <button onClick={() => openEditInv(item)} className={p.btnActionSecondary}>編輯</button>
                         <button onClick={() => deleteInv(item.id)} className={s.btnDanger}>刪除</button>
                       </div>
                     </div>
@@ -877,8 +877,8 @@ export default function AdminInventoryPage() {
                               <td className={`${s.td} ${p.locationCol}`}>{ing.location ?? '—'}</td>
                               <td className={s.td}>
                                 <div className={p.actionRow}>
-                                  <button onClick={() => openIngAudit(ing)} className={`${s.btnSmall} ${p.btnAdjust}`}>盤點</button>
-                                  <button onClick={() => openEditIng(ing)} className={s.btnSmall}>編輯</button>
+                                  <button onClick={() => openIngAudit(ing)} className={p.btnActionPrimary}>盤點</button>
+                                  <button onClick={() => openEditIng(ing)} className={p.btnActionSecondary}>編輯</button>
                                   <button onClick={() => deleteIng(ing.id)} className={s.btnDanger}>刪除</button>
                                 </div>
                               </td>
@@ -917,8 +917,8 @@ export default function AdminInventoryPage() {
                               <span className={s.badge} style={{ color: isLow ? '#c0392b' : '#2ab85a', border: `1px solid ${isLow ? '#c0392b' : '#2ab85a'}` }}>{isLow ? '庫存不足' : '正常'}</span>
                             </div>
                             <div className={s.cardActions}>
-                              <button onClick={() => openIngAudit(ing)} className={`${s.btnSmall} ${p.btnAdjust}`}>盤點</button>
-                              <button onClick={() => openEditIng(ing)} className={s.btnSmall}>編輯</button>
+                              <button onClick={() => openIngAudit(ing)} className={p.btnActionPrimary}>盤點</button>
+                              <button onClick={() => openEditIng(ing)} className={p.btnActionSecondary}>編輯</button>
                               <button onClick={() => deleteIng(ing.id)} className={s.btnDanger}>刪除</button>
                             </div>
                           </div>
