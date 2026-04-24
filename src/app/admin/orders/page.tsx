@@ -588,11 +588,11 @@ export default function AdminOrdersPage() {
                       <td className={s.tdPayStatus} onClick={e => e.stopPropagation()}>
                         {/* 付款狀態由綠界 webhook 自動更新，不給手動改 */}
                         <span className={s.payBadge} style={{
-                          color: PAY_COLOR[o.pay_status] ?? '#8b7d70',
-                          background: PAY_BG[o.pay_status] ?? '#f5f0ea',
-                          border: `1px solid ${PAY_BORDER[o.pay_status] ?? '#e7ddd0'}`,
+                          color:       o.status === 'cancelled' && o.pay_status === 'failed' ? '#7a7068' : (PAY_COLOR[o.pay_status] ?? '#8b7d70'),
+                          background:  o.status === 'cancelled' && o.pay_status === 'failed' ? '#f2efec' : (PAY_BG[o.pay_status] ?? '#f5f0ea'),
+                          border: `1px solid ${o.status === 'cancelled' && o.pay_status === 'failed' ? '#d9d2cb' : (PAY_BORDER[o.pay_status] ?? '#e7ddd0')}`,
                         }}>
-                          {PAY_LABEL[o.pay_status] ?? o.pay_status}
+                          {o.status === 'cancelled' && o.pay_status === 'failed' ? '已取消' : (PAY_LABEL[o.pay_status] ?? o.pay_status)}
                         </span>
                       </td>
                       <td className={`${s.tdShipMethod} ${s.colHideSmDesk}`}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
@@ -637,11 +637,11 @@ export default function AdminOrdersPage() {
                     </div>
                     <div className={s.cardBottom}>
                       <span className={s.payBadge} style={{
-                        color: PAY_COLOR[o.pay_status] ?? '#8b7d70',
-                        background: PAY_BG[o.pay_status] ?? '#f5f0ea',
-                        border: `1px solid ${PAY_BORDER[o.pay_status] ?? '#e7ddd0'}`,
+                        color:       o.status === 'cancelled' && o.pay_status === 'failed' ? '#7a7068' : (PAY_COLOR[o.pay_status] ?? '#8b7d70'),
+                        background:  o.status === 'cancelled' && o.pay_status === 'failed' ? '#f2efec' : (PAY_BG[o.pay_status] ?? '#f5f0ea'),
+                        border: `1px solid ${o.status === 'cancelled' && o.pay_status === 'failed' ? '#d9d2cb' : (PAY_BORDER[o.pay_status] ?? '#e7ddd0')}`,
                       }}>
-                        {PAY_LABEL[o.pay_status] ?? o.pay_status}
+                        {o.status === 'cancelled' && o.pay_status === 'failed' ? '已取消' : (PAY_LABEL[o.pay_status] ?? o.pay_status)}
                       </span>
                       <span className={s.statusBadge} style={{
                         color: STATUS_COLOR[o.status] ?? '#7a7068',

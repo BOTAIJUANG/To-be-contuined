@@ -47,11 +47,10 @@ export async function GET(req: NextRequest) {
 
   // ── 3. 逐筆取消 + 釋放庫存 ────────────────────────
   for (const order of expiredOrders) {
-    // 更新訂單狀態（加 pay_status 防護，避免與 webhook 同時處理時覆蓋 paid）
-    // 只更新 status，pay_status 保持 'pending'（從未付款，不應標記 'failed'）
+    // 同時更新 status + pay_status，防止與 webhook 同時處理時覆蓋 paid
     const { data: cancelledOrder } = await supabaseAdmin
       .from('orders')
-      .update({ status: 'cancelled' })
+      .update({ status: 'cancelled', pay_status: 'failed' })
       .eq('id', order.id)
       .eq('pay_status', 'pending')
       .select('id');
