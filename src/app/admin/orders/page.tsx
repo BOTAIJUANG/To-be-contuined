@@ -44,9 +44,9 @@ const STATUS_COLOR:  Record<string, string> = { processing: '#9a6820', shipped: 
 const STATUS_BG:     Record<string, string> = { processing: '#faf4e8', shipped: '#eaf0f5', done: '#eaf4ee',  cancelled: '#f2efec' };
 const STATUS_BORDER: Record<string, string> = { processing: '#e8d4a8', shipped: '#b4ccd9', done: '#b4d9c4',  cancelled: '#d9d2cb' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
-const PAY_COLOR: Record<string, string>    = { pending: '#9a6820', paid: '#3a7a52', failed: '#8a3030', refunded: '#4a6878' };
-const PAY_BG:    Record<string, string>    = { pending: '#faf4e8', paid: '#eaf4ee',  failed: '#f7eeee', refunded: '#ecf3f6' };
-const PAY_BORDER:Record<string, string>    = { pending: '#e8d4a8', paid: '#b4d9c4',  failed: '#d4b0b0', refunded: '#b2cad6' };
+const PAY_COLOR: Record<string, string>    = { pending: '#8a5c1a', paid: '#3d6e50', failed: '#8a3030', refunded: '#4a6a7c' };
+const PAY_BG:    Record<string, string>    = { pending: '#fdf4e4', paid: '#edf4f0', failed: '#f7eeee', refunded: '#eaf2f6' };
+const PAY_BORDER:Record<string, string>    = { pending: '#e4ca96', paid: '#aecebe', failed: '#d4b0b0', refunded: '#a8c4d2' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款' };
 const SHIP_LABEL: Record<string, string> = {
   home_ambient: '宅配（常溫）', home_refrigerated: '宅配（冷藏）', home_frozen: '宅配（冷凍）',
