@@ -124,7 +124,12 @@ export default function AdminDailyPage() {
       <div className={s.statGrid}>
         {[
           { label: '今日出貨單數', value: orders.length, onClick: undefined },
-          { label: '待出貨（已付款）', value: pendingShip, alert: pendingShip > 0, onClick: () => router.push('/admin/orders') },
+          { label: '待出貨（已付款）', value: pendingShip, alert: pendingShip > 0, onClick: () => {
+            const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+            const ds = new Date(t + 'T00:00:00+08:00').toISOString().slice(0, 19);
+            const de = new Date(t + 'T23:59:59+08:00').toISOString().slice(0, 19);
+            router.push(`/admin/orders?dateStart=${ds}&dateEnd=${de}&pay=paid&status=processing`);
+          } },
           { label: '今日總件數',   value: totalQty, onClick: undefined },
           { label: '今日營收',     value: `NT$ ${totalRevenue.toLocaleString()}`, onClick: undefined },
         ].map(({ label, value, alert, onClick }) => (

@@ -3,6 +3,7 @@
 // app/admin/orders/page.tsx  ──  訂單管理（含詳細抽屜）
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { fetchApi } from '@/lib/api';
 import OrderDrawer from '@/components/OrderDrawer';
@@ -139,6 +140,7 @@ function getPeriodRange(period: ReportPeriod, cs: string, ce: string) {
 }
 
 export default function AdminOrdersPage() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<OrderTab>('list');
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -327,7 +329,19 @@ export default function AdminOrdersPage() {
     URL.revokeObjectURL(url);
   };
 
-  useEffect(() => { loadOrders(); }, []);
+  useEffect(() => {
+    const ds = searchParams.get('dateStart') ?? '';
+    const de = searchParams.get('dateEnd') ?? '';
+    const pay = searchParams.get('pay');
+    const status = searchParams.get('status');
+    const initPays = pay ? [pay] : [];
+    const initStatuses = status ? [status] : [];
+    if (ds) setDateStart(ds);
+    if (de) setDateEnd(de);
+    if (initPays.length) setOsPays(initPays);
+    if (initStatuses.length) setOsStatuses(initStatuses);
+    loadOrders({ dateStart: ds, dateEnd: de, osPays: initPays, osStatuses: initStatuses });
+  }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'shiplist') loadShipOrders(); }, [tab, shipSort]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
