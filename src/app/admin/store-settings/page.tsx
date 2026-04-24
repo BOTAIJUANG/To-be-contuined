@@ -397,18 +397,6 @@ export default function AdminStoreSettingsPage() {
               <Toggle val={true} onChange={() => {}} />
             </div>
           ))}
-          <div className={`${s.sectionTitleBordered} ${p.sectionTitleMt28}`}>綠界 ECPay 金鑰</div>
-          {[
-            { label: '商店代號（MerchantID）', ph: '例：3002607' },
-            { label: 'HashKey', ph: '請填入綠界 HashKey', type: 'password' },
-            { label: 'HashIV', ph: '請填入綠界 HashIV', type: 'password' },
-          ].map(({ label, ph, type }) => (
-            <div key={label} className={s.mb16}>
-              <label className={s.label}>{label}</label>
-              <input type={type ?? 'text'} placeholder={ph} className={`${s.input} ${p.paymentInputMax320}`} />
-            </div>
-          ))}
-          <div className={p.seoHintMt8}>金鑰請存放在 .env.local，不要直接輸入在此，避免外洩。</div>
         </div>
       )}
 
