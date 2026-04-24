@@ -1,23 +1,33 @@
 /* inventory page-specific styles */
 
-/* Mode badge (STOCK / PREORDER) */
+/* Mode badge (現貨 / 預購) */
 .modeBadge {
-  font-size: 11px;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
   font-family: "Montserrat", sans-serif;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  border: 1px solid transparent;
 }
 
 .modeBadgeStock {
   composes: modeBadge;
-  background: var(--surface);
-  color: var(--text-mid);
+  background: #f1f4ef;
+  color: #617462;
+  border-color: rgba(97, 116, 98, 0.22);
 }
 
 .modeBadgePreorder {
   composes: modeBadge;
-  background: #e8f0fb;
-  color: #2a7ab8;
+  background: #f5ede3;
+  color: #9a6a36;
+  border-color: rgba(154, 106, 54, 0.22);
 }
 
 /* Low stock alert label */

@@ -523,7 +523,7 @@ export default function AdminInventoryPage() {
                         <td className={`${s.td} ${p.variantCol}`}>{item.product_variants?.name ?? '—'}</td>
                         <td className={s.td}>
                           <span className={isStock ? p.modeBadgeStock : p.modeBadgePreorder}>
-                            {isStock ? 'STOCK' : 'PREORDER'}
+                            {isStock ? '現貨' : '預購'}
                           </span>
                         </td>
                         <td className={s.td} style={{ color: 'var(--text-light)' }}>—</td>
@@ -672,7 +672,7 @@ export default function AdminInventoryPage() {
                       </div>
                       <div className={s.cardRow}>
                         <span className={s.cardLabel}>模式</span>
-                        <span className={isStock ? p.modeBadgeStock : p.modeBadgePreorder}>{isStock ? 'STOCK' : 'PREORDER'}</span>
+                        <span className={isStock ? p.modeBadgeStock : p.modeBadgePreorder}>{isStock ? '現貨' : '預購'}</span>
                       </div>
                       <div className={s.cardRow}>
                         <span className={s.cardLabel}>庫存</span>
