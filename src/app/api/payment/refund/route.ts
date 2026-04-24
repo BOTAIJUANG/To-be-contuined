@@ -91,36 +91,49 @@ export async function POST(req: NextRequest) {
     }
 
     const MERCHANT_ID = (process.env.ECPAY_MERCHANT_ID ?? '3002607').trim();
-    const params: Record<string, string> = {
-      MerchantID:      MERCHANT_ID,
-      MerchantTradeNo: order.order_no.replace(/-/g, ''),
-      TradeNo:         order.ecpay_trade_no,
-      Action:          'R',
-      TotalAmount:     String(amount),
-    };
-    params.CheckMacValue = generateCheckMacValue(params);
+    // 全額退款：先試 N（取消授權，當日未關帳），失敗再試 R（退款，已關帳）
+    // 部分退款：只能用 R（關帳後才支援）
+    const isFullRefund = amount === order.total;
+    const actionsToTry = isFullRefund ? ['N', 'R'] : ['R'];
 
     try {
-      const formBody = Object.entries(params)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-        .join('&');
+      let refundSuccess = false;
+      let lastError = '';
 
-      const ecpayRes = await fetch(ECPAY_DOACTION_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formBody,
-      });
+      for (const action of actionsToTry) {
+        const params: Record<string, string> = {
+          MerchantID:      MERCHANT_ID,
+          MerchantTradeNo: order.order_no.replace(/-/g, ''),
+          TradeNo:         order.ecpay_trade_no,
+          Action:          action,
+          TotalAmount:     String(amount),
+        };
+        params.CheckMacValue = generateCheckMacValue(params);
 
-      const resText = await ecpayRes.text();
-      console.log('ECPay 退款回應:', resText);
+        const formBody = Object.entries(params)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
 
-      const resParams = new URLSearchParams(resText);
-      const rtnCode = resParams.get('RtnCode');
-      const rtnMsg  = resParams.get('RtnMsg') ?? resText;
+        const ecpayRes = await fetch(ECPAY_DOACTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody,
+        });
 
-      if (rtnCode !== '1') {
+        const resText = await ecpayRes.text();
+        console.log(`ECPay 退款回應 (Action=${action}):`, resText);
+
+        const resParams = new URLSearchParams(resText);
+        const rtnCode = resParams.get('RtnCode');
+        const rtnMsg  = resParams.get('RtnMsg') ?? resText;
+
+        if (rtnCode === '1') { refundSuccess = true; break; }
+        lastError = rtnMsg;
+      }
+
+      if (!refundSuccess) {
         await supabaseAdmin.from('orders').update({ refund_status: 'failed' }).eq('id', order.id);
-        return NextResponse.json({ ok: false, error: `綠界退款失敗：${rtnMsg}` }, { status: 400 });
+        return NextResponse.json({ ok: false, error: `綠界退款失敗：${lastError}` }, { status: 400 });
       }
     } catch (err) {
       console.error('退款 API 錯誤:', err);
