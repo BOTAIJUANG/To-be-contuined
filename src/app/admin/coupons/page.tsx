@@ -195,7 +195,7 @@ export default function AdminCouponsPage() {
                 </div>
                 <div className={s.cardActions}>
                   <input type="checkbox" checked={c.is_active} onChange={() => toggleActive(c)} className={s.checkbox} />
-                  <button onClick={() => openEdit(c)} className={s.btnSmall}>編輯</button>
+                  <button onClick={() => openEdit(c)} className={cx.btnEdit}>編輯</button>
                 </div>
               </div>
             ))}
@@ -224,7 +224,7 @@ export default function AdminCouponsPage() {
                     <input type="checkbox" checked={c.is_active} onChange={() => toggleActive(c)} className={s.checkbox} />
                   </td>
                   <td className={s.td}>
-                    <button onClick={() => openEdit(c)} className={s.btnSmall}>編輯</button>
+                    <button onClick={() => openEdit(c)} className={cx.btnEdit}>編輯</button>
                   </td>
                 </tr>
               ))}
