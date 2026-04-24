@@ -168,6 +168,8 @@ export default function AdminOrdersPage() {
   const [shipLoading, setShipLoading] = useState(false);
   const [shipSelected, setShipSelected] = useState<Set<number>>(new Set());
   const [shipKeyword, setShipKeyword] = useState('');
+  const [shipDateStart, setShipDateStart] = useState('');
+  const [shipDateEnd, setShipDateEnd] = useState('');
   const [shipSort, setShipSort] = useState('oldest');
   const [shipConfirmModal, setShipConfirmModal] = useState(false);
   const [shipProcessing, setShipProcessing] = useState(false);
@@ -243,22 +245,28 @@ export default function AdminOrdersPage() {
   };
 
   // ── 出貨列表（待出貨）──
-  const loadShipOrders = async () => {
+  const loadShipOrders = async (overrides: Record<string, any> = {}) => {
     setShipLoading(true);
+    const kw = 'shipKeyword' in overrides ? overrides.shipKeyword : shipKeyword;
+    const ds = 'shipDateStart' in overrides ? overrides.shipDateStart : shipDateStart;
+    const de = 'shipDateEnd' in overrides ? overrides.shipDateEnd : shipDateEnd;
     let orderBy = 'created_at';
     let ascending = true;
     if (shipSort === 'newest') ascending = false;
     if (shipSort === 'ship_date_asc') { orderBy = 'ship_date'; }
     if (shipSort === 'ship_date_desc') { orderBy = 'ship_date'; ascending = false; }
 
-    const { data } = await supabase.from('orders')
+    let q = supabase.from('orders')
       .select('*, order_items(name, qty, price, product_id, variant_id, preorder_batch_id)')
       .eq('pay_status', 'paid').eq('status', 'processing')
       .order(orderBy, { ascending });
+    if (ds) q = q.gte('created_at', ds.includes('T') ? ds : ds + 'T00:00:00+08:00');
+    if (de) q = q.lte('created_at', de.includes('T') ? de : de + 'T23:59:59+08:00');
+    const { data } = await q;
     let list = data ?? [];
-    if (shipKeyword) {
-      const kw = shipKeyword.toLowerCase();
-      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kw) || (o.buyer_name ?? '').includes(kw) || (o.buyer_phone ?? '').includes(kw) || (o.customer_name ?? '').includes(kw) || (o.customer_phone ?? '').includes(kw));
+    if (kw) {
+      const kwl = kw.toLowerCase();
+      list = list.filter((o: any) => o.order_no.toLowerCase().includes(kwl) || (o.buyer_name ?? '').includes(kwl) || (o.buyer_phone ?? '').includes(kwl) || (o.customer_name ?? '').includes(kwl) || (o.customer_phone ?? '').includes(kwl));
     }
     setShipOrders(list);
     setShipSelected(new Set());
@@ -679,8 +687,21 @@ export default function AdminOrdersPage() {
           {/* 搜尋 + 排序 */}
           <div className={s.shipToolbar}>
             <input value={shipKeyword} onChange={e => setShipKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadShipOrders()} placeholder="搜尋訂單編號 / 姓名 / 電話" className={s.shipSearchInput} />
+            <div className={s.searchDates}>
+              <AdminDatePicker value={shipDateStart} onChange={val => setShipDateStart(val)} className={s.searchDateInput} />
+              <span className={s.dateSep}>～</span>
+              <AdminDatePicker value={shipDateEnd} onChange={val => setShipDateEnd(val)} className={s.searchDateInput} />
+            </div>
             <select value={shipSort} onChange={e => setShipSort(e.target.value)} className={s.shipSortSelect}>{SHIP_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-            <button onClick={() => loadShipOrders()} className={s.btnSearch}>搜尋</button>
+            <div className={s.searchActions}>
+              <button onClick={() => loadShipOrders()} className={s.btnSearch}>搜尋</button>
+              <button className={s.btnToday} onClick={() => {
+                const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+                setShipDateStart(t); setShipDateEnd(t);
+                loadShipOrders({ shipDateStart: t, shipDateEnd: t });
+              }}>當日訂單</button>
+              <button className={s.btnClear} onClick={() => { setShipKeyword(''); setShipDateStart(''); setShipDateEnd(''); loadShipOrders({ shipKeyword: '', shipDateStart: '', shipDateEnd: '' }); }}>清除</button>
+            </div>
           </div>
 
           {/* 批次操作列 */}
