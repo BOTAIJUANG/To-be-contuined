@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           MerchantTradeNo: order.order_no.replace(/-/g, ''),
           TradeNo:         order.ecpay_trade_no,
           Action:          action,
-          TotalAmount:     action === 'N' ? '0' : String(amount),
+          TotalAmount:     String(amount),
         };
         params.CheckMacValue = generateCheckMacValue(params);
 
