@@ -116,6 +116,19 @@ function MultiSelectDropdown({ options, selected, onChange, placeholder }: {
   );
 }
 
+const PAGE_SIZE = 50;
+
+function getPageNums(total: number, current: number, size: number): (number | '...')[] {
+  const n = Math.ceil(total / size);
+  if (n <= 7) return Array.from({ length: n }, (_, i) => i + 1);
+  const pages: (number | '...')[] = [1];
+  if (current > 3) pages.push('...');
+  for (let i = Math.max(2, current - 1); i <= Math.min(n - 1, current + 1); i++) pages.push(i);
+  if (current < n - 2) pages.push('...');
+  pages.push(n);
+  return pages;
+}
+
 function getPeriodRange(period: ReportPeriod, cs: string, ce: string) {
   const twFmt = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
   const today = twFmt(new Date());
@@ -129,6 +142,7 @@ export default function AdminOrdersPage() {
   const [tab, setTab] = useState<OrderTab>('list');
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listPage, setListPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   // 取消訂單 modal
@@ -204,6 +218,7 @@ export default function AdminOrdersPage() {
       list = list.filter((o: any) => o.order_no.toLowerCase().includes(kwl) || (o.buyer_name ?? '').includes(kwl) || (o.buyer_phone ?? '').includes(kwl) || (o.customer_name ?? '').includes(kwl) || (o.customer_phone ?? '').includes(kwl));
     }
     setOrders(list);
+    setListPage(1);
     setLoading(false);
   };
 
@@ -439,6 +454,9 @@ export default function AdminOrdersPage() {
     setCancelLoading(false);
   };
 
+  const totalPages = Math.ceil(orders.length / PAGE_SIZE);
+  const pagedOrders = orders.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE);
+
   return (
     <div>
       <h1 className={s.title}>訂單管理</h1>
@@ -518,7 +536,7 @@ export default function AdminOrdersPage() {
                 <tbody>
                   {orders.length === 0 ? (
                     <tr><td colSpan={9} className={s.tdEmpty}>沒有符合條件的訂單</td></tr>
-                  ) : orders.map(o => (
+                  ) : pagedOrders.map(o => (
                     <tr key={o.id} className={s.tr} onClick={() => setSelectedOrder(o)}>
                       <td className={s.tdOrderNo}>{o.order_no}</td>
                       <td className={s.tdDate}>{new Date(o.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
@@ -571,7 +589,7 @@ export default function AdminOrdersPage() {
               <div className={s.cardList}>
                 {orders.length === 0 ? (
                   <div className={s.tdEmpty}>沒有符合條件的訂單</div>
-                ) : orders.map(o => (
+                ) : pagedOrders.map(o => (
                   <div key={o.id} className={s.card} onClick={() => setSelectedOrder(o)}>
                     <div className={s.cardTop}>
                       <span className={s.cardOrderNo}>{o.order_no}</span>
@@ -621,6 +639,17 @@ export default function AdminOrdersPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+          {!loading && totalPages > 1 && (
+            <div className={s.pagination}>
+              <button disabled={listPage === 1} onClick={() => setListPage(p => p - 1)} className={s.pageBtn}>‹</button>
+              {getPageNums(orders.length, listPage, PAGE_SIZE).map((p, i) =>
+                p === '...'
+                  ? <span key={`e${i}`} className={s.pageEllipsis}>…</span>
+                  : <button key={p} onClick={() => setListPage(p as number)} className={p === listPage ? s.pageBtnActive : s.pageBtn}>{p}</button>
+              )}
+              <button disabled={listPage === totalPages} onClick={() => setListPage(p => p + 1)} className={s.pageBtn}>›</button>
             </div>
           )}
         </>

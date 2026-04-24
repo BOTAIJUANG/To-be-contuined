@@ -275,7 +275,7 @@
   border: 1px solid #ece4d8;
   border-radius: 16px;
   overflow-x: auto;
-  overflow: hidden;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
