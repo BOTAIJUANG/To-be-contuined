@@ -318,6 +318,10 @@
 @media (hover: hover) {
   .tr:hover { background: rgba(107, 74, 58, 0.03); }
 }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .th { padding: 10px 8px; }
+  .td { padding: 8px 8px; font-size: 11px; }
+}
 
 .emptyRow {
   padding: 24px;

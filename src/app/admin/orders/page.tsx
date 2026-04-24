@@ -552,7 +552,7 @@ export default function AdminOrdersPage() {
                           <div className={s.buyerPhone} style={{ fontSize: 11, color: '#999' }}>購買人：{o.buyer_name}</div>
                         )}
                       </td>
-                      <td className={s.tdItems}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</td>
+                      <td className={s.tdItems}><div className={s.tdItemsText} title={o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}>{o.order_items?.map((i: any) => `${i.name}×${i.qty}`).join('、')}</div></td>
                       <td className={s.tdAmount}>NT$ {o.total.toLocaleString()}</td>
                       <td className={s.tdPayStatus} onClick={e => e.stopPropagation()}>
                         {/* 付款狀態由綠界 webhook 自動更新，不給手動改 */}

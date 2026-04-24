@@ -440,6 +440,10 @@
 @media (min-width: 768px) {
   .table { display: table; }
 }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .table td { padding: 8px 8px; font-size: 11px; }
+  .tdItemsText { max-width: 100px; }
+}
 
 .th {
   padding: 12px 10px;
@@ -519,6 +523,12 @@
   font-size: 12px;
   color: var(--text-mid);
   max-width: 160px;
+}
+.tdItemsText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
 }
 .tdAmount {
   padding: 12px 16px;

@@ -185,7 +185,7 @@ export default function AdminPaymentPage() {
         {/* Desktop table */}
         <table className={s.table}>
           <thead>
-            <tr>{['訂單編號', '買家', '金額', '付款方式', '綠界交易號', '付款狀態', '付款時間', '退款', '下單時間'].map(h => <th key={h} className={s.th}>{h}</th>)}</tr>
+            <tr>{['訂單編號', '買家', '金額', '付款方式', '綠界交易號', '付款狀態', '付款時間', '退款', '下單時間'].map(h => <th key={h} className={`${s.th}${h === '下單時間' ? ` ${p.colHideTablet}` : ''}`}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
@@ -241,7 +241,7 @@ export default function AdminPaymentPage() {
                   )}
                 </td>
 
-                <td className={`${s.td} ${p.tdDateLight}`}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
+                <td className={`${s.td} ${p.tdDateLight} ${p.colHideTablet}`}>{new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
               </tr>
             ))}
           </tbody>

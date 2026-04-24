@@ -134,3 +134,10 @@
   color: var(--text-light);
   margin-left: 4px;
 }
+
+/* tablet: hide low-priority columns */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .colHideTablet { display: none; }
+  .tdEcpay { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdDateLight { font-size: 11px; }
+}
