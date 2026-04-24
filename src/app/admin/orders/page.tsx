@@ -42,7 +42,9 @@ const SHIP_OPTIONS = [
 ];
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
-const PAY_COLOR: Record<string, string>    = { pending: '#b87a2a', paid: '#2ab85a', failed: '#c0392b', refunded: '#5a7a8a' };
+const PAY_COLOR: Record<string, string>    = { pending: '#9a6820', paid: '#3a7a52', failed: '#8a3030', refunded: '#4a6878' };
+const PAY_BG:    Record<string, string>    = { pending: '#faf4e8', paid: '#eaf4ee',  failed: '#f7eeee', refunded: '#ecf3f6' };
+const PAY_BORDER:Record<string, string>    = { pending: '#e8d4a8', paid: '#b4d9c4',  failed: '#d4b0b0', refunded: '#b2cad6' };
 const PAY_LABEL: Record<string, string>    = { pending: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款' };
 const SHIP_LABEL: Record<string, string> = {
   home_ambient: '宅配（常溫）', home_refrigerated: '宅配（冷藏）', home_frozen: '宅配（冷凍）',
@@ -585,8 +587,8 @@ export default function AdminOrdersPage() {
                         {/* 付款狀態由綠界 webhook 自動更新，不給手動改 */}
                         <span className={s.payBadge} style={{
                           color: PAY_COLOR[o.pay_status] ?? '#8b7d70',
-                          background: o.pay_status === 'paid' ? '#ebf5ef' : o.pay_status === 'pending' ? '#f8f1e2' : o.pay_status === 'failed' ? '#fcf1ef' : '#f5f0ea',
-                          border: `1px solid ${o.pay_status === 'paid' ? '#cfe4d4' : o.pay_status === 'pending' ? '#ead8aa' : o.pay_status === 'failed' ? '#e8b5a8' : '#e7ddd0'}`,
+                          background: PAY_BG[o.pay_status] ?? '#f5f0ea',
+                          border: `1px solid ${PAY_BORDER[o.pay_status] ?? '#e7ddd0'}`,
                         }}>
                           {PAY_LABEL[o.pay_status] ?? o.pay_status}
                         </span>
@@ -633,8 +635,9 @@ export default function AdminOrdersPage() {
                     </div>
                     <div className={s.cardBottom}>
                       <span className={s.payBadge} style={{
-                        color: PAY_COLOR[o.pay_status] ?? '#888580',
-                        border: `1px solid ${PAY_COLOR[o.pay_status] ?? '#E8E4DC'}`,
+                        color: PAY_COLOR[o.pay_status] ?? '#8b7d70',
+                        background: PAY_BG[o.pay_status] ?? '#f5f0ea',
+                        border: `1px solid ${PAY_BORDER[o.pay_status] ?? '#e7ddd0'}`,
                       }}>
                         {PAY_LABEL[o.pay_status] ?? o.pay_status}
                       </span>
