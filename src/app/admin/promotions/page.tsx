@@ -249,6 +249,7 @@ export default function AdminPromotionsPage() {
     if (promo.end_at && new Date(promo.end_at) < now) return '已結束';
     return '進行中';
   };
+  const TIME_CLASS: Record<string, string> = { '進行中': p.timeActive, '未開始': p.timePending, '已結束': p.timeExpired };
 
   // ── 商品多選元件 ────────────────────────────────
   const ProductMultiSelect = ({ selected, onChange }: { selected: number[]; onChange: (ids: number[]) => void }) => (
@@ -481,15 +482,14 @@ export default function AdminPromotionsPage() {
                     </td>
                   )}
                   <td className={`${s.td} ${p.tdTimeStatus}`}>
-                    <span style={{ color: getTimeStatus(promo) === '進行中' ? '#2ab85a' : getTimeStatus(promo) === '未開始' ? '#b87a2a' : 'var(--text-light)' }}>
+                    <span className={`${p.timeBadge} ${TIME_CLASS[getTimeStatus(promo)]}`}>
                       {getTimeStatus(promo)}
                     </span>
                   </td>
                   <td className={s.td}>
                     <button
                       onClick={() => toggleActive(promo.id, promo.is_active)}
-                      className={p.statusBtnActive}
-                      style={{ color: promo.is_active ? '#2ab85a' : 'var(--text-light)', borderColor: promo.is_active ? '#2ab85a' : 'var(--line)' }}
+                      className={`${p.statusBtnActive} ${promo.is_active ? p.statusOn : p.statusOff}`}
                     >
                       {promo.is_active ? '啟用中' : '已停用'}
                     </button>
@@ -514,7 +514,7 @@ export default function AdminPromotionsPage() {
                 <div className={s.cardTitle}>{promo.name}</div>
                 <div className={s.cardRow}>
                   <span className={s.cardLabel}>時效</span>
-                  <span className={p.tdTimeStatus} style={{ color: getTimeStatus(promo) === '進行中' ? '#2ab85a' : getTimeStatus(promo) === '未開始' ? '#b87a2a' : 'var(--text-light)' }}>
+                  <span className={`${p.timeBadge} ${TIME_CLASS[getTimeStatus(promo)]}`}>
                     {getTimeStatus(promo)}
                   </span>
                 </div>
@@ -522,8 +522,7 @@ export default function AdminPromotionsPage() {
                   <span className={s.cardLabel}>狀態</span>
                   <button
                     onClick={() => toggleActive(promo.id, promo.is_active)}
-                    className={p.statusBtnActive}
-                    style={{ color: promo.is_active ? '#2ab85a' : 'var(--text-light)', borderColor: promo.is_active ? '#2ab85a' : 'var(--line)' }}
+                    className={`${p.statusBtnActive} ${promo.is_active ? p.statusOn : p.statusOff}`}
                   >
                     {promo.is_active ? '啟用中' : '已停用'}
                   </button>
