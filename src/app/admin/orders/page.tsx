@@ -531,7 +531,7 @@ export default function AdminOrdersPage() {
               {/* Desktop table */}
               <table className={s.table}>
                 <thead>
-                  <tr>{['訂單編號', '日期', '收件人', '商品', '金額', '付款狀態', '配送', '配送狀態', '操作'].map(h => <th key={h} className={s.th}>{h}</th>)}</tr>
+                  <tr>{['訂單編號', '日期', '收件人', '商品', '金額', '付款狀態', '配送', '配送狀態', '操作'].map(h => <th key={h} className={`${s.th}${h === '配送' ? ` ${s.colHideSmDesk}` : ''}`}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {orders.length === 0 ? (
@@ -564,7 +564,7 @@ export default function AdminOrdersPage() {
                           {PAY_LABEL[o.pay_status] ?? o.pay_status}
                         </span>
                       </td>
-                      <td className={s.tdShipMethod}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
+                      <td className={`${s.tdShipMethod} ${s.colHideSmDesk}`}>{SHIP_LABEL[o.ship_method] ?? o.ship_method}</td>
                       <td className={s.tdShipStatus} onClick={e => e.stopPropagation()}>
                         {o.status === 'cancelled' || o.pay_status === 'refunded' ? (
                           <span className={s.cancelledBadge}>{o.pay_status === 'refunded' ? '已取消（已退款）' : '已取消'}</span>

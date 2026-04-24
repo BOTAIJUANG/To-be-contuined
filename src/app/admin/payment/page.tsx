@@ -185,7 +185,7 @@ export default function AdminPaymentPage() {
         {/* Desktop table */}
         <table className={s.table}>
           <thead>
-            <tr>{['訂單編號', '買家', '金額', '付款方式', '綠界交易號', '付款狀態', '付款時間', '退款', '下單時間'].map(h => <th key={h} className={`${s.th}${h === '下單時間' ? ` ${p.colHideTablet}` : ''}`}>{h}</th>)}</tr>
+            <tr>{['訂單編號', '買家', '金額', '付款方式', '綠界交易號', '付款狀態', '付款時間', '退款', '下單時間'].map(h => <th key={h} className={`${s.th}${(h === '下單時間' || h === '綠界交易號') ? ` ${p.colHideTablet}` : ''}`}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
@@ -202,7 +202,7 @@ export default function AdminPaymentPage() {
                 </td>
                 <td className={`${s.td} ${p.tdNoWrap}`}>NT$ {order.total.toLocaleString()}</td>
                 <td className={`${s.td} ${p.tdPayMethod}`}>{PAY_METHOD[order.pay_method] ?? order.pay_method ?? '—'}</td>
-                <td className={`${s.td} ${p.tdEcpay}`}>
+                <td className={`${s.td} ${p.tdEcpay} ${p.colHideTablet}`}>
                   {order.ecpay_trade_no ?? '—'}
                   {order.pay_status === 'failed' && order.ecpay_error_msg && (
                     <div style={{ fontSize: '0.75rem', color: '#c0392b', marginTop: 2 }}>
