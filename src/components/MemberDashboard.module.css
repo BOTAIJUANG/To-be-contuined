@@ -9,8 +9,8 @@
 @media (min-width: 900px) {
   .layout {
     display: grid;
-    grid-template-columns: 268px 1fr;
-    gap: 24px;
+    grid-template-columns: 220px 1fr;
+    gap: 20px;
     align-items: start;
   }
 }
@@ -25,8 +25,8 @@
 }
 @media (min-width: 900px) {
   .sidebar {
-    border-radius: 24px;
-    padding: 28px 20px;
+    border-radius: 20px;
+    padding: 22px 16px;
     box-shadow: 0 8px 24px rgba(43, 33, 27, 0.06);
   }
 }
@@ -39,33 +39,33 @@
   .avatar {
     display: block;
     text-align: center;
-    padding-bottom: 22px;
+    padding-bottom: 18px;
     border-bottom: 1px solid rgba(74, 52, 39, 0.08);
     margin-bottom: 4px;
   }
 }
 
 .avatarCircle {
-  width: 96px;
-  height: 96px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   background: #ece6de;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44px;
+  font-size: 34px;
   font-weight: 700;
   color: #7a5a40;
-  margin: 0 auto 14px;
+  margin: 0 auto 10px;
   font-family: "Noto Sans TC", sans-serif;
 }
 
 .avatarName {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #3f2f24;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .avatarRole {
@@ -118,12 +118,12 @@
 }
 @media (min-width: 900px) {
   .navItem {
-    height: 46px;
-    padding: 0 14px;
-    border-radius: 14px;
-    font-size: 14px;
-    min-height: 44px;
-    gap: 10px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    min-height: 40px;
+    gap: 8px;
   }
 }
 @media (hover: hover) {
@@ -156,12 +156,12 @@
 }
 @media (min-width: 900px) {
   .navItemActive {
-    height: 46px;
-    padding: 0 14px;
-    border-radius: 14px;
-    font-size: 14px;
-    min-height: 44px;
-    gap: 10px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    min-height: 40px;
+    gap: 8px;
   }
 }
 
@@ -186,13 +186,13 @@
 }
 @media (min-width: 900px) {
   .navLogout {
-    height: 46px;
-    padding: 0 14px;
-    border-radius: 14px;
-    font-size: 14px;
-    min-height: 44px;
-    gap: 10px;
-    margin-top: 8px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    min-height: 40px;
+    gap: 8px;
+    margin-top: 6px;
   }
 }
 
@@ -207,8 +207,8 @@
 }
 @media (min-width: 640px) {
   .content {
-    border-radius: 24px;
-    padding: 32px 36px;
+    border-radius: 20px;
+    padding: 24px 28px;
     box-shadow: 0 8px 24px rgba(43, 33, 27, 0.06);
   }
 }
@@ -217,15 +217,15 @@
 .sectionHeading {
   font-family: "Noto Sans TC", sans-serif;
   font-weight: 700;
-  font-size: 22px;
+  font-size: 18px;
   letter-spacing: 0.04em;
   color: #5a3f2b;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 @media (min-width: 640px) {
   .sectionHeading {
-    font-size: 28px;
-    margin-bottom: 10px;
+    font-size: 22px;
+    margin-bottom: 8px;
   }
 }
 
@@ -1384,11 +1384,11 @@
 
 /* ── 新版個人資料表單 ── */
 .formDivider {
-  width: 72px;
-  height: 3px;
+  width: 56px;
+  height: 2px;
   border-radius: 999px;
   background: linear-gradient(90deg, #d7b78e, #efe2cf);
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .formGrid {
@@ -1399,22 +1399,22 @@
 .formRow {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px 0;
+  gap: 5px;
+  padding: 12px 0;
   border-bottom: 1px solid rgba(74, 52, 39, 0.08);
 }
 @media (min-width: 640px) {
   .formRow {
     display: grid;
-    grid-template-columns: 110px 1fr;
+    grid-template-columns: 90px 1fr;
     align-items: center;
-    gap: 20px;
-    padding: 20px 0;
+    gap: 16px;
+    padding: 14px 0;
   }
 }
 
 .formLabel {
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(63, 47, 36, 0.56);
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -1427,11 +1427,11 @@
 
 .formInput {
   width: 100%;
-  height: 50px;
-  border-radius: 12px;
+  height: 44px;
+  border-radius: 10px;
   border: 1px solid rgba(74, 52, 39, 0.12);
   background: #fffdfa;
-  padding: 0 42px 0 14px;
+  padding: 0 38px 0 12px;
   font-size: 16px;
   color: #3f2f24;
   outline: none;
@@ -1443,7 +1443,7 @@
   border-color: rgba(74, 52, 39, 0.32);
 }
 @media (min-width: 640px) {
-  .formInput { height: 52px; font-size: 15px; }
+  .formInput { height: 46px; font-size: 14px; }
 }
 
 /* date input: no right padding, let browser icon show */
@@ -1469,34 +1469,34 @@
 }
 
 .formFooter {
-  margin-top: 24px;
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
 }
 @media (min-width: 640px) {
   .formFooter { align-items: center; }
 }
 
 .savePrimaryBtn {
-  min-width: 180px;
-  height: 50px;
+  min-width: 150px;
+  height: 44px;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #c6a37a;
   color: #fff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.10em;
   cursor: pointer;
-  padding: 0 36px;
+  padding: 0 28px;
   font-family: "Noto Sans TC", sans-serif;
   transition: opacity 0.2s;
 }
 .savePrimaryBtn:hover { opacity: 0.84; }
 @media (min-width: 640px) {
-  .savePrimaryBtn { min-width: 220px; height: 54px; font-size: 16px; }
+  .savePrimaryBtn { min-width: 180px; height: 46px; font-size: 15px; }
 }
 
 .privacyNote {
