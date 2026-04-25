@@ -56,6 +56,7 @@ export default function AdminMembersPage() {
   const [redeemForm,    setRedeemForm]    = useState({ ...EMPTY_REDEEM });
   const [savingRedeem,  setSavingRedeem]  = useState(false);
   const [products,      setProducts]      = useState<{ id: number; name: string; slug: string }[]>([]);
+  const [variants,      setVariants]      = useState<{ id: number; name: string; product_id: number }[]>([]);
 
   // 顧客統計
   const [stats, setStats] = useState({ total: 0, newThisMonth: 0, withOrders: 0, avgStamps: 0, stampsFull: 0, stampsInProgress: 0, topSpenders: [] as any[] });
@@ -98,8 +99,12 @@ export default function AdminMembersPage() {
   };
 
   const loadProducts = async () => {
-    const { data } = await supabase.from('products').select('id, name, slug').eq('is_available', true).order('sort_order');
-    setProducts(data ?? []);
+    const [{ data: prods }, { data: vars }] = await Promise.all([
+      supabase.from('products').select('id, name, slug').eq('is_available', true).order('sort_order'),
+      supabase.from('product_variants').select('id, name, product_id').eq('is_available', true).order('sort_order'),
+    ]);
+    setProducts(prods ?? []);
+    setVariants(vars ?? []);
   };
 
   const loadStats = async () => {
@@ -231,6 +236,8 @@ export default function AdminMembersPage() {
   const saveRedeemItem = async () => {
     if (!redeemForm.name) { alert('請填寫兌換品名稱'); return; }
     if (!redeemForm.product_id) { alert('請選擇對應商品'); return; }
+    const productVariants = variants.filter(v => v.product_id === redeemForm.product_id);
+    if (productVariants.length > 0 && !redeemForm.variant_id) { alert('請選擇商品規格'); return; }
     setSavingRedeem(true);
     const data = {
       ...redeemForm,
@@ -487,6 +494,23 @@ export default function AdminMembersPage() {
                       選擇對應的實際商品，顧客結帳時會以此商品計算出貨日期與庫存
                     </div>
                   </div>
+
+                  {/* 規格選擇（商品有規格時顯示） */}
+                  {redeemForm.product_id > 0 && variants.filter(v => v.product_id === redeemForm.product_id).length > 0 && (
+                    <div>
+                      <label className={s.label}>規格 *</label>
+                      <select
+                        value={redeemForm.variant_id}
+                        onChange={e => setRedeemForm({...redeemForm, variant_id: Number(e.target.value)})}
+                        className={s.select}
+                      >
+                        <option value={0}>請選擇規格</option>
+                        {variants.filter(v => v.product_id === redeemForm.product_id).map(v => (
+                          <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className={s.grid2}>
                     <div>
                       <label className={s.label}>所需章數</label>
