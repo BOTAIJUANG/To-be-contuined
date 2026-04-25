@@ -22,7 +22,7 @@
   right: 0;
   bottom: 0;
   width: 100%;
-  max-width: 520px;
+  max-width: 440px;
   background: #f7f3ee;
   z-index: 301;
   transform: translateX(100%);
@@ -37,20 +37,20 @@
 
 /* ── Header ── */
 .cartHeader {
-  padding: 24px 24px 20px;
+  padding: 18px 20px 14px;
   border-bottom: 1px solid rgba(74, 52, 39, 0.10);
   flex-shrink: 0;
 }
 @media (min-width: 640px) {
-  .cartHeader { padding: 28px 28px 22px; }
+  .cartHeader { padding: 22px 24px 16px; }
 }
 
 .cartEyebrow {
   font-family: "Montserrat", sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.28em;
   color: rgba(74, 52, 39, 0.65);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   text-transform: uppercase;
 }
 
@@ -58,32 +58,32 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .cartTitle {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #3f2f24;
 }
 @media (min-width: 640px) {
-  .cartTitle { font-size: 28px; }
+  .cartTitle { font-size: 22px; }
 }
 
 .cartCount {
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(63, 47, 36, 0.68);
-  margin-left: 6px;
+  margin-left: 5px;
 }
 
 .closeBtn {
   background: none;
   border: none;
-  font-size: 22px;
+  font-size: 20px;
   color: rgba(74, 52, 39, 0.45);
   padding: 4px;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 32px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,10 +94,10 @@
 
 /* 混購提示 */
 .mixedBanner {
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: #faf6ef;
   border-bottom: 1px solid rgba(125, 97, 72, 0.14);
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(63, 47, 36, 0.68);
   line-height: 1.8;
   flex-shrink: 0;
@@ -108,21 +108,21 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 20px 20px 28px;
+  padding: 14px 16px 20px;
 }
 
 .cartItemsInner {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 /* 空購物車 */
 .empty {
-  padding: 48px 20px;
+  padding: 40px 16px;
   text-align: center;
 }
-.emptyIcon { margin-bottom: 12px; }
+.emptyIcon { margin-bottom: 10px; }
 .emptyText {
   font-size: 13px;
   color: rgba(74, 52, 39, 0.45);
@@ -131,20 +131,20 @@
 /* ── 商品卡 ── */
 .cartItemCard {
   display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 14px;
-  padding: 14px;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid rgba(74, 52, 39, 0.09);
-  border-radius: 20px;
+  border-radius: 16px;
   background: #fffdf9;
-  box-shadow: 0 4px 14px rgba(43, 33, 27, 0.04);
+  box-shadow: 0 2px 10px rgba(43, 33, 27, 0.04);
 }
 @media (min-width: 640px) {
   .cartItemCard {
-    grid-template-columns: 120px 1fr;
-    gap: 18px;
-    padding: 18px;
-    border-radius: 24px;
+    grid-template-columns: 96px 1fr;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 18px;
   }
 }
 
@@ -154,18 +154,18 @@
 
 /* 商品圖 */
 .cartItemImageWrap {
-  width: 96px;
-  height: 96px;
-  border-radius: 14px;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
   overflow: hidden;
   background: #f2ece4;
   flex-shrink: 0;
 }
 @media (min-width: 640px) {
   .cartItemImageWrap {
-    width: 120px;
-    height: 120px;
-    border-radius: 18px;
+    width: 96px;
+    height: 96px;
+    border-radius: 14px;
   }
 }
 
@@ -186,40 +186,40 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cartItemTitle {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   color: #3f2f24;
   line-height: 1.4;
   word-break: break-word;
 }
 @media (min-width: 640px) {
-  .cartItemTitle { font-size: 17px; }
+  .cartItemTitle { font-size: 15px; }
 }
 
 .cartItemMeta {
-  margin-top: 6px;
-  font-size: 12px;
+  margin-top: 4px;
+  font-size: 11px;
   color: rgba(63, 47, 36, 0.62);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 /* 兌換品 badge */
 .redeemBadge {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 8px;
-  border-radius: 8px;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
   background: #f1f6ed;
   border: 1px solid rgba(122, 146, 109, 0.20);
   color: #7a926d;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  margin-left: 6px;
+  margin-left: 5px;
   vertical-align: middle;
 }
 
@@ -227,15 +227,15 @@
 .giftBadge {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 8px;
-  border-radius: 8px;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
   background: #f6f0fc;
   border: 1px solid rgba(110, 58, 142, 0.15);
   color: #6e3a8e;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  margin-left: 6px;
+  margin-left: 5px;
   vertical-align: middle;
 }
 
@@ -244,13 +244,13 @@
   border: none;
   background: transparent;
   color: rgba(74, 52, 39, 0.38);
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   line-height: 1;
-  min-width: 28px;
-  min-height: 28px;
+  min-width: 24px;
+  min-height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -260,7 +260,7 @@
   border: none;
   background: transparent;
   color: #bf4f4a;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   padding: 0;
@@ -271,111 +271,111 @@
 
 /* ── 數量控制器 ── */
 .qtyControl {
-  margin-top: 12px;
+  margin-top: 8px;
   display: inline-grid;
-  grid-template-columns: 44px 52px 44px;
+  grid-template-columns: 36px 44px 36px;
   border: 1px solid rgba(74, 52, 39, 0.14);
-  border-radius: 13px;
+  border-radius: 10px;
   overflow: hidden;
   width: fit-content;
   background: #faf7f2;
 }
 @media (min-width: 640px) {
   .qtyControl {
-    grid-template-columns: 56px 64px 56px;
-    border-radius: 16px;
-    margin-top: 14px;
+    grid-template-columns: 44px 52px 44px;
+    border-radius: 12px;
+    margin-top: 10px;
   }
 }
 
 .qtyBtn {
-  height: 46px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 15px;
   color: #5a4334;
   border: none;
   background: transparent;
   cursor: pointer;
 }
 @media (min-width: 640px) {
-  .qtyBtn { height: 54px; font-size: 20px; }
+  .qtyBtn { height: 44px; font-size: 17px; }
 }
 
 .qtyValue {
-  height: 46px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 13px;
   color: #5a4334;
   border-left: 1px solid rgba(74, 52, 39, 0.10);
   border-right: 1px solid rgba(74, 52, 39, 0.10);
 }
 @media (min-width: 640px) {
-  .qtyValue { height: 54px; font-size: 18px; }
+  .qtyValue { height: 44px; font-size: 15px; }
 }
 
 /* 價格 */
 .cartItemBottom {
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
 }
 
 .cartItemPrice {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 500;
   color: #3f2f24;
   letter-spacing: 0.02em;
 }
 @media (min-width: 640px) {
-  .cartItemPrice { font-size: 22px; }
+  .cartItemPrice { font-size: 18px; }
 }
 
 .cartItemFree {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 500;
   color: #7a926d;
 }
 @media (min-width: 640px) {
-  .cartItemFree { font-size: 22px; }
+  .cartItemFree { font-size: 18px; }
 }
 
 /* 贈品卡 */
 .giftCard {
   display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 14px;
-  padding: 14px;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+  padding: 12px;
   border: 1px solid rgba(110, 58, 142, 0.10);
-  border-radius: 20px;
+  border-radius: 16px;
   background: #fdf9ff;
-  box-shadow: 0 4px 14px rgba(43, 33, 27, 0.03);
+  box-shadow: 0 2px 10px rgba(43, 33, 27, 0.03);
 }
 @media (min-width: 640px) {
   .giftCard {
-    grid-template-columns: 120px 1fr;
-    gap: 18px;
-    padding: 18px;
-    border-radius: 24px;
+    grid-template-columns: 96px 1fr;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 18px;
   }
 }
 
 .giftPrice {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 500;
   color: #6e3a8e;
 }
 @media (min-width: 640px) {
-  .giftPrice { font-size: 22px; }
+  .giftPrice { font-size: 18px; }
 }
 
 .giftQty {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(63, 47, 36, 0.55);
 }
 
@@ -383,7 +383,7 @@
 .cartSummary {
   border-top: 1px solid rgba(74, 52, 39, 0.10);
   background: #fbf8f3;
-  padding: 18px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+  padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
 }
 
@@ -391,10 +391,10 @@
 .discountCard {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid rgba(74, 52, 39, 0.10);
-  border-radius: 16px;
+  border-radius: 12px;
   background: #fffdf9;
   margin-bottom: 4px;
 }
@@ -410,19 +410,19 @@
 }
 
 .discountTitle {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #3f2f24;
 }
 
 .discountMeta {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(63, 47, 36, 0.58);
 }
 
 .discountValue {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   color: #7a926d;
   flex-shrink: 0;
@@ -434,56 +434,56 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-top: 16px;
-  padding: 4px 2px;
+  margin-top: 12px;
+  padding: 2px 2px;
 }
 
 .subtotalLabel {
-  font-size: 16px;
+  font-size: 14px;
   color: #3f2f24;
 }
 
 .subtotalValue {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 500;
   color: #2f231b;
 }
 @media (min-width: 640px) {
-  .subtotalValue { font-size: 30px; }
+  .subtotalValue { font-size: 26px; }
 }
 
 /* 結帳按鈕 */
 .checkoutBtn {
   width: 100%;
-  min-height: 58px;
-  margin-top: 14px;
+  min-height: 50px;
+  margin-top: 12px;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   background: linear-gradient(90deg, #3f2a1c 0%, #5d3b24 100%);
   color: #fbf7f1;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.12em;
   cursor: pointer;
 }
 @media (min-width: 640px) {
   .checkoutBtn {
-    min-height: 68px;
-    font-size: 18px;
-    border-radius: 18px;
+    min-height: 56px;
+    font-size: 16px;
+    border-radius: 16px;
   }
 }
 
 /* 清空購物車 */
 .clearCartBtn {
   width: 100%;
-  min-height: 50px;
-  margin-top: 10px;
-  border-radius: 13px;
+  min-height: 42px;
+  margin-top: 8px;
+  border-radius: 11px;
   border: 1px solid rgba(74, 52, 39, 0.12);
   background: #fffdf9;
   color: rgba(63, 47, 36, 0.52);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -494,11 +494,11 @@
 
 /* 結帳鎖定提示 */
 .lockedNotice {
-  padding: 10px 14px;
-  margin-bottom: 10px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
   background: #faf6ef;
   border: 1px solid rgba(125, 97, 72, 0.16);
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 11px;
   color: rgba(63, 47, 36, 0.62);
   text-align: center;
@@ -516,49 +516,41 @@
 /* ── 極小螢幕（< 360px，iPhone SE 1st gen 等）── */
 @media (max-width: 359px) {
   .cartHeader {
-    padding: 18px 16px 16px;
+    padding: 14px 14px 12px;
   }
   .cartItems {
-    padding: 14px 14px 22px;
+    padding: 10px 12px 16px;
   }
   .cartSummary {
-    padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px));
   }
-  .cartItemCard {
-    grid-template-columns: 76px 1fr;
-    gap: 10px;
-    padding: 12px;
-  }
+  .cartItemCard,
   .giftCard {
-    grid-template-columns: 76px 1fr;
-    gap: 10px;
-    padding: 12px;
+    grid-template-columns: 68px 1fr;
+    gap: 8px;
+    padding: 10px;
   }
   .cartItemImageWrap {
-    width: 76px;
-    height: 76px;
-    border-radius: 11px;
+    width: 68px;
+    height: 68px;
+    border-radius: 10px;
   }
   .qtyControl {
-    grid-template-columns: 36px 44px 36px;
+    grid-template-columns: 30px 38px 30px;
   }
   .qtyBtn {
-    height: 40px;
-    font-size: 15px;
-  }
-  .qtyValue {
-    height: 40px;
+    height: 34px;
     font-size: 14px;
   }
-  .cartItemPrice,
-  .cartItemFree {
-    font-size: 16px;
+  .qtyValue {
+    height: 34px;
+    font-size: 12px;
   }
   .checkoutBtn {
-    min-height: 52px;
-    font-size: 15px;
+    min-height: 46px;
+    font-size: 14px;
   }
   .clearCartBtn {
-    min-height: 44px;
+    min-height: 38px;
   }
 }
