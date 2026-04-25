@@ -236,8 +236,6 @@ export default function AdminMembersPage() {
   const saveRedeemItem = async () => {
     if (!redeemForm.name) { alert('請填寫兌換品名稱'); return; }
     if (!redeemForm.product_id) { alert('請選擇對應商品'); return; }
-    const productVariants = variants.filter(v => v.product_id === redeemForm.product_id);
-    if (productVariants.length > 0 && !redeemForm.variant_id) { alert('請選擇商品規格'); return; }
     setSavingRedeem(true);
     const data = {
       ...redeemForm,
