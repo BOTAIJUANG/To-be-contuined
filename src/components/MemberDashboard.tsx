@@ -165,7 +165,8 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
     setRewardVariants([]);
     setShowRedeemModal(true);
 
-    if (type === 'online' && item.product_id) {
+    // 只有管理者「沒有」指定規格時，才讓顧客自己選
+    if (type === 'online' && item.product_id && !item.variant_id) {
       supabase
         .from('product_variants')
         .select('id, name, is_available')
