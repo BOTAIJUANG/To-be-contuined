@@ -310,6 +310,14 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
     loadAddresses();
   };
 
+  const tabIcons = {
+    profile: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
+    stamps:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    orders:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
+    address: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+    logout:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  };
+
   return (
     <div className={s.layout}>
 
@@ -325,9 +333,17 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         <nav className={s.nav}>
           {(['profile', 'stamps', 'orders', 'address'] as const).map(tab => {
             const labels = { profile: '個人資料', stamps: '集章紀錄', orders: '訂單記錄', address: '收件地址' };
-            return <span key={tab} className={activeTab === tab ? s.navItemActive : s.navItem} onClick={() => setActiveTab(tab)}>{labels[tab]}</span>;
+            return (
+              <button key={tab} className={activeTab === tab ? s.navItemActive : s.navItem} onClick={() => setActiveTab(tab)}>
+                {tabIcons[tab]}
+                {labels[tab]}
+              </button>
+            );
           })}
-          <span onClick={onLogout} className={s.navLogout}>登出</span>
+          <button onClick={onLogout} className={s.navLogout}>
+            {tabIcons.logout}
+            登出
+          </button>
         </nav>
       </div>
 
@@ -337,20 +353,39 @@ export default function MemberDashboard({ userId, userName, onLogout }: MemberDa
         {activeTab === 'profile' && (
           <div>
             <h2 className={s.sectionHeading}>個人資料</h2>
-            <div className={s.profileForm}>
-              {[
-                { label: '姓名', type: 'text', val: name, set: setName, ph: '請輸入姓名' },
-                { label: '手機號碼', type: 'tel', val: phone, set: setPhone, ph: '09XXXXXXXX' },
-                { label: '生日', type: 'date', val: birthday, set: setBirthday, ph: '' },
-              ].map(({ label, type, val, set, ph }) => (
-                <div key={label} className={s.fieldGroup}>
-                  <label className={s.label}>{label}</label>
-                  <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph} className={s.input} />
+            <div className={s.formDivider} />
+            <div className={s.formGrid}>
+              <div className={s.formRow}>
+                <label className={s.formLabel}>姓名</label>
+                <div className={s.inputWrap}>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="請輸入姓名" className={s.formInput} />
+                  <span className={s.inputIcon}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </span>
                 </div>
-              ))}
-              <button onClick={handleSaveProfile} className={s.saveBtn}>
-                儲存變更
-              </button>
+              </div>
+              <div className={s.formRow}>
+                <label className={s.formLabel}>手機號碼</label>
+                <div className={s.inputWrap}>
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="09XXXXXXXX" className={s.formInput} />
+                  <span className={s.inputIcon}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div className={s.formRow}>
+                <label className={s.formLabel}>生日</label>
+                <div className={s.inputWrap}>
+                  <input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={s.formInputDate} />
+                </div>
+              </div>
+            </div>
+            <div className={s.formFooter}>
+              <button onClick={handleSaveProfile} className={s.savePrimaryBtn}>儲存變更</button>
+              <p className={s.privacyNote}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                我們重視您的隱私，資料僅供內部使用
+              </p>
             </div>
           </div>
         )}

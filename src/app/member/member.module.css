@@ -15,8 +15,10 @@
   width: 100%;
   max-width: calc(var(--max) + var(--gutter) * 2);
   margin: 0 auto;
-  padding: 40px var(--gutter);
+  padding: 24px var(--gutter) 48px;
+  background: #f0ebe3;
+  min-height: calc(100vh - 90px);
 }
 @media (min-width: 768px) {
-  .container { padding: 72px var(--gutter) 40px; }
+  .container { padding: 40px var(--gutter) 56px; }
 }
