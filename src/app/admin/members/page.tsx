@@ -259,6 +259,13 @@ export default function AdminMembersPage() {
 
   const deleteRedeem = async (id: number) => {
     if (!confirm('確定要刪除？')) return;
+    const { count } = await supabase
+      .from('redemptions').select('id', { count: 'exact', head: true })
+      .eq('reward_id', id).in('status', ['pending_cart', 'pending_order', 'used']);
+    if ((count ?? 0) > 0) {
+      alert(`此兌換品有 ${count} 筆兌換記錄，無法刪除。若要停止兌換，請改為「停用」。`);
+      return;
+    }
     const { error } = await supabase.from('redeem_items').delete().eq('id', id);
     if (error) { alert('刪除失敗：' + error.message); return; }
     setRedeemItems(prev => prev.filter(r => r.id !== id));

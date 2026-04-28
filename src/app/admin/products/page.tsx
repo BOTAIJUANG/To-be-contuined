@@ -507,8 +507,11 @@ export default function AdminProductsPage() {
     // 無訂單 → 正常刪除所有關聯資料
     await supabase.from('product_specs').delete().eq('product_id', prod.id);
     await supabase.from('product_ship_dates').delete().eq('product_id', prod.id);
+    await supabase.from('inventory').delete().eq('product_id', prod.id);
     await supabase.from('product_variants').delete().eq('product_id', prod.id);
     await supabase.from('preorder_batches').delete().eq('product_id', prod.id);
+    await supabase.from('promotion_products').delete().eq('product_id', prod.id);
+    await supabase.from('promotion_bundle_items').delete().eq('product_id', prod.id);
     const { error } = await supabase.from('products').delete().eq('id', prod.id);
     if (error) { alert('刪除失敗：' + error.message); return; }
     setProducts(prev => prev.filter(x => x.id !== prod.id));
@@ -516,6 +519,7 @@ export default function AdminProductsPage() {
 
   const handleCatDelete = async (id: number) => {
     if (!confirm('刪除分類後，底下的商品將失去分類連結，確定要刪除？')) return;
+    await supabase.from('products').update({ category_id: null }).eq('category_id', id);
     await supabase.from('categories').delete().eq('id', id);
     loadData();
   };

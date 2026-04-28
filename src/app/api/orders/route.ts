@@ -171,10 +171,10 @@ export async function POST(req: NextRequest) {
 
   const [productsRes, variantsRes, settingsRes, promosRes, couponRes] = await Promise.all([
     // 商品真實價格 + 出貨日驗證用欄位
-    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates, allow_home_ambient, allow_home_refrigerated, allow_home_frozen, allow_cvs_ambient, allow_cvs_frozen, allow_store_pickup').in('id', productIds),
+    supabaseAdmin.from('products').select('id, name, slug, price, image_url, is_available, is_sold_out, is_preorder, stock_mode, ship_start_date, ship_end_date, ship_blocked_dates, allow_home_ambient, allow_home_refrigerated, allow_home_frozen, allow_cvs_ambient, allow_cvs_frozen, allow_store_pickup').in('id', productIds),
     // 規格真實價格
     variantIds.length > 0
-      ? supabaseAdmin.from('product_variants').select('id, product_id, name, price, price_diff').in('id', variantIds)
+      ? supabaseAdmin.from('product_variants').select('id, product_id, name, price, price_diff, is_available').in('id', variantIds)
       : Promise.resolve({ data: [] as any[] }),
     // 運費設定
     supabaseAdmin.from('store_settings').select('*').eq('id', 1).single(),
@@ -248,6 +248,9 @@ export async function POST(req: NextRequest) {
     if (!product) {
       return NextResponse.json({ error: `商品 ID ${item.product_id} 不存在` }, { status: 400 });
     }
+    if (!item.is_redeem && !(product as any).is_available) {
+      return NextResponse.json({ error: `「${product.name}」目前已下架，無法購買` }, { status: 400 });
+    }
 
     const variant = item.variant_id ? variantsMap[item.variant_id] : null;
     if (item.variant_id && !variant) {
@@ -255,6 +258,9 @@ export async function POST(req: NextRequest) {
     }
     if (variant && variant.product_id !== item.product_id) {
       return NextResponse.json({ error: `規格 ID ${item.variant_id} 不屬於商品 ID ${item.product_id}` }, { status: 400 });
+    }
+    if (variant && !(variant as any).is_available) {
+      return NextResponse.json({ error: `「${product.name}」的此規格目前已停售` }, { status: 400 });
     }
     const variantPrice = variant
       ? (variant.price ?? (product.price + (variant.price_diff ?? 0)))

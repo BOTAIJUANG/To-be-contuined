@@ -118,7 +118,7 @@ async function handleCreate({
   // 1. 取得兌換獎勵
   const { data: reward } = await supabase
     .from("redeem_items")
-    .select("id, name, stamps, is_active")
+    .select("id, name, stamps, is_active, product_id, variant_id")
     .eq("id", reward_id)
     .single();
 
@@ -127,6 +127,30 @@ async function handleCreate({
       { error: "此兌換獎勵不存在或已停用" },
       { status: 400 },
     );
+  }
+
+  // 1.5 線上兌換：確認商品庫存足夠（避免章數凍結後結帳失敗）
+  if (type === "online" && reward.product_id) {
+    let invQuery = supabase
+      .from("inventory")
+      .select("stock, reserved, inventory_mode, max_preorder, reserved_preorder")
+      .eq("product_id", reward.product_id);
+    invQuery = reward.variant_id
+      ? (invQuery as any).eq("variant_id", reward.variant_id)
+      : (invQuery as any).is("variant_id", null);
+    const { data: inv } = await (invQuery as any).maybeSingle();
+    if (inv) {
+      const available =
+        inv.inventory_mode === "preorder"
+          ? (inv.max_preorder ?? 0) - (inv.reserved_preorder ?? 0)
+          : (inv.stock ?? 0) - (inv.reserved ?? 0);
+      if (available < 1) {
+        return NextResponse.json(
+          { error: "此兌換品目前庫存不足，請稍後再試或聯繫客服" },
+          { status: 400 },
+        );
+      }
+    }
   }
 
   // 2. 取得會員章數

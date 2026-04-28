@@ -127,7 +127,7 @@ export default function AdminPromotionsPage() {
     setFormEndAt(promo.end_at?.slice(0, 16) ?? '');
 
     if (promo.type === 'volume') {
-      setFormVolumeProducts(promo.promotion_products?.map(pp => pp.product_id) ?? []);
+      setFormVolumeProducts(promo.promotion_products?.map(pp => pp.product_id).filter(productExists) ?? []);
       setFormTiers(
         promo.promotion_volume_tiers?.sort((a, b) => a.sort_order - b.sort_order).map(t => ({ min_qty: t.min_qty, price: t.price }))
         ?? [{ min_qty: 1, price: 0 }]
@@ -137,12 +137,12 @@ export default function AdminPromotionsPage() {
       setFormBundlePrice(promo.bundle_price ?? 0);
       setFormBundleRepeatable(promo.bundle_repeatable);
       setFormBundleItems(
-        promo.promotion_bundle_items?.map(bi => ({ product_id: bi.product_id, qty: bi.qty }))
+        promo.promotion_bundle_items?.filter(bi => productExists(bi.product_id)).map(bi => ({ product_id: bi.product_id, qty: bi.qty }))
         ?? [{ product_id: 0, qty: 1 }]
       );
     }
     if (promo.type === 'gift') {
-      setFormGiftProducts(promo.promotion_products?.map(pp => pp.product_id) ?? []);
+      setFormGiftProducts(promo.promotion_products?.map(pp => pp.product_id).filter(productExists) ?? []);
       setFormGiftProductId(promo.gift_product_id ?? 0);
       setFormGiftVariantId(promo.gift_variant_id ?? null);
       setFormGiftQty(promo.gift_qty ?? 1);
@@ -235,12 +235,16 @@ export default function AdminPromotionsPage() {
   // ── 刪除 ───────────────────────────────────────
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`確定刪除活動「${name}」？此操作無法復原。`)) return;
+    await supabase.from('promotion_products').delete().eq('promotion_id', id);
+    await supabase.from('promotion_volume_tiers').delete().eq('promotion_id', id);
+    await supabase.from('promotion_bundle_items').delete().eq('promotion_id', id);
     await supabase.from('promotions').delete().eq('id', id);
     loadData();
   };
 
-  // ── 取得商品名稱 ────────────────────────────────
-  const getProductName = (id: number) => products.find(prod => prod.id === id)?.name ?? `ID:${id}`;
+  // ── 取得商品名稱（找不到代表已刪除）────────────────
+  const getProductName = (id: number) => products.find(prod => prod.id === id)?.name ?? null;
+  const productExists = (id: number) => products.some(prod => prod.id === id);
 
   // ── 判斷活動時效 ────────────────────────────────
   const getTimeStatus = (promo: Promotion) => {
@@ -462,8 +466,8 @@ export default function AdminPromotionsPage() {
                   <td className={s.td}>{promo.name}</td>
                   <td className={`${s.td} ${p.tdProductList}`}>
                     {tab === 'bundle'
-                      ? promo.promotion_bundle_items?.map(bi => `${getProductName(bi.product_id)}×${bi.qty}`).join(' + ')
-                      : promo.promotion_products?.map(pp => getProductName(pp.product_id)).join('、') || '—'
+                      ? promo.promotion_bundle_items?.filter(bi => productExists(bi.product_id)).map(bi => `${getProductName(bi.product_id)}×${bi.qty}`).join(' + ') || '—'
+                      : promo.promotion_products?.filter(pp => productExists(pp.product_id)).map(pp => getProductName(pp.product_id)).join('、') || '—'
                     }
                   </td>
                   {tab === 'volume' && (
@@ -478,7 +482,7 @@ export default function AdminPromotionsPage() {
                   )}
                   {tab === 'gift' && (
                     <td className={`${s.td} ${p.tdSmallMuted}`}>
-                      買 {promo.gift_condition_qty} 送 {getProductName(promo.gift_product_id ?? 0)} ×{promo.gift_qty}
+                      買 {promo.gift_condition_qty} 送 {getProductName(promo.gift_product_id ?? 0) ?? '（已刪除）'} ×{promo.gift_qty}
                     </td>
                   )}
                   <td className={`${s.td} ${p.tdTimeStatus}`}>
@@ -545,7 +549,7 @@ export default function AdminPromotionsPage() {
                   <div className={s.cardRow}>
                     <span className={s.cardLabel}>贈品</span>
                     <span className={`${s.cardValue} ${p.cardValueSmall}`}>
-                      買 {promo.gift_condition_qty} 送 {getProductName(promo.gift_product_id ?? 0)} ×{promo.gift_qty}
+                      買 {promo.gift_condition_qty} 送 {getProductName(promo.gift_product_id ?? 0) ?? '（已刪除）'} ×{promo.gift_qty}
                     </span>
                   </div>
                 )}
