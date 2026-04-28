@@ -567,7 +567,7 @@ export default function AdminProductsPage() {
               <div className={s.formGrid}>
                 <div><label className={s.label}>商品名稱（中文）*</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="例：杜拜Q餅" className={`${s.input} ${p.inputFull}`} /></div>
                 <div><label className={s.label}>商品英文名</label><input value={form.name_en} onChange={e => setForm({...form, name_en: e.target.value})} placeholder="例：DUBAI Q-BING" className={`${s.input} ${p.inputFull}`} /></div>
-                <div><label className={s.label}>網址 slug * （只能英文和 -）</label><input value={form.slug} onChange={e => setForm({...form, slug: e.target.value})} placeholder="例：dubai-qbing" className={`${s.input} ${p.inputFull}`} /></div>
+                <div><label className={s.label}>網址 slug * （只能英文、數字和 -）</label><input value={form.slug} onChange={e => setForm({...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')})} placeholder="例：dubai-qbing" className={`${s.input} ${p.inputFull}`} /></div>
                 <div><label className={s.label}>售價（NT$）*</label><input type="number" value={form.price} onChange={e => setForm({...form, price: Number(e.target.value)})} className={`${s.input} ${p.inputFull}`} /></div>
                 <div><label className={s.label}>分類</label><select value={form.category_id} onChange={e => setForm({...form, category_id: Number(e.target.value)})} className={`${s.select} ${p.inputFull}`}>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                 <div className={s.formGridFull}><label className={s.label}>商品描述</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} className={s.textarea} /></div>
@@ -957,7 +957,7 @@ export default function AdminProductsPage() {
               <h3 className={s.formTitle}>{editingCatId ? '編輯分類' : '新增分類'}</h3>
               <div className={`${s.formGrid} ${p.formGridMb}`}>
                 <div><label className={s.label}>分類名稱 *</label><input value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})} placeholder="例：Q餅系列" className={`${s.input} ${p.inputFull}`} /></div>
-                <div><label className={s.label}>網址 slug * （只能英文和 -）</label><input value={catForm.slug} onChange={e => setCatForm({...catForm, slug: e.target.value})} placeholder="例：q-bing" className={`${s.input} ${p.inputFull}`} /></div>
+                <div><label className={s.label}>網址 slug * （只能英文、數字和 -）</label><input value={catForm.slug} onChange={e => setCatForm({...catForm, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')})} placeholder="例：q-bing" className={`${s.input} ${p.inputFull}`} /></div>
               </div>
               <div className={s.btnActions}>
                 <button onClick={handleCatSave} disabled={savingCat} className={s.btnSave}>{savingCat ? '儲存中...' : '儲存'}</button>

@@ -57,7 +57,7 @@ async function getStoreSettings() {
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug: rawSlug } = await params;
-  const slug = decodeURIComponent(rawSlug);
+  const slug = decodeURIComponent(rawSlug).trim();
   const [product, storeSettings] = await Promise.all([getProduct(slug), getStoreSettings()]);
   const promos = product ? await getProductPromotions(product.id) : [];
   if (!product) notFound();

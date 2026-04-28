@@ -36,7 +36,8 @@ async function getCategoryWithProducts(slug: string) {
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug).trim();
   const [result, categories, storeSettings] = await Promise.all([
     getCategoryWithProducts(slug),
     getCategories(),
