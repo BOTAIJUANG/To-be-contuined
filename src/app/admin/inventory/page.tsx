@@ -578,10 +578,6 @@ export default function AdminInventoryPage() {
                         const closed = [0,1,2,3,4,5,6].filter(d => !present.has(d));
                         if (closed.length > 0 && closed.length < 7) closedDaysStr = `週${closed.map(d => dayNames[d]).join('、')}休`;
                       }
-                      // 截單時間
-                      const ctC: Record<string, number> = {};
-                      dates.forEach((d: any) => { const c = d.cutoff_time ?? '17:00'; ctC[c] = (ctC[c] ?? 0) + 1; });
-                      const topCt = Object.entries(ctC).sort((a, b) => b[1] - a[1])[0][0];
                       const totalReserved = dates.reduce((s: number, d: any) => s + (d.reserved ?? 0), 0);
                       const isExpanded = expandedShipProducts.has(pid);
 
@@ -610,8 +606,6 @@ export default function AdminInventoryPage() {
                               <span style={{ margin: '0 6px', color: 'var(--text-light)' }}>/</span>
                               每日 {topCap} 份
                               {closedDaysStr && <><span style={{ margin: '0 6px', color: 'var(--text-light)' }}>/</span><span style={{ color: '#c0392b' }}>{closedDaysStr}</span></>}
-                              <span style={{ margin: '0 6px', color: 'var(--text-light)' }}>/</span>
-                              截單 {topCt}
                               {totalReserved > 0 && <span style={{ marginLeft: 8, color: '#b87a2a' }}>（已預約 {totalReserved}）</span>}
                             </td>
                             <td className={s.td}>

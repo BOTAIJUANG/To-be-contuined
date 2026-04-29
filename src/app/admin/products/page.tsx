@@ -695,14 +695,10 @@ export default function AdminProductsPage() {
                     const closed = [0,1,2,3,4,5,6].filter(d => !presentDays.has(d));
                     if (closed.length > 0 && closed.length < 7) closedStr = `週${closed.map(d => dayNames[d]).join('、')}不開放`;
                   }
-                  // 截單時間
-                  const ctCounts: Record<string, number> = {};
-                  shipDates.forEach(d => { const c = d.cutoff_time ?? '17:00'; ctCounts[c] = (ctCounts[c] ?? 0) + 1; });
-                  const topCt = Object.entries(ctCounts).sort((a, b) => b[1] - a[1])[0][0];
                   // 開放 / 關閉數量
                   const openCount = shipDates.filter(d => d.is_open).length;
                   const closedCount = shipDates.length - openCount;
-                  return { range, topCap, closedStr, topCt, total: shipDates.length, openCount, closedCount };
+                  return { range, topCap, closedStr, total: shipDates.length, openCount, closedCount };
                 })();
 
                 return (
