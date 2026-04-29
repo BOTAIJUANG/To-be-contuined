@@ -83,6 +83,13 @@
   min-width: unset;
 }
 
+/* ── Batch search input ── */
+.batchSearchInput {
+  width: auto;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
 /* ── Selection count label ── */
 .selectionCount {
   font-size: 12px;

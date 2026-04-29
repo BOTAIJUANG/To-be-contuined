@@ -89,7 +89,9 @@ export default function AdminNotificationsPage() {
   const [alerts,        setAlerts]        = useState<any[]>([]);
   const [batchOrders,   setBatchOrders]   = useState<any[]>([]);
   const [selectedOrders,setSelectedOrders]= useState<Set<string>>(new Set());
-  const [batchFilter,   setBatchFilter]   = useState('');
+  const [batchFilter,      setBatchFilter]      = useState('');
+  const [batchSearchInput, setBatchSearchInput] = useState('');
+  const [batchSearch,      setBatchSearch]      = useState('');
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [templates,     setTemplates]     = useState<EmailTemplate[]>(DEFAULT_TEMPLATES);
   const [batchSubject,  setBatchSubject]  = useState('');
@@ -148,17 +150,31 @@ export default function AdminNotificationsPage() {
     loadAlerts();
   }, [tab]);
 
+  // 搜尋防抖（350ms）
+  useEffect(() => {
+    const t = setTimeout(() => setBatchSearch(batchSearchInput), 350);
+    return () => clearTimeout(t);
+  }, [batchSearchInput]);
+
   // ── 載入批次發送訂單 ──────────────────────────
   useEffect(() => {
     if (tab !== 'batch') return;
     const loadOrders = async () => {
-      const q = supabase.from('orders').select('order_no, buyer_name, buyer_email, status, pay_status, order_items(name)').order('created_at', { ascending: false }).limit(50);
-      if (batchFilter) q.eq('status', batchFilter);
+      let q = supabase.from('orders')
+        .select('order_no, buyer_name, buyer_email, status, pay_status, order_items(name)')
+        .order('created_at', { ascending: false });
+      if (batchFilter) q = q.eq('status', batchFilter);
+      if (batchSearch.trim()) {
+        const term = batchSearch.trim();
+        q = q.or(`order_no.ilike.%${term}%,buyer_name.ilike.%${term}%`);
+      } else {
+        q = q.limit(50);
+      }
       const { data } = await q;
       setBatchOrders(data ?? []);
     };
     loadOrders();
-  }, [tab, batchFilter]);
+  }, [tab, batchFilter, batchSearch]);
 
   const handleSendBatch = async () => {
     if (selectedOrders.size === 0) { alert('請選擇訂單'); return; }
@@ -355,6 +371,13 @@ export default function AdminNotificationsPage() {
               <option value="shipped">已出貨</option>
               <option value="done">已完成</option>
             </select>
+            <input
+              type="text"
+              value={batchSearchInput}
+              onChange={e => setBatchSearchInput(e.target.value)}
+              placeholder="搜尋訂單號或姓名…"
+              className={`${s.input} ${p.batchSearchInput}`}
+            />
             <button onClick={() => setSelectedOrders(new Set(batchOrders.map(o => o.order_no)))} className={s.btnSmall}>全選</button>
             <button onClick={() => setSelectedOrders(new Set())} className={s.btnSmall}>取消全選</button>
             <span className={p.selectionCount}>已選 {selectedOrders.size} 筆</span>

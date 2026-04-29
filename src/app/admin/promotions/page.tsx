@@ -86,7 +86,7 @@ export default function AdminPromotionsPage() {
         .select('*, promotion_products(product_id), promotion_volume_tiers(*), promotion_bundle_items(*)')
         .eq('type', tab)
         .order('created_at', { ascending: false }),
-      supabase.from('products').select('id, name, price').order('name'),
+      supabase.from('products').select('id, name, price').eq('is_available', true).order('name'),
     ]);
     setPromotions(promos ?? []);
     setProducts(prods ?? []);
