@@ -19,37 +19,6 @@
   .title { font-size: 26px; margin-bottom: 36px; }
 }
 
-/* ── Dashboard tabs ── */
-.dashTabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 24px;
-  border-bottom: 2px solid #ece4d8;
-}
-.dashTab {
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-light);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  font-family: "Noto Sans TC", sans-serif;
-  letter-spacing: 0.05em;
-}
-.dashTabActive {
-  composes: dashTab;
-  color: #5a3e2b;
-  font-weight: 700;
-  border-bottom-color: #5a3e2b;
-}
-@media (hover: hover) {
-  .dashTab:hover { color: #5a3e2b; }
-}
-
 /* ── Notice cards ── */
 .alertCard {
   border-radius: 18px;
