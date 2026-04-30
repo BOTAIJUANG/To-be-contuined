@@ -311,41 +311,43 @@ export default function AdminInventoryPage() {
     // 抓所有上架商品 + 規格
     const { data: allProducts } = await supabase
       .from('products').select('id, is_preorder, stock_mode, product_variants(id, is_available)').eq('is_available', true);
-    // 抓所有現有庫存
-    const { data: allInv } = await supabase.from('inventory').select('product_id, variant_id');
-    const invSet = new Set((allInv ?? []).map(i => `${i.product_id}_${i.variant_id ?? 'null'}`));
+    // 抓所有現有庫存（含 id 與 inventory_mode，供比對與更新）
+    const { data: allInv } = await supabase.from('inventory').select('id, product_id, variant_id, inventory_mode');
+    const invMap = new Map((allInv ?? []).map(i => [`${i.product_id}_${i.variant_id ?? 'null'}`, i]));
 
     let created = 0;
+    let updated = 0;
     for (const prod of (allProducts ?? [])) {
       // date_mode 商品使用 product_ship_dates 管理，不需建 inventory 記錄
       if ((prod as any).stock_mode === 'date_mode') continue;
       const mode = prod.is_preorder ? 'preorder' : 'stock';
       const variants = ((prod.product_variants ?? []) as any[]).filter(v => v.is_available);
-      if (variants.length > 0) {
-        for (const v of variants) {
-          if (!invSet.has(`${prod.id}_${v.id}`)) {
-            await supabase.from('inventory').insert({
-              product_id: prod.id, variant_id: v.id,
-              inventory_mode: mode, stock: 0, reserved: 0,
-              safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
-            });
-            created++;
-          }
-        }
-      } else {
-        if (!invSet.has(`${prod.id}_null`)) {
+      const keys = variants.length > 0
+        ? variants.map(v => ({ key: `${prod.id}_${v.id}`, variantId: v.id }))
+        : [{ key: `${prod.id}_null`, variantId: null }];
+
+      for (const { key, variantId } of keys) {
+        const existing = invMap.get(key);
+        if (!existing) {
           await supabase.from('inventory').insert({
-            product_id: prod.id, variant_id: null,
+            product_id: prod.id, variant_id: variantId,
             inventory_mode: mode, stock: 0, reserved: 0,
             safety_stock: 0, max_preorder: 0, reserved_preorder: 0,
           });
           created++;
+        } else if (existing.inventory_mode !== mode) {
+          // 商品的預購旗標已變更，同步更新 inventory_mode
+          await supabase.from('inventory').update({ inventory_mode: mode }).eq('id', existing.id);
+          updated++;
         }
       }
     }
     setSyncing(false);
     loadInventory();
-    alert(created > 0 ? `已補建 ${created} 筆庫存記錄` : '所有商品都已有庫存記錄，無需同步');
+    const parts = [];
+    if (created > 0) parts.push(`補建 ${created} 筆`);
+    if (updated > 0) parts.push(`更新模式 ${updated} 筆`);
+    alert(parts.length > 0 ? `同步完成：${parts.join('、')}` : '所有庫存記錄已是最新狀態');
   };
 
   // ── 原料 CRUD ─────────────────────────────────────
