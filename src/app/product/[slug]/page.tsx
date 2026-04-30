@@ -125,7 +125,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   })();
 
   // 日期模式：載入 product_ship_dates（套用 ship_min_days / ship_max_days）
-  const isDateMode = (product as any).stock_mode === 'date_mode';
+  // 預購商品走批次管理，不走 date_mode，避免兩個日期區塊同時出現
+  const isDateMode = !product.is_preorder && (product as any).stock_mode === 'date_mode';
   let shipDates: { id: number; ship_date: string; capacity: number; remaining: number }[] = [];
   if (isDateMode) {
     const { data: shipSettings } = await supabaseAdmin
