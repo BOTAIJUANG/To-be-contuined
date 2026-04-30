@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
   const rtnCode         = params.RtnCode;
   const tradeNo         = params.TradeNo ?? '';
   const paymentDate     = params.PaymentDate ?? '';
+  const paidAtISO = paymentDate
+    ? paymentDate.replace(/^(\d{4})\/(\d{2})\/(\d{2}) /, '$1-$2-$3T') + '+08:00'
+    : undefined;
 
   // 還原訂單編號（加回 -）
   // 格式是 WB(2碼) + YYYYMMDD(8碼) = 前10碼 + '-' + 後6碼（忽略重試後綴）
@@ -74,7 +77,7 @@ export async function POST(req: NextRequest) {
           .update({
             pay_status:     'paid',
             ecpay_trade_no: tradeNo,
-            paid_at:        paymentDate,
+            paid_at:        paidAtISO,
           })
           .eq('id', order.id);
 

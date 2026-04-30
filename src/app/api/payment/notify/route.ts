@@ -51,7 +51,11 @@ export async function POST(req: NextRequest) {
   const rtnCode         = params.RtnCode;          // 付款結果代碼（1 = 成功）
   const rtnMsg          = params.RtnMsg;           // 付款結果訊息
   const tradeNo         = params.TradeNo;          // 綠界的交易編號
-  const paymentDate     = params.PaymentDate;      // 付款時間
+  const paymentDate     = params.PaymentDate;      // 付款時間（綠界台灣時間 YYYY/MM/DD HH:mm:ss）
+  // 轉成帶時區的 ISO 字串，避免 PostgreSQL 將其視為 UTC
+  const paidAtISO = paymentDate
+    ? paymentDate.replace(/^(\d{4})\/(\d{2})\/(\d{2}) /, '$1-$2-$3T') + '+08:00'
+    : undefined;
   const paymentType     = params.PaymentType;      // 付款方式
   const tradeAmt        = params.TradeAmt;         // 交易金額
 
@@ -96,7 +100,7 @@ export async function POST(req: NextRequest) {
       .update({
         pay_status:     'paid',
         ecpay_trade_no: tradeNo,
-        paid_at:        paymentDate,
+        paid_at:        paidAtISO,
       })
       .eq('id', order.id)
       .eq('pay_status', 'pending')
