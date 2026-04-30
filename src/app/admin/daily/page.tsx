@@ -1,6 +1,6 @@
 'use client';
 
-// app/admin/daily/page.tsx  ──  當日儀表板
+// app/admin/daily/page.tsx  ──  當日 / 隔日儀表板
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -16,55 +16,9 @@ const SHIP_LABEL: Record<string, string> = {
   home: '宅配', cvs_711: '7-11取貨',
 };
 
-export default function AdminDailyPage() {
-  const router = useRouter();
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
+interface PrepRow { total: number; variants: { name: string; qty: number }[] }
 
-  const [orders,         setOrders]         = useState<any[]>([]);
-  const [expandedOrder,  setExpandedOrder]  = useState<number | null>(null);
-  const [lowStockItems,  setLowStockItems]  = useState<any[]>([]);
-  const [lowIngredients, setLowIngredients] = useState<any[]>([]);
-  const [loading,        setLoading]        = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      const [{ data: todayOrders }, { data: invData }, { data: ingData }] = await Promise.all([
-        supabase
-          .from('orders')
-          .select('*, order_items(name, qty, price, variant_name_snapshot, product_name_snapshot)')
-          .eq('ship_date', today)
-          .eq('pay_status', 'paid')
-          .neq('status', 'cancelled')
-          .order('created_at', { ascending: false }),
-        supabase.from('inventory').select('*, products(name, is_preorder)').gt('safety_stock', 0),
-        supabase.from('ingredients').select('id, name, stock, safety_stock, unit').gt('safety_stock', 0),
-      ]);
-
-      setOrders(todayOrders ?? []);
-
-      // 排除預購商品與預購模式；兩者皆由預購系統管理
-      const low = (invData ?? []).filter((i: any) => {
-        if (i.inventory_mode !== 'stock') return false;
-        if (i.products?.is_preorder) return false;
-        return (i.stock - i.reserved) <= i.safety_stock;
-      });
-      setLowStockItems(low);
-
-      const lowIng = (ingData ?? []).filter((i: any) => Number(i.stock) <= Number(i.safety_stock));
-      setLowIngredients(lowIng);
-
-      setLoading(false);
-    };
-    load();
-  }, []);
-
-  // 統計
-  const totalQty    = orders.reduce((sum, o) => sum + (o.order_items?.reduce((q: number, i: any) => q + i.qty, 0) ?? 0), 0);
-  const totalRevenue = orders.filter(o => o.pay_status === 'paid').reduce((sum, o) => sum + o.total, 0);
-  const pendingShip  = orders.filter(o => o.status === 'processing' && o.pay_status === 'paid').length;
-
-  // 各商品小計（依商品名稱分組，規格並列）
-  interface PrepRow { total: number; variants: { name: string; qty: number }[] }
+function buildPrepList(orders: any[]) {
   const prepMap: Record<string, PrepRow> = {};
   orders.forEach(o => {
     (o.order_items ?? []).forEach((item: any) => {
@@ -79,16 +33,82 @@ export default function AdminDailyPage() {
       }
     });
   });
-  const prepList = Object.entries(prepMap).sort(([a], [b]) => a.localeCompare(b, 'zh-TW'));
+  return Object.entries(prepMap).sort(([a], [b]) => a.localeCompare(b, 'zh-TW'));
+}
+
+export default function AdminDailyPage() {
+  const router  = useRouter();
+  const twFmt   = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(d);
+  const today   = twFmt(new Date());
+  const tomorrow = twFmt(new Date(Date.now() + 86400000));
+
+  const [tab, setTab] = useState<'today' | 'tomorrow'>('today');
+
+  const [todayOrders,    setTodayOrders]    = useState<any[]>([]);
+  const [tomorrowOrders, setTomorrowOrders] = useState<any[]>([]);
+  const [lowStockItems,  setLowStockItems]  = useState<any[]>([]);
+  const [lowIngredients, setLowIngredients] = useState<any[]>([]);
+  const [expandedOrder,  setExpandedOrder]  = useState<number | null>(null);
+  const [loading,        setLoading]        = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const orderQuery = (date: string) =>
+        supabase
+          .from('orders')
+          .select('*, order_items(name, qty, price, variant_name_snapshot, product_name_snapshot)')
+          .eq('ship_date', date)
+          .eq('pay_status', 'paid')
+          .neq('status', 'cancelled')
+          .order('created_at', { ascending: false });
+
+      const [{ data: tod }, { data: tmr }, { data: invData }, { data: ingData }] = await Promise.all([
+        orderQuery(today),
+        orderQuery(tomorrow),
+        supabase.from('inventory').select('*, products(name, is_preorder)').gt('safety_stock', 0),
+        supabase.from('ingredients').select('id, name, stock, safety_stock, unit').gt('safety_stock', 0),
+      ]);
+
+      setTodayOrders(tod ?? []);
+      setTomorrowOrders(tmr ?? []);
+
+      const low = (invData ?? []).filter((i: any) => {
+        if (i.inventory_mode !== 'stock') return false;
+        if (i.products?.is_preorder) return false;
+        return (i.stock - i.reserved) <= i.safety_stock;
+      });
+      setLowStockItems(low);
+      setLowIngredients((ingData ?? []).filter((i: any) => Number(i.stock) <= Number(i.safety_stock)));
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const isToday  = tab === 'today';
+  const orders   = isToday ? todayOrders : tomorrowOrders;
+  const dateStr  = isToday ? today : tomorrow;
+  const dayLabel = isToday ? '今日' : '明日';
+
+  const totalQty     = orders.reduce((sum, o) => sum + (o.order_items?.reduce((q: number, i: any) => q + i.qty, 0) ?? 0), 0);
+  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const pendingShip  = orders.filter(o => o.status === 'processing').length;
+  const prepList     = buildPrepList(orders);
 
   if (loading) return <p className={s.loadingText}>載入中...</p>;
 
   return (
     <div>
       <h1 className={s.pageTitle}>當日儀表板</h1>
-      <p className={p.dateLabel}>{today}</p>
 
-      {/* ── 低庫存警示 ── */}
+      {/* ── Tab 切換 ── */}
+      <div className={s.tabBar}>
+        <div className={tab === 'today'    ? s.tabActive : s.tab} onClick={() => { setTab('today');    setExpandedOrder(null); }}>當日總覽</div>
+        <div className={tab === 'tomorrow' ? s.tabActive : s.tab} onClick={() => { setTab('tomorrow'); setExpandedOrder(null); }}>隔日總覽</div>
+      </div>
+
+      <p className={p.dateLabel}>{dateStr}</p>
+
+      {/* ── 低庫存警示（共用） ── */}
       {lowStockItems.length > 0 && (
         <div className={s.warningBar}>
           <div className={p.warningTitle}>商品庫存警示</div>
@@ -105,7 +125,6 @@ export default function AdminDailyPage() {
           })}
         </div>
       )}
-
       {lowIngredients.length > 0 && (
         <div className={s.warningBar}>
           <div className={p.warningTitle}>原料庫存警示</div>
@@ -123,15 +142,12 @@ export default function AdminDailyPage() {
       {/* ── 統計卡片 ── */}
       <div className={s.statGrid}>
         {[
-          { label: '今日出貨單數', value: orders.length, onClick: undefined },
-          { label: '待出貨（已付款）', value: pendingShip, alert: pendingShip > 0, onClick: () => {
-            const t = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
-            router.push(`/admin/orders?dateStart=${t}&dateEnd=${t}&pay=paid&status=processing`);
-          } },
-          { label: '今日總件數',   value: totalQty, onClick: undefined },
-          { label: '今日營收',     value: `NT$ ${totalRevenue.toLocaleString()}`, onClick: undefined },
+          { label: `${dayLabel}出貨單數`,    value: orders.length,   alert: false, onClick: undefined },
+          { label: '待出貨（已付款）',        value: pendingShip,     alert: pendingShip > 0, onClick: () => router.push('/admin/orders?pay=paid&status=processing') },
+          { label: `${dayLabel}總件數`,      value: totalQty,        alert: false, onClick: undefined },
+          { label: `${dayLabel}營收`,        value: `NT$ ${totalRevenue.toLocaleString()}`, alert: false, onClick: undefined },
         ].map(({ label, value, alert, onClick }) => (
-          <div key={label} className={`${s.statCard} ${alert ? p.statCardAlert : ''}`} onClick={onClick}>
+          <div key={label} className={`${s.statCard} ${alert ? p.statCardAlert : ''}`} onClick={onClick ?? undefined}>
             <div className={s.statLabel}>
               {label} {onClick && <span className={p.statArrow}>→</span>}
             </div>
@@ -143,7 +159,7 @@ export default function AdminDailyPage() {
       {/* ── 商品小計 ── */}
       {prepList.length > 0 && (
         <>
-          <div className={s.sectionTitle}>今日需備料</div>
+          <div className={s.sectionTitle}>{dayLabel}需備料</div>
           <div className={p.prepSection}>
             {prepList.map(([name, row]) => (
               <div key={name} className={p.prepRow}>
@@ -163,14 +179,13 @@ export default function AdminDailyPage() {
         </>
       )}
 
-      {/* ── 今日訂單列表 ── */}
-      <div className={s.sectionTitle}>今日出貨單明細</div>
+      {/* ── 訂單列表 ── */}
+      <div className={s.sectionTitle}>{dayLabel}出貨單明細</div>
       <div className={`${s.tableWrap} ${p.tableBlock}`}>
         {orders.length === 0 ? (
-          <p className={p.emptyMsg}>今日無出貨訂單</p>
+          <p className={p.emptyMsg}>{dayLabel}無出貨訂單</p>
         ) : orders.map((order, i) => (
           <div key={order.id} className={i < orders.length - 1 ? p.orderBorder : undefined}>
-            {/* 訂單標題列 */}
             <div
               onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
               className={p.orderHeader}
@@ -191,7 +206,6 @@ export default function AdminDailyPage() {
                 <span className={p.toggleIcon}>{expandedOrder === order.id ? '▲' : '▼'}</span>
               </div>
             </div>
-            {/* 展開明細 */}
             {expandedOrder === order.id && (
               <div className={p.orderExpanded}>
                 <div className={p.orderDetail}>
