@@ -155,11 +155,14 @@ export function calculatePromotions(
     // 不可重複套用時只算 1 組
     const applySets = promo.bundle_repeatable ? maxSets : Math.min(maxSets, 1);
 
-    // 計算一組的原價
+    // 計算一組的原價（加權平均，支援同商品混搭不同規格）
     let originalOneSet = 0;
     for (const bi of promo.bundle_items) {
-      const item = items.find(i => i.product_id === bi.product_id);
-      if (item) originalOneSet += item.price * bi.qty;
+      const matching = items.filter(i => i.product_id === bi.product_id);
+      const totalQty  = matching.reduce((s, i) => s + i.qty, 0);
+      const totalCost = matching.reduce((s, i) => s + i.price * i.qty, 0);
+      const avgPrice  = totalQty > 0 ? totalCost / totalQty : 0;
+      originalOneSet += Math.round(avgPrice * bi.qty);
     }
 
     const saved = (originalOneSet - promo.bundle_price) * applySets;
