@@ -1,12 +1,13 @@
 'use client';
 
-// app/admin/daily/page.tsx  ──  當日 / 隔日儀表板
+// app/admin/daily/page.tsx  ──  當日 / 隔日 / 任意日期儀表板
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import s from '../_shared/admin-shared.module.css';
 import p from './daily.module.css';
+import AdminDatePicker from '../_shared/AdminDatePicker';
 
 const STATUS_LABEL: Record<string, string> = { processing: '處理中', shipped: '已出貨', done: '已完成', cancelled: '已取消' };
 const STATUS_COLOR: Record<string, string> = { processing: '#b87a2a', shipped: '#2a7ab8', done: '#2ab85a', cancelled: '#888580' };
@@ -42,26 +43,29 @@ export default function AdminDailyPage() {
   const today   = twFmt(new Date());
   const tomorrow = twFmt(new Date(Date.now() + 86400000));
 
-  const [tab, setTab] = useState<'today' | 'tomorrow'>('today');
+  const [tab, setTab] = useState<'today' | 'tomorrow' | 'custom'>('today');
+  const [customDate,    setCustomDate]    = useState(today);
+  const [customLoading, setCustomLoading] = useState(false);
 
   const [todayOrders,    setTodayOrders]    = useState<any[]>([]);
   const [tomorrowOrders, setTomorrowOrders] = useState<any[]>([]);
+  const [customOrders,   setCustomOrders]   = useState<any[]>([]);
   const [lowStockItems,  setLowStockItems]  = useState<any[]>([]);
   const [lowIngredients, setLowIngredients] = useState<any[]>([]);
   const [expandedOrder,  setExpandedOrder]  = useState<number | null>(null);
   const [loading,        setLoading]        = useState(true);
 
+  const orderQuery = (date: string) =>
+    supabase
+      .from('orders')
+      .select('*, order_items(name, qty, price, variant_name_snapshot, product_name_snapshot)')
+      .eq('ship_date', date)
+      .eq('pay_status', 'paid')
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false });
+
   useEffect(() => {
     const load = async () => {
-      const orderQuery = (date: string) =>
-        supabase
-          .from('orders')
-          .select('*, order_items(name, qty, price, variant_name_snapshot, product_name_snapshot)')
-          .eq('ship_date', date)
-          .eq('pay_status', 'paid')
-          .neq('status', 'cancelled')
-          .order('created_at', { ascending: false });
-
       const [{ data: tod }, { data: tmr }, { data: invData }, { data: ingData }] = await Promise.all([
         orderQuery(today),
         orderQuery(tomorrow),
@@ -84,10 +88,20 @@ export default function AdminDailyPage() {
     load();
   }, []);
 
-  const isToday  = tab === 'today';
-  const orders   = isToday ? todayOrders : tomorrowOrders;
-  const dateStr  = isToday ? today : tomorrow;
-  const dayLabel = isToday ? '今日' : '明日';
+  useEffect(() => {
+    if (tab !== 'custom' || !customDate) return;
+    const load = async () => {
+      setCustomLoading(true);
+      const { data } = await orderQuery(customDate);
+      setCustomOrders(data ?? []);
+      setCustomLoading(false);
+    };
+    load();
+  }, [tab, customDate]);
+
+  const orders   = tab === 'today' ? todayOrders : tab === 'tomorrow' ? tomorrowOrders : customOrders;
+  const dateStr  = tab === 'today' ? today : tab === 'tomorrow' ? tomorrow : customDate;
+  const dayLabel = tab === 'today' ? '今日' : tab === 'tomorrow' ? '明日' : customDate;
 
   const totalQty     = orders.reduce((sum, o) => sum + (o.order_items?.reduce((q: number, i: any) => q + i.qty, 0) ?? 0), 0);
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
@@ -104,9 +118,20 @@ export default function AdminDailyPage() {
       <div className={s.tabBar}>
         <div className={tab === 'today'    ? s.tabActive : s.tab} onClick={() => { setTab('today');    setExpandedOrder(null); }}>當日總覽</div>
         <div className={tab === 'tomorrow' ? s.tabActive : s.tab} onClick={() => { setTab('tomorrow'); setExpandedOrder(null); }}>隔日總覽</div>
+        <div className={tab === 'custom'   ? s.tabActive : s.tab} onClick={() => { setTab('custom');   setExpandedOrder(null); }}>任意日期</div>
       </div>
 
-      <p className={p.dateLabel}>{dateStr}</p>
+      {tab === 'custom' ? (
+        <div className={p.customDateRow}>
+          <span className={p.customDateLabel}>查詢出貨日期</span>
+          <AdminDatePicker value={customDate} onChange={val => { setCustomDate(val); setExpandedOrder(null); }} />
+        </div>
+      ) : (
+        <p className={p.dateLabel}>{dateStr}</p>
+      )}
+
+      {customLoading && <p className={s.loadingText}>載入中...</p>}
+      {!customLoading && tab === 'custom' && <p className={p.dateLabel}>{customDate}</p>}
 
       {/* ── 低庫存警示（共用） ── */}
       {lowStockItems.length > 0 && (

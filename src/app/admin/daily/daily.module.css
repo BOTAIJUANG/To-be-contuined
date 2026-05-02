@@ -8,6 +8,21 @@
   letter-spacing: 0.1em;
 }
 
+.customDateRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.customDateLabel {
+  font-size: 12px;
+  color: var(--text-light);
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .warningTitle {
   font-weight: 600;
   margin-bottom: 8px;
