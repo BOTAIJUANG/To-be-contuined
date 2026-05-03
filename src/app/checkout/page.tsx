@@ -466,6 +466,14 @@ export default function CheckoutPage() {
 
     // A0. 全日期模式 → 已在商品頁選好出貨日，直接用
     if (allDateMode && dateModeDates.length > 0) {
+      if (dateModeDates.length > 1) {
+        // 不同商品選了不同出貨日，無法同一天出貨
+        setNoIntersection(true);
+        setIntersectionMsg('購物車中的每日接單商品選擇了不同的出貨日期，請回商品頁重新選擇，讓所有商品在同一天出貨。');
+        setAvailableDates([]);
+        setDatesLoading(false);
+        return;
+      }
       setAvailableDates(dateModeDates);
       setDate(dateModeDates[0]);
       setDatesLoading(false);
@@ -511,19 +519,31 @@ export default function CheckoutPage() {
 
     let dates: string[] = data.dates ?? [];
 
-    // 混購：過濾掉 < unifiedShipDate 的日期
+    // 混購：過濾掉 < unifiedShipDate 的日期（預購混購用）
     if (hasMixed && unifiedShipDate) {
       dates = dates.filter((d: string) => d >= unifiedShipDate);
     }
 
-    // 判斷順序：先看 API 本身是否回報無交集，再看混購過濾後是否為空
+    // 日期模式 + 總量模式混購：stock_mode 可選日期必須符合 date_mode 已選出貨日
+    const dateModeSelectedDates = effectiveItems
+      .filter(i => !i.isPreorder && (i as any).shipDateId && (i as any).shipDate)
+      .map(i => (i as any).shipDate as string);
+    const uniqueDateModeDates = [...new Set(dateModeSelectedDates)];
+    if (uniqueDateModeDates.length > 0) {
+      dates = dates.filter(d => uniqueDateModeDates.includes(d));
+    }
+
     if (data.noIntersection) {
       setNoIntersection(true);
       setIntersectionMsg(data.reason ?? '商品無共同可出貨日期');
       setAvailableDates([]);
-    } else if (hasMixed && dates.length === 0) {
+    } else if (dates.length === 0) {
       setNoIntersection(true);
-      setIntersectionMsg('商品的出貨時間不同，無法安排同一天出貨，請將商品分開下單。');
+      setIntersectionMsg(
+        uniqueDateModeDates.length > 0
+          ? '每日接單商品的出貨日與一般商品無共同可出貨日期，請分開下單。'
+          : '商品的出貨時間不同，無法安排同一天出貨，請將商品分開下單。'
+      );
       setAvailableDates([]);
     } else {
       setAvailableDates(dates);

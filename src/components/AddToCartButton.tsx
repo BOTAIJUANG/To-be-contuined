@@ -323,10 +323,7 @@ export default function AddToCartButton({ product, variantId, variantName }: Add
                 <span className={s.dateItemLabel}>{fmtDate(d.ship_date)}</span>
               </div>
               <div className={s.dateItemRight}>
-                {isFull
-                  ? <span className={s.dateItemFullTag}>已額滿</span>
-                  : <span className={s.dateItemRemaining}>剩餘 {d.remaining} 份</span>
-                }
+                {isFull && <span className={s.dateItemFullTag}>已額滿</span>}
               </div>
             </div>
           );
