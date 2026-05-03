@@ -469,7 +469,7 @@ export default function CheckoutPage() {
       if (dateModeDates.length > 1) {
         // 不同商品選了不同出貨日，無法同一天出貨
         setNoIntersection(true);
-        setIntersectionMsg('購物車中的每日接單商品選擇了不同的出貨日期，請回商品頁重新選擇，讓所有商品在同一天出貨。');
+        setIntersectionMsg('這些商品目前無法安排同一天出貨。請返回商品頁選擇相同的出貨日期，或將不同日期的商品分開結帳。');
         setAvailableDates([]);
         setDatesLoading(false);
         return;
@@ -535,15 +535,11 @@ export default function CheckoutPage() {
 
     if (data.noIntersection) {
       setNoIntersection(true);
-      setIntersectionMsg(data.reason ?? '商品無共同可出貨日期');
+      setIntersectionMsg('這些商品目前無法安排同一天出貨。請返回商品頁選擇相同的出貨日期，或將不同日期的商品分開結帳。');
       setAvailableDates([]);
     } else if (dates.length === 0) {
       setNoIntersection(true);
-      setIntersectionMsg(
-        uniqueDateModeDates.length > 0
-          ? '每日接單商品的出貨日與一般商品無共同可出貨日期，請分開下單。'
-          : '商品的出貨時間不同，無法安排同一天出貨，請將商品分開下單。'
-      );
+      setIntersectionMsg('這些商品目前無法安排同一天出貨。請返回商品頁選擇相同的出貨日期，或將不同日期的商品分開結帳。');
       setAvailableDates([]);
     } else {
       setAvailableDates(dates);
@@ -571,7 +567,7 @@ export default function CheckoutPage() {
     if (!finalCustomerName || !finalCustomerPhone || !finalCustomerEmail) { alert('請填寫收件人資訊'); return; }
     if (isHomeDelivery && (!city || !district || !address)) { alert('請填寫完整收件地址（縣市 + 區域 + 地址）'); return; }
     if (isCvsPickup && (!cvsStoreName || !cvsStoreAddr)) { alert('請先選擇取貨門市'); return; }
-    if (noIntersection) { alert('您的購物車商品無法安排在同一天出貨，請分開下單。'); return; }
+    if (noIntersection) { alert('這些商品目前無法安排同一天出貨。請返回商品頁選擇相同的出貨日期，或將不同日期的商品分開結帳。'); return; }
     if (!date && availableDates.length > 0) { alert('請選擇出貨日期'); return; }
     setStep(3);
   };
@@ -1024,7 +1020,6 @@ export default function CheckoutPage() {
             {/* 無交集：提示分開下單 */}
             {noIntersection ? (
               <div className={s.noIntersection}>
-                <div className={s.noIntersectionTitle}>無法安排同一天出貨</div>
                 <div className={s.noIntersectionMsg}>{intersectionMsg}</div>
               </div>
             ) : allDateMode && dateModeDates.length > 0 ? (
