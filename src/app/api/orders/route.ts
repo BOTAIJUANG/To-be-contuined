@@ -701,16 +701,31 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 如果訂單只有 ship_date_id 商品且 validDates 仍為 null，用其日期填充
+        // 確認所有 date_mode 商品出貨日期一致
+        const dateModeActualDates = body.items
+          .filter(i => i.ship_date_id)
+          .map(i => {
+            const r = (shipDatesData ?? []).find((d: any) => d.id === i.ship_date_id);
+            return r?.ship_date as string | undefined;
+          })
+          .filter((d): d is string => !!d);
+        const uniqueDateModeActualDates = [...new Set(dateModeActualDates)];
+
+        if (uniqueDateModeActualDates.length > 1) {
+          return NextResponse.json(
+            { error: '購物車中的每日接單商品選擇了不同的出貨日期，請重新選擇' },
+            { status: 400 },
+          );
+        }
+
         if (validDates === null) {
-          const dateModeShipDates = body.items
-            .filter(i => i.ship_date_id)
-            .map(i => {
-              const r = (shipDatesData ?? []).find((d: any) => d.id === i.ship_date_id);
-              return r?.ship_date as string;
-            })
-            .filter(Boolean);
-          validDates = new Set(dateModeShipDates);
+          // 純 date_mode 訂單：用實際日期填充 validDates
+          validDates = new Set(uniqueDateModeActualDates);
+        } else {
+          // date_mode + stock_mode 混購：縮小 validDates 到 date_mode 的出貨日
+          for (const d of validDates) {
+            if (!uniqueDateModeActualDates.includes(d)) validDates.delete(d);
+          }
         }
       }
 
