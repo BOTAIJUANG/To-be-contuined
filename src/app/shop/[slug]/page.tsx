@@ -27,7 +27,7 @@ async function getCategoryWithProducts(slug: string) {
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, categories(name)')
+    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, stock_mode, categories(name)')
     .eq('category_id', category.id)
     .eq('is_available', true)
     .order('sort_order');
@@ -66,6 +66,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     });
 
     const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
+    const dateModeIds = new Set(products.filter((p: any) => p.stock_mode === 'date_mode').map((p: any) => p.id));
 
     if (preorderIds.size > 0) {
       const { data: batches } = await supabaseAdmin
@@ -82,7 +83,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     }
 
     for (const pid of productIds) {
-      if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+      if (!preorderIds.has(pid) && !dateModeIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }
   }
 

@@ -46,7 +46,7 @@ async function getPromotionProducts(): Promise<Product[]> {
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, categories(name)')
+    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, stock_mode, categories(name)')
     .eq('is_available', true)
     .in('id', Array.from(productIds))
     .order('sort_order');
@@ -54,6 +54,7 @@ async function getPromotionProducts(): Promise<Product[]> {
   const allProducts = products ?? [];
   const allProductIds = allProducts.map((p: any) => p.id);
   const preorderIds = new Set(allProducts.filter((p: any) => p.is_preorder).map((p: any) => p.id));
+  const dateModeIds = new Set(allProducts.filter((p: any) => p.stock_mode === 'date_mode').map((p: any) => p.id));
   const preorderHasAvail = new Set<number>();
   const soldOutSet = new Set<number>();
 
@@ -72,7 +73,7 @@ async function getPromotionProducts(): Promise<Product[]> {
     });
 
     for (const pid of allProductIds) {
-      if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+      if (!preorderIds.has(pid) && !dateModeIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }
   }
 

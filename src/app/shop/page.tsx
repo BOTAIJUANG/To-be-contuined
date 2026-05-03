@@ -17,7 +17,7 @@ async function getCategories() {
 async function getAllProducts(categories: { id: number }[]): Promise<Product[]> {
   const { data } = await supabase
     .from('products')
-    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, category_id, categories(name, sort_order)')
+    .select('id, name, slug, price, image_url, is_sold_out, is_preorder, stock_mode, category_id, categories(name, sort_order)')
     .eq('is_available', true)
     .order('sort_order');
 
@@ -45,7 +45,8 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
 
     // 沒有庫存記錄 或 可售數量 <= 0 → 售完
     // 預購商品：若所有批次都已額滿（reserved >= limit_qty）也標為售完
-    const preorderIds = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
+    const preorderIds  = new Set(products.filter((p: any) => p.is_preorder).map((p: any) => p.id));
+    const dateModeIds  = new Set(products.filter((p: any) => p.stock_mode === 'date_mode').map((p: any) => p.id));
 
     // 查詢預購批次
     if (preorderIds.size > 0) {
@@ -65,7 +66,7 @@ async function getAllProducts(categories: { id: number }[]): Promise<Product[]> 
     }
 
     for (const pid of productIds) {
-      if (!preorderIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
+      if (!preorderIds.has(pid) && !dateModeIds.has(pid) && (availableByProduct[pid] ?? 0) <= 0) soldOutSet.add(pid);
     }
   }
 
